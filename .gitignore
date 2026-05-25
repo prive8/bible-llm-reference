@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+.Python
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific (large binary data — not tracked)
+*.json.gz
+*.zip (except explicitly committed ones)
+kjv_strongs_flat.json
+
+# Node (if any)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Keep translations/ dir tracked but not the large JSON files individually
+# Use Git LFS or individual file tracking as appropriate

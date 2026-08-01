@@ -3,18 +3,17 @@
 > **Engineering handoff for the next agent (or future dad).**
 > Read this before touching the repo. It captures the project's
 > vision, current state, what's in the repo, conventions, and the
-> roadmap. It is co-equal with `agents.md` and `COUNCIL.md`:
+> roadmap. It is co-equal with `COUNCIL.md`:
 >
-> - **`agents.md`** — runtime contract for any agent that uses this
->   data (citation rules, Strong's policy, no-anthropomorphizing). Short.
 > - **`COUNCIL.md`** — governance constitution + pointer to the
 >   long-form design.
 > - **`HANDOFF.md`** (this file) — engineering context: vision,
->   what's in the repo, conventions, milestones.
+>   what's in the repo, conventions, milestones. The runtime
+>   contract for any agent using this data lives in §11 of this file.
 
-**Last updated:** 2026-07-31 (v0.3 — reconciled against the
-2026-07-31 Grok upgrade that landed Strong's support, packaging,
-and the lowercase `agents.md`)
+**Last updated:** 2026-07-31 (v0.4 — absorbed the `agents.md`
+runtime contract into §11; added etiquette files (CONTRIBUTING,
+SECURITY, CHANGELOG, .github/); README rewritten)
 **Repo:** `github.com/prive8/bible-llm-reference` (public)
 **Vision (father's words, 2026-07-31):**
 A working LLM that can represent all religions and belief structures
@@ -29,7 +28,7 @@ not a code rewrite.
 itself — to supplement believers' practice and ground them in the
 actual text. Not a "Text with Jesus" avatar. Not a self-help
 aphorism generator. The first product is a study / reflection tool,
-not a chat surface. See `agents.md` for the runtime contract that
+not a chat surface. See §11 below for the runtime contract that
 guarantees this framing.
 
 ---
@@ -122,7 +121,7 @@ layer must be designed so this is a config change.
   "compare them in a normative judgment."
 - **Not a source of doctrinal authority.** Citations carry weight, but
   this is a reference tool, not a substitute for clergy, scholars, or
-  community. The runtime framing (per `agents.md`) makes this
+  community. The runtime framing (per §11 below) makes this
   explicit.
 - **Not a commercial product.** Each data source has its own license
   (KJV public domain, Strong's CC-BY-SA, Bolls Bible API fair use).
@@ -166,9 +165,8 @@ layer must be designed so this is a config change.
 - `README.md` — user-facing, framed as "Bible Q&A dataset + tool."
   Frames the project as the Abrahamic / Christian slice of the larger
   Religion & Spirituality AI (per the Grok upgrade).
-- `agents.md` — runtime contract for any agent using this data
-  (Council mapping table + 5 contract rules + quick integration
-  example). **Co-equal with this file.**
+- (runtime contract for any agent using this data lives in §11
+  of this file — it is no longer a separate document)
 - `COUNCIL.md` — governance constitution (short stub). Links to the
   long-form design in `docs/governance/council-design.md`.
 - `docs/data-schema.md` — Authoritative schema doc with parallel-
@@ -180,8 +178,9 @@ layer must be designed so this is a config change.
   lexicon.)
 
 ### 4.4 Git history (current)
-- `61c9f0a` — Grok upgrade: bible-query rewrite + Strong's + agents.md
-  + LICENSE + pyproject.toml (2026-07-31).
+- `61c9f0a` — Grok upgrade: bible-query rewrite + Strong's +
+  runtime contract (originally in lowercase `agents.md`, since
+  absorbed into HANDOFF.md §11) + LICENSE + pyproject.toml (2026-07-31).
 - `42b9996` — Initial commit: KJV + 13 translations + Strong's
   lexicon.
 
@@ -209,7 +208,8 @@ shippable (the next day doesn't require the previous to be complete).
 - ⏸ `.gitignore` — verify it's complete: `__pycache__/`, `.venv/`,
   `*.pyc`, `kjv_training.jsonl` (the generated training file
   shouldn't be committed).
-- ✅ `agents.md` — runtime contract done.
+- ✅ Runtime contract done (originally in `agents.md`, since
+  absorbed into §11 of this file).
 
 ### Milestone 1 — multi-translation lookup (Days 2–3)
 
@@ -297,7 +297,7 @@ domain) and surface it through the lookup API.
 ```
 bible-llm-reference/
 ├── HANDOFF.md                     # this file
-├── agents.md                      # runtime contract (Grok draft)
+# (agents.md absorbed into HANDOFF.md §11 — no separate file)
 ├── COUNCIL.md                     # governance constitution (short stub)
 ├── README.md                      # user-facing
 ├── LICENSE                        # MIT (added 2026-07-31)
@@ -465,16 +465,17 @@ make this concrete.
    (per the Grok upgrade). The broader vision is in `COUNCIL.md`.
    A README rewrite is not urgent; do it after Milestone 1 so the
    new framing is grounded in shipped code.
-5. **`agents.md` lint.** The Grok draft has a malformed code block
-   in the quick-integration example (line 21 onward). Worth a small
-   fix; not blocking.
+5. (Resolved.) The original `agents.md` had a malformed code block
+   in the quick-integration example. That file was absorbed into §11
+   of this file, and the Python integration example was removed
+   (it was documentation noise, not a contract surface).
 
 ---
 
 ## 9. Companion docs
 
-- `agents.md` — runtime contract for any agent using this data.
-  Co-equal with this file.
+- (the runtime contract for any agent using this data is §11 of
+  this file — co-equal with the rest of the handoff)
 - `COUNCIL.md` — governance constitution (short stub).
 - `docs/governance/council-design.md` — long-form Council spec.
 - `docs/data-schema.md` — parallel-structure schema examples.
@@ -492,7 +493,7 @@ If you have 5 minutes:
 1. Read `README.md` — what's shipped
 2. Read this file's §1–§4 — vision, success state, what's in the repo
 3. Read `notes/<today>.md` — where the last worker left off
-4. Read `agents.md` — the runtime contract for any agent using this data
+4. Read §11 below — the runtime contract for any agent using this data
 5. Skim `COUNCIL.md` §3 — when the council forms (current state:
    single-contributor body under the principles)
 6. Skim `docs/data-schema.md` §6 — the cross-tradition summary table
@@ -501,8 +502,8 @@ If you have 5 minutes:
 If you have 30 minutes, add:
 7. Read `bible-query.py` — the retrieval primitive
 8. Run `python3 bible-query.py "John 3:16"` and trace what it does
-9. Read `agents.md` runtime contract — what an agent using this data
-   must do (citation rules, Strong's policy, no-anthropomorphizing)
+9. Read §11 below — the runtime contract for any agent using this data
+   (citation rules, Strong's policy, no-anthropomorphizing)
 10. Read `docs/governance/council-design.md` §2 — the target agent
     roster for Phase 2 (not yet implemented; don't code against it
     as if it were live)
@@ -522,3 +523,65 @@ If you're about to write code, also:
 
 If you're picking up `llm-from-scratch` for Phase 2 reference: that's
 a separate repo. Don't conflate.
+
+---
+
+## 11. Runtime contract for any agent using this data
+
+> This section was previously a separate `agents.md` file. It is
+> absorbed here as the runtime contract that binds any agent
+> (whether or not the Council has formed; whether the user is the
+> project owner or a downstream consumer). The contract is the
+> floor; the Council's role is to evolve the contract over time.
+> The file `agents.md` no longer exists; the contract is canonical
+> here.
+>
+> **Audience:** any agent that uses this data, including the
+> `bible-query.py` CLI, future Council-routed agents, and downstream
+> applications that consume the dataset.
+
+### 11.1 Council agents served by this repo (Abrahamic / Christian slice)
+
+| Council Agent          | How this repo is used                                      |
+|------------------------|------------------------------------------------------------|
+| abrahamic_guardian     | Primary retrieval source for all Protestant / Catholic / Orthodox queries |
+| historian_archivist    | Exact verse + Strong's provenance                          |
+| comparative_scholar    | Parallel passage lookup across versions                    |
+| ethicist_mediator      | Hard texts kept in full context (no soft-pedaling)         |
+
+The full 10-agent roster (when the Council forms) is in
+`docs/governance/council-design.md` §2. This repo serves the four
+agents above; the other six are out of scope until Phase 3 adds
+non-Abrahamic corpora.
+
+### 11.2 Runtime contract (the five rules)
+
+1. **Always cite exact reference + translation.** Every claim
+   grounded in a text must carry the citation (book/chapter/verse
+   or equivalent) and the translation source. No floating claims.
+2. **When Strong's is available, surface lemma + short gloss.**
+   For Hebrew and Greek words, include the lemma (original word)
+   and a brief gloss in line with the claim. Don't make the user
+   look it up separately.
+3. **Never invent verses or claim personal revelation.** Cite
+   only verses that exist in the source corpus. Never speak as
+   if reporting a personal spiritual experience or revelation.
+4. **Present internal diversity when relevant.** A tradition is
+   internally diverse. When the question touches a contested or
+   denomination-specific point, surface that diversity (Catholic vs.
+   Protestant readings, manuscript traditions, etc.) rather than
+   collapsing to one position.
+5. **Output is always "structured reference text", never "I am
+   speaking as Scripture".** The system outputs facts about the
+   text, formatted for the user. It does not impersonate the text,
+   a religious figure, or a spiritual authority.
+
+### 11.3 Pointer for downstream consumers
+
+If you fork this repo for the upstream Religion & Spirituality AI
+project, link it under the Abrahamic section of your `COUNCIL.md`:
+
+```markdown
+Data source: https://github.com/prive8/bible-llm-reference
+Use `bible-query.py` or the packaged retrieval helpers.
+```

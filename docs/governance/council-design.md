@@ -12,8 +12,8 @@
 > for legibility, per the daily-2026-07-31 review)
 > **Source of truth:** this document, until v1.0 lands.
 > **Read alongside:** [`COUNCIL.md`](../../COUNCIL.md) (the constitution),
-> [`HANDOFF.md`](../../HANDOFF.md) (engineering context),
-> [`agents.md`](../../agents.md) (runtime contract).
+> [`HANDOFF.md`](../../HANDOFF.md) (engineering context — and §11
+> for the runtime contract any agent that uses this data follows).
 
 ---
 
@@ -45,12 +45,12 @@ exists so that the data layer, retrieval API, and citation surface
 are designed in a way that agent mediation is a Phase 2 add-on, not
 a Phase 3 retrofit.
 
-The lowercase `agents.md` in the repo root is the **runtime contract**
-for any agent that uses this data — it covers the four agents that
-map to the Abrahamic / Christian slice (abrahamic_guardian,
-historian_archivist, comparative_scholar, ethicist_mediator). The
-roster below is the **full Council** that will exist when the
-Council forms, including the non-Abrahamic agents.
+`HANDOFF.md` §11 is the **runtime contract** for any agent that
+uses this data — it covers the four agents that map to the
+Abrahamic / Christian slice (abrahamic_guardian, historian_archivist,
+comparative_scholar, ethicist_mediator). The roster below is the
+**full Council** that will exist when the Council forms, including
+the non-Abrahamic agents.
 
 | Agent ID               | Domain Focus                                                                  | Primary Responsibility                            |
 |------------------------|-------------------------------------------------------------------------------|---------------------------------------------------|
@@ -179,8 +179,9 @@ parallel-structure examples.
 > **TODO:** This is the runtime contract that the main AI surface
 > follows. Phase 1 implements a deterministic subset (retrieval +
 > citation only). Phase 2 extends this to Council-routed answers.
-> The current `agents.md` in the repo root captures the existing
-> runtime contract for the four-agent Abrahamic slice.
+> `HANDOFF.md` §11 captures the existing runtime contract for the
+> four-agent Abrahamic slice (the binding contract below is the
+> future full Council version).
 
 - **The Council can be invoked on-demand** (the user asks for a
   specific kind of answer) **or by heuristic** (religious keywords,
@@ -218,9 +219,9 @@ parallel-structure examples.
   `COUNCIL.md` for legibility. Principles, agent roster, decision
   protocol, scoping guardrails, runtime behavior, and evolution
   rules carried over from v0.2-stub with light editing.
-  Coordination with `agents.md` clarified: `agents.md` is the
-  runtime contract for any agent that uses this data; this doc is
-  the long-form Council spec.
+  Coordination with `HANDOFF.md` §11 clarified: the runtime
+  contract for any agent that uses this data lives in §11 of the
+  engineering handoff; this doc is the long-form Council spec.
 - **v1.0** — drafted when a real Council is constituted. Every
   TODO in this document becomes either a real policy or is folded
   into v1.0 with rationale for why it was dropped.

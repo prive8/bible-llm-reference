@@ -1,176 +1,178 @@
 # Bible LLM Reference
 
-A public domain Bible dataset and reference tool designed for fast research and clarity. Built for developers, researchers, and translation teams who need structured Scriptural data for LLM training, toolbuilding, and study.
+A public-domain Bible dataset and reference tool for LLM training, retrieval, and research. This repository is the **canonical data + retrieval substrate** for the Abrahamic / Christian slice of the larger Religion & Spirituality AI project.
 
-## Core Design Principles
+> **Read first:** if you're an AI agent or new contributor, start with
+> [`HANDOFF.md`](./HANDOFF.md). It captures the project's vision,
+> current state, conventions, and the milestone roadmap. The
+> [`COUNCIL.md`](./COUNCIL.md) doc is the governance constitution.
 
-### Research Speed & Clarity
-Every decision in this project prioritizes **fast comprehension over aesthetic appeal**. Data is structured for direct machine access. No buried context. No ambiguity. When you query this dataset, you get answers with clear provenance.
+---
 
-### Grace and Truth Balance
-This tool is designed to avoid two failure modes:
-- **Sterile academic distance** — treating Scripture as mere text without weight
-- **Shallow positivity** — reducing the Bible to self-help aphorisms
+## What this is
 
-The data and tooling should support answers that are both **rigorous** and **pastorally honest**.
+Generates personalized, citation-grounded answers about the Bible across 13 translations and the Strong's Hebrew/Greek lexicon. Built for:
 
-### The Local Infrastructure Problem
-A massive push in the open-source Bible LLM space is optimizing models to run locally via Ollama/Proxmox on low-power hardware (Raspberry Pis, old PCs). This is vital for:
-- Translation teams operating in off-grid or restricted-access areas
-- Pastors without reliable internet
-- Ministries requiring data sovereignty
+- LLM training pipelines (corpus prep, JSONL export)
+- RAG / retrieval workflows (exact reference + keyword search)
+- Scholarly research (parallel passage lookup, original-language gloss)
+- Local-first inference (no mandatory cloud dependency)
 
-This project is infrastructure-agnostic. The data works with any LLM stack — cloud or local.
+**Not a chatbot.** This is a structured reference tool. Every output is grounded in a citation. See [`HANDOFF.md` §11](./HANDOFF.md#11-runtime-contract-for-any-agent-using-this-data) for the runtime contract that governs any agent using this data.
 
-## Unofficial "Rules of the Road"
+---
 
-The faith-tech development community (spearheaded by platforms like [faith.tools](https://faith.tools)) has rallied around ethical and functional guardrails that shape this project's product design:
+## Highlights
 
-### Do Not Anthropomorphize
-Apps that mimic historical figures or Jesus directly (e.g., "Text with Jesus") face heavy pushback for crossing a healthy boundary. This project makes it explicitly clear that users interact with a **computational tool**, not a spiritual entity. Every output should make it obvious you're working with structured text and software.
+- **13 translations** in normalized JSON: KJV (with Strong's tags), YLT, WEB, GNV, DRB, RSV, LUT, SYNOD, RV1960, CUV, UKRK, TISCH, LXX, WLCa
+- **Strong's Concordance** for Hebrew (H1–H8674) and Greek (G1–G5624), via Open Scriptures
+- **Exact reference parsing** — `John 3:16`, ranges (`John 3:16-18`), abbreviations (`1 Cor`, `Ps`)
+- **Keyword search** with multi-word scoring and primary/related ranking
+- **Strong's enrichment** on demand — `<S>1254</S>` tags expanded to lemma + short gloss
+- **JSON output** for downstream pipelines
+- **LLM-ready context block** — copy-paste formatted for RAG prompts
+- **100% local, zero new dependencies** — stdlib only (Python 3.9+)
 
-### Grace and Truth Balance (Expanded)
-Models built on this data must be tuned to avoid:
-- Sterile, overly critical academic analysis
-- Shallow, therapeutic "toxic positivity"
+---
 
-The Bible contains hard truths, difficult histories, and questions without easy answers. A Bible LLM tool should help users engage with all of it honestly.
-
-### Local-First Architecture
-Where possible, this project enables local-only operation. No mandatory cloud dependency. No telemetry. Data stays on your infrastructure.
-
-## What This Project Provides
-
-### Bible Text Data
-Structured JSON corpora for multiple public domain translations:
-
-| Translation | Code | Language | Notes |
-|-------------|------|----------|-------|
-| King James Version | KJV | English | 1769, with Strong's numbers |
-| Young's Literal Translation | YLT | English | 1898 |
-| World English Bible | WEB | English | public domain |
-| Geneva Bible | GNV | English | 1599 |
-| Douay-Rheims | DRB | English | 1609/1610 |
-| Revised Standard Version | RSV | English | 1952 |
-| Luther Bibel | LUT | German | 1912 |
-| Russian Synodal | SYNOD | Russian | 1876 |
-| Reina-Valera 1960 | RV1960 | Spanish | public domain |
-| Chinese Union Version | CUV | Chinese | public domain |
-| Ukrainian Bible | UKRK | Ukrainian | Kulykh, 1903 |
-| Tischendorf Greek NT | TISCH | Greek | 8th ed. 1869-72, Strong's |
-| Septuagint | LXX | Greek | 52 books |
-| Westminster Leningrad Codex | WLCa | Hebrew | with Strong's numbers |
-
-All files use a normalized nested structure:
-```json
-{
-  "translation": "King James Version (1769) with Strong's Numbers",
-  "books": [
-    {
-      "name": "Genesis",
-      "chapters": [
-        {"chapter": 1, "verses": [{"verse": 1, "text": "In the beginning..."}]}
-      ]
-    }
-  ]
-}
-```
-
-### Strong's Concordance
-Hebrew and Greek lexicon data (`strongs_data/`):
-- `hebrew/strongs-hebrew-dictionary.js` — H1–H8674 (8,674 entries)
-- `greek/strongs-greek-dictionary.js` — G1–G5624 (5,624 entries)
-
-Each entry includes:
-- Lemma (original word)
-- Transliteration
-- Pronunciation
-- Derivation
-- Strong's definition
-- KJV renderings
-
-### Query Tool
-`bible-query.py` — Loads the full KJV corpus, searches relevant passages by keyword, and formats results with verse citations. Drop-in ready for LLM pipelines.
-
-## Quick Start
+## Quick start
 
 ```bash
-# Query the KJV directly
-python3 bible-query.py "faith without works is dead"
+# Clone
+git clone https://github.com/prive8/bible-llm-reference.git
+cd bible-llm-reference
 
-# Search for a specific concept
-python3 bible-query.py "what does the Bible say about baptism"
+# Exact reference lookup
+python3 bible-query.py "John 3:16"
 
-# Load in your Python project
-import json
-with open('kjv.json') as f:
-    kjv = json.load(f)
-    genesis_1_1 = kjv['books'][0]['chapters'][0]['verses'][0]
-    print(genesis_1_1['text'])
+# Keyword search
+python3 bible-query.py "faith without works"
+
+# With Strong's enrichment
+python3 bible-query.py "John 3:16" --strongs
+
+# JSON output
+python3 bible-query.py "love" --json
+
+# Generate a flat JSONL for embedding / training
+python3 make_flat_training.py
+# Output: kjv_training.jsonl
+
+# Convert Strong's .js files to clean JSON
+python3 convert_strongs_to_json.py
+# Output: strongs_data/hebrew/strongs-hebrew.json + strongs_data/greek/strongs-greek.json
 ```
 
-## Data Sources
+### As a Python module
 
-- **KJV + Strong's**: Bolls Bible API (`bolls.life/api`) — free, no key required
-- **All other translations**: Bolls Bible API — same source, normalized
-- **Strong's lexicons**: Open Scriptures (`github.com/openscriptures/strongs`) — CC-BY-SA
+```python
+import json
+from pathlib import Path
 
-All data is public domain or permissively licensed. See individual source repositories for details.
+# Load the canonical KJV
+bible = json.loads(Path("kjv.json").read_text(encoding="utf-8"))
+genesis_1_1 = bible["books"][0]["chapters"][0]["verses"][0]
+print(genesis_1_1["text"])
+# "In the beginning God created the heaven and the earth."
+```
 
-## Project Structure
+---
+
+## Project structure
 
 ```
 bible-llm-reference/
-├── kjv.json                    # King James Version with Strong's tags
-├── kjv_strongs_flat.json       # Flat verse format (for NLP pipeline ingestion)
-├── bible-query.py              # Query CLI tool
-├── normalize.py                # JSON normalization utilities
-├── normalize_all.py            # Batch normalizer for all translations
-├── translations/                # Additional Bible versions (JSON)
-│   ├── YLT.json
-│   ├── WEB.json
-│   ├── GNV.json
-│   ├── RSV.json
-│   ├── LUT.json
-│   ├── SYNOD.json
-│   ├── RV1960.json
-│   ├── CUV.json
-│   ├── UKRK.json
-│   ├── TISCH.json
-│   ├── LXX.json
-│   └── WLCa.json
-└── strongs_data/               # Hebrew + Greek lexicon
-    ├── hebrew/
-    │   ├── strongs-hebrew-dictionary.js
-    │   ├── strongs-hebrew-spellings.dic
-    │   └── strongshebrew.dat
-    └── greek/
-        ├── strongs-greek-dictionary.js
-        ├── strongs-greek-spellings.dic
-        └── strongsgreek.dat
+├── HANDOFF.md                 # engineering handoff (vision, milestones, conventions)
+├── COUNCIL.md                 # governance constitution
+├── README.md                  # this file
+├── LICENSE                    # MIT
+├── CHANGELOG.md               # public API / data changes
+├── CONTRIBUTING.md            # how to contribute
+├── SECURITY.md                # reporting security issues
+├── pyproject.toml             # packaging
+├── bible-query.py             # CLI retrieval tool (exact refs + keyword + Strong's)
+├── convert_strongs_to_json.py # Strong's .js → JSON
+├── make_flat_training.py      # KJV → JSONL for training
+├── normalize.py               # JSON normalization (one translation)
+├── normalize_all.py           # batch normalizer
+├── kjv.json                   # King James Version + Strong's tags
+├── translations/              # 12 additional translations
+├── strongs_data/              # Hebrew + Greek lexicon
+├── docs/
+│   ├── data-schema.md         # parallel-structure schema for multi-tradition support
+│   └── governance/
+│       ├── council-design.md  # long-form Council spec
+│       ├── verdicts/          # (Council verdicts — when the Council forms)
+│       └── controversies/     # (Controversy Register — when the Council forms)
+└── .github/
+    ├── ISSUE_TEMPLATE/
+    └── PULL_REQUEST_TEMPLATE.md
 ```
 
-## Version Notes
+---
 
-- KJV text includes embedded Strong's numbers as `<S>nnnn</S>` tags for word-level Hebrew/Greek lookup
-- All translations normalized to the same JSON schema for easy cross-version comparison
-- Non-66-book translations (LXX, WLCa, etc.) retain their native book structure
+## Data sources
+
+| Source | License | Notes |
+|--------|---------|-------|
+| KJV (1769, with Strong's) | Public domain | via Bolls Bible API |
+| 12 additional translations | Public domain / fair use | via Bolls Bible API |
+| Strong's Hebrew (H1–H8674) | CC-BY-SA | via Open Scriptures |
+| Strong's Greek (G1–G5624) | CC-BY-SA | via Open Scriptures |
+
+**License propagation:** The Strong's-derived lexicon data is CC-BY-SA. **Any artifact that incorporates it must carry the same license when distributed.** The rest of the codebase is MIT. Verify licensing for your specific use case before building commercial applications.
+
+---
+
+## Project vision
+
+Phase 1 (current): retrieval-only study tool over the Christian Bible corpus. — **partially shipped** (the `bible-query.py` CLI is the working retrieval primitive as of 2026-07-31).
+
+Phase 2 (deferred): generative voice fine-tune. Distill-only (start from an open-weights base like Llama, Mistral, or Qwen). Compute decision deferred.
+
+Phase 3 (long-term): other religious corpora — Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. — as a config change, not a code rebuild. The data layer is designed to scale toward this.
+
+Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
+
+---
+
+## Governance
+
+The project has a constitution ([`COUNCIL.md`](./COUNCIL.md)) and a long-form Council design ([`docs/governance/council-design.md`](./docs/governance/council-design.md)). The Council is not yet constituted — it is a single-contributor body under the principles in `COUNCIL.md` §2. The Council forms when either a second contributor joins or the project enters Phase 2.
+
+The runtime contract that any agent using this data must follow lives in [`HANDOFF.md` §11](./HANDOFF.md#11-runtime-contract-for-any-agent-using-this-data).
+
+---
 
 ## Contributing
 
-This project is nascent. If you're working on Bible LLM tooling, translation data, Strong's integration, or local-inference optimization, we'd welcome contributions.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Short version: read the handoff doc, follow the runtime contract, send a PR.
 
-Key areas for expansion:
-- More public domain translations (particularly more early English and non-English versions)
-- Improved Strong's → verse mapping for training pipelines
-- Integration examples for Ollama, llama.cpp, and other local inference engines
-- Cross-version parallel passage lookup
-- Hebrew/Greek word frequency analysis for NLP training
+---
+
+## Security
+
+See [`SECURITY.md`](./SECURITY.md). This is a public repo with no secrets in the codebase. If you find a security issue, report it via the address in `SECURITY.md` — do not open a public issue.
+
+---
 
 ## License
 
-Each data source carries its own license:
-- **KJV + translations via Bolls**: Public domain / fair use — verify with your jurisdiction
-- **Strong's lexicons** (Open Scriptures): CC-BY-SA
+Code: MIT. See [`LICENSE`](./LICENSE).
 
-Always verify licensing requirements for your specific use case before building commercial applications.
+Data: Each source carries its own license. See the [Data sources](#data-sources) table. Public domain or CC-BY-SA — verify with your jurisdiction before commercial use.
+
+---
+
+## Related projects
+
+- **[`prive8/llm-from-scratch`](https://github.com/prive8/llm-from-scratch)** — a Karpathy-style workshop on building a GPT from scratch. Used as a reference when Phase 2 lands.
+- The upstream Religion & Spirituality AI project — this repo serves the Abrahamic / Christian slice of that larger vision.
+
+---
+
+## Acknowledgments
+
+- The Strong's Concordance data comes from [Open Scriptures](https://github.com/openscriptures/strongs) under CC-BY-SA.
+- The translation data is sourced from the [Bolls Bible API](https://bolls.life/api/) (free, no key required).
+- The runtime contract and Council design were drafted in collaboration with the project owner and OpenClaw / Hermes agents.

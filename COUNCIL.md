@@ -3,12 +3,13 @@
 > **STUB DOCUMENT — v0.3-stub. DO NOT TREAT AS FINAL POLICY.**
 > The Constitution is here. The implementation is not.
 >
-> **Last updated:** 2026-07-31 (v0.3-stub — reconciled against the
-> Grok upgrade; `agents.md` (lowercase) on the remote is the
-> Council mapping table, this is the constitution)
-> **Read alongside:** `HANDOFF.md` (engineering context),
-> `agents.md` (runtime contract for any agent using this data),
-> `docs/governance/council-design.md` (long-form Council spec).
+> **Last updated:** 2026-07-31 (v0.4-stub — `agents.md` (the
+> Council mapping table) was absorbed into `HANDOFF.md` §11 with
+> the rest of the runtime contract. This constitution is unchanged
+> in spirit; only the pointer text moved.)
+> **Read alongside:** `HANDOFF.md` (engineering context — and §11
+> for the runtime contract), `docs/governance/council-design.md`
+> (long-form Council spec).
 
 ---
 
@@ -27,7 +28,7 @@ Read this stub first; the long-form doc is the source of truth for
 "how does the Council actually work."
 
 **The runtime contract** — citation rules, Strong's policy, no-
-anthropomorphizing — lives in the lowercase [`agents.md`](agents.md).
+anthropomorphizing — lives in [`HANDOFF.md`](HANDOFF.md) §11.
 That's a different document with a different purpose: the runtime
 contract binds any agent that uses this data, regardless of whether
 the Council has formed. This Constitution binds the Council when it
@@ -109,7 +110,7 @@ authority to override the principles at any phase.
 
 - `HANDOFF.md` — engineering context, conventions, milestone plan.
   Co-equal with this document, not subordinate.
-- `agents.md` — runtime contract for any agent using this data.
+- `HANDOFF.md` §11 — runtime contract for any agent using this data.
   Smaller and tighter than this document; covers citation rules,
   Strong's policy, no-anthropomorphizing.
 - `docs/governance/council-design.md` — long-form Council spec:
@@ -134,9 +135,7 @@ authority to override the principles at any phase.
   after the daily-2026-07-31 review exposed the Phase-1-vs-Phase-2
   legibility problem.
 - **v0.3-stub (2026-07-31, this version)** — short stub + long-form
-  split. The "not yet implemented" disclaimer is now prominent;
-  the runtime contract is in `agents.md` (lowercase) where the
-  Grok draft put it; the engineering context is in `HANDOFF.md`.
+ split. The "not yet implemented" disclaimer is now prominent.
 - **v1.0** — drafted when a real Council is constituted. Every
   TODO in the design doc becomes either a real policy or is folded
   into v1.0 with rationale for why it was dropped.

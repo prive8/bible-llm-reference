@@ -1,0 +1,16 @@
+[project]
+name = "bible-llm-reference"
+version = "0.1.0"
+description = "Public-domain Bible dataset + reference tool for LLM training and research"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "prive8"}]
+dependencies = []
+
+[project.scripts]
+bible-query = "bible_query:main"   # after you rename the file to bible_query.py or adjust
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"

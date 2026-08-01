@@ -5,9 +5,14 @@ from pathlib import Path
 
 def convert(js_path: Path, out_path: Path):
     text = js_path.read_text(encoding="utf-8")
+    # Strip leading /** ... */ comment block (Open Scriptures style)
+    text = re.sub(r"^/\*\*.*?\*/\s*", "", text, flags=re.DOTALL)
+    # Strip var declaration
     text = re.sub(r"^var\s+\w+\s*=\s*", "", text.strip())
+    # Strip trailing semicolon + module.exports (CommonJS wrapper)
+    text = re.sub(r";\s*module\.exports.*$", "", text, flags=re.DOTALL)
     text = re.sub(r";\s*$", "", text)
-    data = json.loads(text)  # usually works; fallback regex if needed
+    data = json.loads(text)
     out_path.write_text(json.dumps(data, ensure_ascii=False, indent=None), encoding="utf-8")
     print(f"Wrote {len(data)} entries → {out_path}")
 

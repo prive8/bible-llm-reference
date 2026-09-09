@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-09
+
+### Added
+- `docs/phase3-scope-quran.md` — Phase 3 scope doc for Quran as the pilot
+  second tradition. Identifies `fawazahmed0/quran-api` (Unlicense, 492
+  editions) as the canonical source, the adapter pattern as the
+  scaling strategy, and the 5-translation shortlist for Phase 3.1. ~600
+  lines of estimated work; stdlib throughout.
+
+### Removed
+- `bible-query.py` (260 lines) — legacy CLI from the Grok upgrade. Was
+  deprecated in v0.2.0 and superseded for parallel/strongs by the
+  `bible/` package, and for keyword search by `bible search` (BM25) in
+  v0.3.0. Per ADR-004.
+- `tests/run_all.py::t_legacy_bible_query_does_not_inline_strongs_into_text`
+  — regression test for the now-deleted script. Sister-script suite
+  now at 38 passing tests.
+
+### Changed
+- README.md, HANDOFF.md (§4.2, §6, §7.4, §10), CONTRIBUTING.md,
+  SECURITY.md, docs/data-schema.md, .github/ISSUE_TEMPLATE/bug_report.md,
+  .github/PULL_REQUEST_TEMPLATE.md — all references to `bible-query.py`
+  removed or rewritten to point at the `bible/` package or
+  `python -m bible <subcommand>`.
+
 ## [0.4.0] — 2026-09-09
 
 ### Added

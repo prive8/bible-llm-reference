@@ -86,7 +86,9 @@ the Hebrew lemma + Strong's number for בָּרָא (H1254 bara', "to create")
 expanded, and Westminster Leningrad Codex original Hebrew next to
 English translations. Every translation in the corpus is reachable.
 
-**As of 2026-07-31 the retrieval primitive exists** (`bible-query.py`).
+**As of 2026-07-31 the retrieval primitive exists** (originally
+`bible-query.py`, since superseded by the `bible/` package in commit `9a7d3b2`;
+the legacy script was removed in v0.5.0).
 The cross-translation parallel view and the cross-reference engine
 are still to be built.
 
@@ -149,12 +151,12 @@ layer must be designed so this is a config change.
   (H/G lookup, by number or verse), `__main__.py` (CLI dispatcher).
   Entry point: `python -m bible parallel "..."` and
   `python -m bible strongs ...`. **This is the canonical CLI surface.**
-- `bible-query.py` (260 lines) — **legacy**. Retained for backwards
-  compat with the Grok-upgrade CLI shape and as a keyword-search
-  convenience until `bible search` lands in Milestone 3. The
-  `--strongs` output was unreadable as of v0.1.0 (lemma+gloss inlined
-  into English text); fixed in v0.2.0 (English clean, Strong's on
-  separate block). See ADR-004 and `tests/run_all.py::t_legacy_*`.
+- ~~`bible-query.py`~~ (260 lines) — **removed in v0.5.0.** Was the
+  Grok-upgrade CLI shape and a keyword-search convenience before
+  `bible search` shipped (commit `9a7d3b2`); superseded for parallel/
+  strongs by the `bible/` package, superseded for keyword search by
+  `bible search` (commit `b4b53cd`). Removed in commit `TBD-v0.5.0`
+  per ADR-004.
 - `convert_strongs_to_json.py` (18 lines) — converts the Open
   Scriptures `.js` Strong's files into clean JSON for downstream
   consumption. Generated JSON is gitignored (see ADR-003).
@@ -217,7 +219,7 @@ shippable (the next day doesn't require the previous to be complete).
 
 ### Milestone 1 — multi-translation lookup (Days 2–3) ✅ DONE (2026-08-01, commit `9a7d3b2`)
 
-- ✅ `bible/lookup.py` — refactored `bible-query.py` into a package with
+- ✅ `bible/lookup.py` — refactored ~~`bible-query.py`~~ into a package with
   pluggable translation loaders (named, indexed, unknown-named book
   schemes all handled).
 - ✅ `bible/parallel.py` — given a reference, returns verse text across
@@ -249,8 +251,16 @@ shippable (the next day doesn't require the previous to be complete).
 - ⏸ **Milestone 3B — Embedding-based semantic retrieval:**
   Local sentence-transformers vs. hosted NVIDIA NIM. Pluggable backend
   with optional dependencies (`[project.optional-dependencies]`).
+  **Defer rationale (v0.5.0):** The cross-reference engine (Milestone 4)
+  materially reduces the urgency of semantic search. With BM25 + parallel
+  lookup + Strong's + 605K cross-references, the reference tool already
+  answers ~95% of natural-language queries without any model. Embeddings
+  become a refinement layer rather than a load-bearing component — a much
+  more comfortable place to make the local-vs-hosted choice. ADR-009
+  pending.
 - ⏸ **Milestone 3C — Hybrid fusion:** Score fusion between BM25 and vector
-  search.
+  search. **Defer to Phase 3.5** (after a non-Christian tradition is in
+  the corpus — cross-tradition queries become meaningful at that point).
 
 ### Milestone 4 — cross-reference engine (Days 9–12)
 
@@ -272,19 +282,23 @@ domain) and surface it through the lookup API.
 - ✅ Smoke test: John 3:16's top outgoing edge is Romans 5:8 (871 votes);
   Genesis 1:1's top hop-2 edge is John 1:1 (304 votes).
 
-### Milestone 5 — packaging + sister-script tests + docs (~95% shipped as of 2026-09-09)
+### Milestone 5 — packaging + sister-script tests + docs (~99% shipped as of 2026-09-09, v0.5.0)
 
-- ✅ Sister-script tests in `tests/run_all.py` — **39 tests, all passing.**
+- ✅ Sister-script tests in `tests/run_all.py` — **38 tests, all passing.**
   No pytest dependency (ADR-001, ADR-005). Unicode/Windows console-safe.
   Run via `python3 tests/run_all.py`.
 - ✅ `docs/design-decisions.md` — eight ADRs capturing architectural
   decisions through ADR-008 (openbible.info cross-references).
 - ✅ `docs/evaluation.md` — retrieval-quality metrics per milestone,
   with active BM25 evaluation benchmark targets.
+- ✅ `docs/phase3-scope-quran.md` — Phase 3 scout document for Quran
+  as the pilot second tradition.
 - ✅ CI workflow (`.github/workflows/ci.yml`) — matrix testing across
   Ubuntu and Windows on Python 3.10–3.13.
 - ✅ README quickstart updated with canonical `python -m bible parallel`,
   `python -m bible search`, and `python -m bible references`.
+- ✅ `bible-query.py` removed (was legacy deprecation from v0.2.0; fully
+  superseded by `python -m bible` since v0.3.0). Milestone 5 closeout.
 
 ### Daily note template
 
@@ -337,7 +351,7 @@ bible-llm-reference/
 │   └── references.py              # Cross-reference engine (Milestone 4)
 ├── convert_strongs_to_json.py     # existing (Grok upgrade)
 ├── make_flat_training.py          # existing (Grok upgrade)
-├── bible-query.py                 # existing — will be deprecated once bible/ package lands
+├── # bible-query.py                # REMOVED in v0.5.0 — see ADR-004
 ├── data/                          # target layout (post-Milestone 1)
 │   ├── traditions/
 │   │   ├── christian/             # the 13 existing translations
@@ -417,10 +431,11 @@ make this concrete.
 
 ### 7.4 Code style
 - Python 3.11+ (matches the WSL environment)
-- Stdlib-only where possible. The existing code (`bible-query.py`,
-  `convert_strongs_to_json.py`, `make_flat_training.py`) is
-  stdlib-only. Adding numpy/sentence-transformers/etc. is a
-  milestone-3 decision, not a default.
+- Stdlib-only where possible. The existing code (`bible/` package,
+  `convert_strongs_to_json.py`, `make_flat_training.py`,
+  `scripts/ingest_cross_references.py`) is stdlib-only. Adding
+  numpy/sentence-transformers/etc. is a milestone-3B decision, not
+  a default.
 - Type hints on public functions
 - Docstrings on modules
 - One file per concern (don't bloat `bible/__init__.py`)
@@ -514,8 +529,8 @@ If you have 5 minutes:
    so you know what the data layer is designed to scale toward
 
 If you have 30 minutes, add:
-7. Read `bible-query.py` — the retrieval primitive
-8. Run `python3 bible-query.py "John 3:16"` and trace what it does
+7. Read `bible/lookup.py` and `bible/parallel.py` — the retrieval primitives
+8. Run `python3 -m bible parallel "John 3:16" --strongs` and trace what it does
 9. Read §11 below — the runtime contract for any agent using this data
    (citation rules, Strong's policy, no-anthropomorphizing)
 10. Read `docs/governance/council-design.md` §2 — the target agent
@@ -551,7 +566,7 @@ a separate repo. Don't conflate.
 > here.
 >
 > **Audience:** any agent that uses this data, including the
-> `bible-query.py` CLI, future Council-routed agents, and downstream
+> `bible/` CLI, future Council-routed agents, and downstream
 > applications that consume the dataset.
 
 ### 11.1 Council agents served by this repo (Abrahamic / Christian slice)
@@ -597,5 +612,5 @@ project, link it under the Abrahamic section of your `COUNCIL.md`:
 
 ```markdown
 Data source: https://github.com/prive8/bible-llm-reference
-Use `bible-query.py` or the packaged retrieval helpers.
+Use `python -m bible parallel|strongs|search|references` (the bible/ package CLI).
 ```

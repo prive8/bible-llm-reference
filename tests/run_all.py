@@ -64,6 +64,16 @@ from bible.quran import (  # noqa: E402
     run_quran,
 )
 from bible.semantic import (  # noqa: E402
+    DEFAULT_NIM_BASE_URL,
+    DEFAULT_NIM_MODEL,
+    NIMAuthError,
+    NIMConnectionError,
+    NIMEmbedder,
+    NIMError,
+    NIMRateLimitError,
+    NIMResponseError,
+    NIMServerError,
+    get_embedder,
     cosine_similarity,
     dot_product,
     l2_normalize,
@@ -334,6 +344,301 @@ def t_search_multilingual_wlca_hebrew():
     res = idx.search("ברא", limit=5)
     refs = [r["reference"] for r in res]
     _assert("Genesis 1:1" in refs or "Genesis 1:27" in refs, f"expected Genesis 1 in {refs}")
+
+
+# ---------------------------------------------------------------------------
+# NIM embedder backend (Milestone 3B completion)
+# ---------------------------------------------------------------------------
+
+# Shared fake HTTP transport for NIM tests. Tests inject this into
+# NIMEmbedder._http_post to simulate the real NIM API without network.
+
+def _nim_fake_post_factory(responses: list[str]):
+    """Returns a fake _http_post that yields the next canned response per call."""
+    it = iter(responses)
+
+    def fake(url: str, body: dict) -> str:
+        try:
+            return next(it)
+        except StopIteration:
+            # Default to a one-vector response if test runs out of canned data.
+            n = len(body.get("input", []))
+            return json.dumps({
+                "data": [
+                    {"index": i, "embedding": [0.0] * 4}
+                    for i in range(n)
+                ]
+            })
+    return fake
+
+
+def _make_nim_ok_response(n: int, dim: int = 4) -> str:
+    """Realistic-looking NIM response for ``n`` inputs."""
+    return json.dumps({
+        "data": [
+            {"index": i, "embedding": [float(i + 1)] * dim}
+            for i in range(n)
+        ],
+        "usage": {"prompt_tokens": 5 * n, "total_tokens": 5 * n},
+    })
+
+
+@_register("t_nim_missing_key_raises_clear_auth_error")
+def t_nim_missing_key_raises_clear_auth_error():
+    """If NVIDIA_API_KEY is unset, construction must fail loudly with NIMAuthError.
+
+    CI must never accidentally call the real NIM API; the missing-key
+    guard is the first line of defense.
+    """
+    import os as _os
+    saved = _os.environ.pop("NVIDIA_API_KEY", None)
+    try:
+        try:
+            NIMEmbedder()
+            _assert(False, "NIMEmbedder() should have raised NIMAuthError")
+        except NIMAuthError as e:
+            _assert("NVIDIA_API_KEY" in str(e), f"error should mention the env var: {e}")
+            _assert("build.nvidia.com" in str(e), f"error should link to the key signup: {e}")
+    finally:
+        if saved is not None:
+            _os.environ["NVIDIA_API_KEY"] = saved
+
+
+@_register("t_nim_embed_roundtrip_with_mock_transport")
+def t_nim_embed_roundtrip_with_mock_transport():
+    """Mock the HTTP transport: 3 inputs → 3 embeddings of expected dim.
+
+    Verifies the request body shape (model + input + encoding_format +
+    input_type), the response parsing, and the per-index ordering.
+    """
+    import os as _os
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+
+    captured_requests: list[dict] = []
+    global_index = [0]  # mutable counter across batches
+
+    def fake_post(url: str, body: dict) -> str:
+        captured_requests.append({"url": url, "body": dict(body)})
+        n = len(body["input"])
+        batch_offset = global_index[0]
+        global_index[0] += n  # advance past this batch's inputs
+        # Markers are monotonic across the whole call: 100, 200, 300 ...
+        return json.dumps({
+            "data": [
+                {
+                    "index": i,
+                    "embedding": [float((batch_offset + i + 1) * 100)] * 8,
+                }
+                for i in range(n)
+            ],
+            "usage": {"prompt_tokens": 5 * n, "total_tokens": 5 * n},
+        })
+
+    try:
+        embedder = NIMEmbedder(batch_size=2)  # batch_size 2 forces 2 batches for 3 inputs
+        embedder._http_post = fake_post
+        out = embedder.embed_texts(["alpha", "beta", "gamma"])
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
+
+    # Output shape
+    _assert(len(out) == 3, f"expected 3 embeddings, got {len(out)}")
+    for i, vec in enumerate(out):
+        _assert(len(vec) == 8, f"vec {i}: dim {len(vec)}")
+    # Monotonic markers: alpha = 100, beta = 200, gamma = 300.
+    _assert(out[0][0] == 100.0, f"first input (alpha): got {out[0][0]}, expected 100.0")
+    _assert(out[1][0] == 200.0, f"second input (beta): got {out[1][0]}, expected 200.0")
+    _assert(out[2][0] == 300.0, f"third input (gamma): got {out[2][0]}, expected 300.0")
+
+    # Request body shape (two batches, so two captured requests)
+    _assert(len(captured_requests) == 2, f"expected 2 batches, got {len(captured_requests)}")
+    first_req = captured_requests[0]
+    _assert(first_req["url"].endswith("/embeddings"), f"url: {first_req['url']}")
+    _assert(first_req["body"]["model"] == DEFAULT_NIM_MODEL, first_req["body"]["model"])
+    _assert(first_req["body"]["encoding_format"] == "float", first_req["body"])
+    _assert(first_req["body"]["input_type"] == "passage", first_req["body"])
+    _assert(first_req["body"]["input"] == ["alpha", "beta"], first_req["body"]["input"])
+    _assert(captured_requests[1]["body"]["input"] == ["gamma"], captured_requests[1])
+
+
+@_register("t_nim_embed_query_uses_query_input_type")
+def t_nim_embed_query_uses_query_input_type():
+    """embed_query() must set input_type=query, not the constructor default (passage).
+
+    E5-family models distinguish query vs passage input types — this is the
+    single biggest quality lever for retrieval. Getting it wrong silently
+    would degrade every retrieval result.
+    """
+    import os as _os
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+
+    seen_input_types: list[str] = []
+
+    def fake_post(url: str, body: dict) -> str:
+        seen_input_types.append(body["input_type"])
+        return _make_nim_ok_response(len(body["input"]), dim=4)
+
+    try:
+        embedder = NIMEmbedder()  # default input_type="passage"
+        embedder._http_post = fake_post
+        embedder.embed_query("What is mercy?")
+        # Plus a passage-style batch call to verify the default still works.
+        embedder.embed_texts(["verse one", "verse two"])
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
+
+    _assert(seen_input_types == ["query", "passage"], f"got: {seen_input_types}")
+
+
+@_register("t_nim_out_of_order_indexes_are_sorted")
+def t_nim_out_of_order_indexes_are_sorted():
+    """Defend against NIM returning out-of-order 'index' values."""
+    import os as _os
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        n = len(body["input"])
+        # Return in REVERSE order — buggy but realistic
+        return json.dumps({
+            "data": [
+                {"index": n - 1 - i, "embedding": [float(n - 1 - i)] * 4}
+                for i in range(n)
+            ]
+        })
+
+    try:
+        embedder = NIMEmbedder()
+        embedder._http_post = fake_post
+        out = embedder.embed_texts(["a", "b", "c"])
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
+
+    # After index-sort: first vec = index 0 marker, third = index 2 marker
+    _assert(out[0][0] == 0.0, f"out-of-order not sorted: first={out[0][0]}")
+    _assert(out[2][0] == 2.0, f"out-of-order not sorted: third={out[2][0]}")
+
+
+@_register("t_nim_http_429_maps_to_rate_limit_error")
+def t_nim_http_429_maps_to_rate_limit_error():
+    """HTTP 429 must surface as NIMRateLimitError, not a generic error.
+
+    Caller needs to distinguish retry-with-backoff from abort.
+    """
+    import os as _os
+    import urllib.error as _ue
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        raise _ue.HTTPError(url, 429, "Too Many Requests", {}, None)
+
+    try:
+        embedder = NIMEmbedder()
+        embedder._http_post = fake_post
+        try:
+            embedder.embed_texts(["test"])
+            _assert(False, "expected NIMRateLimitError")
+        except NIMRateLimitError as e:
+            _assert("429" in str(e), str(e))
+        except NIMError as e:
+            _assert(False, f"wrong error class: {type(e).__name__}: {e}")
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
+
+
+@_register("t_nim_http_401_maps_to_auth_error")
+def t_nim_http_401_maps_to_auth_error():
+    """HTTP 401/403 must surface as NIMAuthError."""
+    import os as _os
+    import urllib.error as _ue
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        raise _ue.HTTPError(url, 401, "Unauthorized", {}, None)
+
+    try:
+        embedder = NIMEmbedder()
+        embedder._http_post = fake_post
+        try:
+            embedder.embed_texts(["test"])
+            _assert(False, "expected NIMAuthError")
+        except NIMAuthError as e:
+            _assert("401" in str(e) or "auth" in str(e).lower(), str(e))
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
+
+
+@_register("t_nim_malformed_json_raises_response_error")
+def t_nim_malformed_json_raises_response_error():
+    """Non-JSON response (or wrong shape) must surface as NIMResponseError."""
+    import os as _os
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        # Wrong shape: missing 'data' field
+        return json.dumps({"result": "ok", "vectors": []})
+
+    try:
+        embedder = NIMEmbedder()
+        embedder._http_post = fake_post
+        try:
+            embedder.embed_texts(["test"])
+            _assert(False, "expected NIMResponseError")
+        except NIMResponseError as e:
+            _assert("data" in str(e), str(e))
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
+
+
+@_register("t_nim_default_model_and_base_url")
+def t_nim_default_model_and_base_url():
+    """Sanity-check defaults — if these change silently the contract breaks.
+
+    DEFAULT_NIM_MODEL is the QA-tuned E5 retriever (1024-dim).
+    DEFAULT_NIM_BASE_URL is the public NIM endpoint.
+    """
+    _assert(DEFAULT_NIM_MODEL == "nvidia/nv-embedqa-e5-v5", DEFAULT_NIM_MODEL)
+    _assert("integrate.api.nvidia.com" in DEFAULT_NIM_BASE_URL, DEFAULT_NIM_BASE_URL)
+    _assert(DEFAULT_NIM_BASE_URL.endswith("/v1"), DEFAULT_NIM_BASE_URL)
+
+
+@_register("t_get_embedder_factory_routes_nim")
+def t_get_embedder_factory_routes_nim():
+    """get_embedder('nim') must return a NIMEmbedder instance."""
+    import os as _os
+    saved_key = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-test-fake-key"
+    try:
+        embedder = get_embedder("nim")
+        _assert(isinstance(embedder, NIMEmbedder), type(embedder).__name__)
+    finally:
+        if saved_key is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_key
 
 
 # ---------------------------------------------------------------------------

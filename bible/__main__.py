@@ -5,6 +5,7 @@ Usage:
     python -m bible strongs H1254
     python -m bible strongs "Genesis 1:1"
     python -m bible search "faith without works" [-t WEB] [-n 10] [--strongs] [--json]
+    python -m bible references "John 3:16" [--hops N] [--min-votes V] [--direction out|in|both]
 """
 
 import sys
@@ -45,12 +46,21 @@ Usage:
     python -m bible search "light" -t WEB -n 5
         Search specific translation with a limit.
 
+    python -m bible references "John 3:16"
+        Look up cross-references (outgoing + reciprocal).
+
+    python -m bible references "Genesis 1:1" --hops 2
+        Multi-hop cross-reference expansion (openbible.info, CC-BY 4.0).
+
 Flags:
     --strongs, -s       Include Strong's enrichment
     --json              JSON output
     -t, --translations  Comma-separated list of translations (parallel)
     -t, --translation   Translation to search (search, default: KJV)
     -n, --limit         Result limit (search, default: 10)
+    --hops              Multi-hop depth (references, 1-3, default: 1)
+    --min-votes         Vote threshold (references, default: 3)
+    --direction         out|in|both (references, default: out)
 """
 
 
@@ -74,6 +84,10 @@ def main():
         from bible.search import main as search_main
         sys.argv = ["bible search"] + rest
         search_main()
+    elif command == "references":
+        from bible.references import main as references_main
+        sys.argv = ["bible references"] + rest
+        references_main()
     else:
         print(f"Unknown command: {command!r}")
         print(USAGE)

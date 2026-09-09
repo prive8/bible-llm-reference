@@ -22,6 +22,8 @@ import math
 import os
 import struct
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Optional, Union
 
@@ -183,20 +185,230 @@ class MockDeterministicEmbedder(BaseEmbedder):
         return results
 
 
+# ---------------------------------------------------------------------------
+# NVIDIA NIM Embedder Backend
+# ---------------------------------------------------------------------------
+
+class NIMError(RuntimeError):
+    """Base class for NIM embedder failures."""
+
+
+class NIMAuthError(NIMError):
+    """Raised when the API key is missing or rejected (HTTP 401/403)."""
+
+
+class NIMRateLimitError(NIMError):
+    """Raised on HTTP 429. Caller may retry with backoff."""
+
+
+class NIMServerError(NIMError):
+    """Raised on HTTP 5xx. Caller may retry with backoff."""
+
+
+class NIMResponseError(NIMError):
+    """Raised when the response body is malformed or the shape changes."""
+
+
+class NIMConnectionError(NIMError):
+    """Raised on transport failures (DNS, TLS, refused, timeout)."""
+
+
+# Default model + base URL — overridable via NIM_EMBED_MODEL / NIM_BASE_URL env.
+# 1024-dim, E5-Large-Unsupervised finetuned for QA retrieval.
+# See: https://build.nvidia.com/nvidia/nv-embedqa-e5-v5
+DEFAULT_NIM_MODEL = "nvidia/nv-embedqa-e5-v5"
+DEFAULT_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
+DEFAULT_NIM_BATCH = 32
+DEFAULT_NIM_TIMEOUT = 60  # seconds per request
+
+
+class NIMEmbedder(BaseEmbedder):
+    """NVIDIA NIM hosted embeddings backend.
+
+    Talks to the OpenAI-compatible ``/v1/embeddings`` endpoint exposed by
+    ``integrate.api.nvidia.com`` (the public NIM API) or a self-hosted NIM
+    container (``http://host:8000/v1``). Reads ``NVIDIA_API_KEY`` from the
+    environment unless ``api_key`` is passed explicitly.
+
+    Configuration (constructor takes precedence, env vars are fallbacks):
+        model      — NIM model ID. Env: ``NIM_EMBED_MODEL``.
+        base_url   — Endpoint base URL. Env: ``NIM_BASE_URL``.
+        api_key    — Bearer token. Env: ``NVIDIA_API_KEY``.
+        batch_size — Max inputs per request (NIM caps at ~96). Default 32.
+        timeout    — Per-request timeout in seconds. Default 60.
+        input_type — ``"query"`` (ad-hoc) or ``"passage"`` (indexed corpus).
+                     Default ``"passage"``; use ``"query"`` for ad-hoc
+                     search calls via ``embed_query``.
+    """
+
+    def __init__(
+        self,
+        model: str = DEFAULT_NIM_MODEL,
+        base_url: str = DEFAULT_NIM_BASE_URL,
+        api_key: Optional[str] = None,
+        batch_size: int = DEFAULT_NIM_BATCH,
+        timeout: int = DEFAULT_NIM_TIMEOUT,
+        input_type: str = "passage",
+    ):
+        # Resolve config with env-var fallbacks
+        self.model = os.environ.get("NIM_EMBED_MODEL", model)
+        self.base_url = os.environ.get("NIM_BASE_URL", base_url).rstrip("/")
+        resolved_key = api_key if api_key is not None else os.environ.get("NVIDIA_API_KEY")
+        self.api_key = resolved_key
+        self.batch_size = max(1, batch_size)
+        self.timeout = max(1, timeout)
+        self.input_type = input_type
+        # Test hook: tests can monkey-patch this to a fake transport.
+        self._http_post = self._default_http_post
+
+        if not self.api_key:
+            raise NIMAuthError(
+                "NVIDIA_API_KEY is not set. Either export it in your "
+                "shell, add it to ~/.hermes/.env, or pass api_key=... to "
+                "NIMEmbedder(...).\n"
+                "Get a free key at https://build.nvidia.com — the free "
+                "tier includes ~1,000 embedding requests per day, which "
+                "is enough to index the 31K Bible + 6K Quran corpus once."
+            )
+
+    def embed_texts(self, texts: list[str], input_type: Optional[str] = None) -> list[list[float]]:
+        """Embed a batch of texts. Returns one float list per input, in order."""
+        if not texts:
+            return []
+        effective_input_type = input_type or self.input_type
+        results: list[list[float]] = []
+        # Empty strings can confuse the API; replace with a single space.
+        # NIM accepts empty strings but returns zero vectors, which is fine.
+        for i in range(0, len(texts), self.batch_size):
+            batch = list(texts[i : i + self.batch_size])
+            batch_results = self._embed_one_batch(batch, input_type=effective_input_type)
+            results.extend(batch_results)
+        return results
+
+    def embed_query(self, query: str) -> list[float]:
+        """Embed a single ad-hoc query. Uses ``input_type="query"`` for E5 models."""
+        return self.embed_texts([query], input_type="query")[0]
+
+    def _embed_one_batch(self, texts: list[str], input_type: str) -> list[list[float]]:
+        url = f"{self.base_url}/embeddings"
+        body = {
+            "model": self.model,
+            "input": texts,
+            "encoding_format": "float",
+            "input_type": input_type,
+        }
+        try:
+            payload = self._http_post(url, body)
+        except urllib.error.HTTPError as e:
+            body_text = ""
+            try:
+                body_text = e.read().decode("utf-8", errors="replace")[:500]
+            except Exception:
+                pass
+            if e.code in (401, 403):
+                raise NIMAuthError(
+                    f"NIM auth failed (HTTP {e.code}). Check that "
+                    f"NVIDIA_API_KEY is set and has access to model "
+                    f"{self.model!r}. Server said: {body_text or '(empty)'}"
+                ) from e
+            if e.code == 429:
+                raise NIMRateLimitError(
+                    f"NIM rate limit hit (HTTP 429). The free tier caps "
+                    f"at ~1000 req/day; either slow down or upgrade. "
+                    f"Server said: {body_text or '(empty)'}"
+                ) from e
+            if 500 <= e.code < 600:
+                raise NIMServerError(
+                    f"NIM server error (HTTP {e.code}). Retry with backoff. "
+                    f"Server said: {body_text or '(empty)'}"
+                ) from e
+            raise NIMError(f"NIM HTTP error {e.code}: {body_text or '(empty)'}") from e
+        except urllib.error.URLError as e:
+            raise NIMConnectionError(
+                f"NIM connection failed: {e.reason}. Check NIM_BASE_URL "
+                f"({self.base_url!r}) and your network."
+            ) from e
+
+        # Parse + validate response
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise NIMResponseError(f"NIM returned non-JSON response: {e}") from e
+
+        if "data" not in data:
+            raise NIMResponseError(
+                f"NIM response missing 'data' field. Got keys: {list(data.keys())}"
+            )
+
+        items = data["data"]
+        if not isinstance(items, list):
+            raise NIMResponseError(f"NIM 'data' field is not a list: {type(items)}")
+
+        if len(items) != len(texts):
+            raise NIMResponseError(
+                f"NIM returned {len(items)} embeddings for {len(texts)} inputs. "
+                "API contract violation."
+            )
+
+        # Sort by 'index' to defend against out-of-order returns (paranoid
+        # but cheap; NIM docs guarantee order but bugs happen).
+        indexed = sorted(items, key=lambda x: x.get("index", 0))
+        out: list[list[float]] = []
+        for item in indexed:
+            emb = item.get("embedding")
+            if not isinstance(emb, list):
+                raise NIMResponseError(f"NIM 'embedding' is not a list: {type(emb)}")
+            try:
+                vec = [float(x) for x in emb]
+            except (TypeError, ValueError) as e:
+                raise NIMResponseError(f"NIM embedding contains non-numeric value: {e}") from e
+            out.append(vec)
+        return out
+
+    def _default_http_post(self, url: str, body: dict) -> str:
+        """The default HTTP transport. Tests can replace ``_http_post`` to mock."""
+        data = json.dumps(body).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            return resp.read().decode("utf-8")
+
+
 def get_embedder(backend: str = "auto") -> BaseEmbedder:
-    """Factory for embedding backends: 'local', 'mock', or 'auto'."""
+    """Factory for embedding backends: 'local', 'mock', 'nim', or 'auto'.
+
+    'auto' resolution order:
+      1. If ``sentence_transformers`` importable → ``LocalSentenceTransformerEmbedder``
+      2. Else if ``NVIDIA_API_KEY`` in env → ``NIMEmbedder`` (network call)
+      3. Else → ``MockDeterministicEmbedder`` (offline / CI fallback)
+    """
     if backend == "mock":
         return MockDeterministicEmbedder()
     elif backend == "local":
         return LocalSentenceTransformerEmbedder()
+    elif backend == "nim":
+        return NIMEmbedder()
     elif backend == "auto":
-        # Check if sentence-transformers is available
         try:
             import sentence_transformers  # noqa: F401
             return LocalSentenceTransformerEmbedder()
         except ImportError:
-            # Fall back to mock
-            return MockDeterministicEmbedder()
+            pass
+        if os.environ.get("NVIDIA_API_KEY"):
+            try:
+                return NIMEmbedder()
+            except NIMAuthError:
+                # Key missing or rejected — fall through to mock.
+                pass
+        return MockDeterministicEmbedder()
     else:
         raise ValueError(f"Unknown embedder backend: {backend!r}")
 
@@ -336,8 +548,8 @@ def main():
     parser.add_argument("-n", "--top-k", type=int, default=10, help="Number of results (default: 10)")
     parser.add_argument("--tradition", choices=["all", "bible", "islam"], default="all",
                         help="Filter tradition (default: all)")
-    parser.add_argument("--backend", choices=["auto", "local", "mock"], default="auto",
-                        help="Embedder backend (default: auto)")
+    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim"], default="auto",
+                        help="Embedder backend (default: auto — local if available, else NIM if NVIDIA_API_KEY set, else mock)")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()

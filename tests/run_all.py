@@ -47,6 +47,13 @@ from bible.lookup import (  # noqa: E402
     strip_strongs_tags,
 )
 from bible.parallel import run_parallel  # noqa: E402
+from bible.references import (  # noqa: E402
+    get_reciprocal,
+    get_references,
+    load_xrefs,
+    metadata,
+    traverse,
+)
 from bible.strongs import run_strongs  # noqa: E402
 from bible.search import get_bm25_index, run_search  # noqa: E402
 
@@ -331,6 +338,146 @@ def t_search_multilingual_wlca_hebrew():
     res = idx.search("ברא", limit=5)
     refs = [r["reference"] for r in res]
     _assert("Genesis 1:1" in refs or "Genesis 1:27" in refs, f"expected Genesis 1 in {refs}")
+
+
+# ---------------------------------------------------------------------------
+# Cross-references (Milestone 4)
+# ---------------------------------------------------------------------------
+
+@_register("t_xrefs_metadata_present")
+def t_xrefs_metadata_present():
+    md = metadata()
+    _assert("source" in md, list(md.keys()))
+    _assert("CC-BY" in md.get("license", ""), md.get("license"))
+    _assert(md.get("edges_kept", 0) > 100_000, f"edges_kept={md.get('edges_kept')}")
+
+
+@_register("t_xrefs_outgoing_john_3_16_known_verse")
+def t_xrefs_outgoing_john_3_16_known_verse():
+    """John 3:16 is the most cross-referenced verse in the Bible.
+    The top edge at default min_votes MUST be Romans 5:8 (the parallel
+    'God commended his love' verse). If this fails, the data file is
+    wrong, not the code."""
+    edges = get_references("John 3:16", min_votes=3)
+    _assert(len(edges) > 10, f"only {len(edges)} edges for John 3:16")
+    _assert(edges[0]["to"] == "Romans 5:8", f"top: {edges[0]}")
+    # Romans 5:8 and 1 John 4:9 are the two canonical parallels
+    targets = {e["to"] for e in edges[:10]}
+    _assert("Romans 5:8" in targets, targets)
+    _assert("1 John 4:9" in targets, targets)
+
+
+@_register("t_xrefs_outgoing_genesis_1_1_to_john_1_1")
+def t_xrefs_outgoing_genesis_1_1_to_john_1_1():
+    """Genesis 1:1 → John 1:1 is the OT/NT 'In the beginning' link.
+    Should appear at high votes."""
+    edges = get_references("Genesis 1:1", min_votes=10)
+    targets = {e["to"] for e in edges}
+    _assert("John 1:1" in targets, f"missing John 1:1, got {len(edges)} edges")
+
+
+@_register("t_xrefs_reciprocal_john_3_16")
+def t_xrefs_reciprocal_john_3_16():
+    """Reciprocal lookup should find at least a few incoming refs."""
+    inc = get_reciprocal("John 3:16", min_votes=10)
+    _assert(len(inc) > 0, "no incoming refs for John 3:16 at min_votes=10")
+    for e in inc:
+        _assert("from" in e and "votes" in e, e)
+        _assert(e["votes"] >= 10, e)
+
+
+@_register("t_xrefs_alias_normalization")
+def t_xrefs_alias_normalization():
+    """Reference parser aliases should resolve in the references engine.
+    'jn 3:16' → 'John 3:16'."""
+    a = get_references("John 3:16", min_votes=100)
+    b = get_references("jn 3:16", min_votes=100)
+    _assert(len(a) == len(b), f"alias mismatch: {len(a)} vs {len(b)}")
+    _assert(a and b and a[0] == b[0], f"{a[:2]} vs {b[:2]}")
+
+
+@_register("t_xrefs_min_votes_threshold_works")
+def t_xrefs_min_votes_threshold_works():
+    """Higher min_votes → fewer (or equal) edges."""
+    low = get_references("John 3:16", min_votes=1)
+    high = get_references("John 3:16", min_votes=100)
+    _assert(len(low) >= len(high), f"low={len(low)} high={len(high)}")
+    # And every high-vote edge has votes >= 100
+    for e in high:
+        _assert(e["votes"] >= 100, e)
+
+
+@_register("t_xrefs_unknown_reference_returns_empty")
+def t_xrefs_unknown_reference_returns_empty():
+    """A verse that has no outgoing edges should return [] not raise."""
+    out = get_references("Revelation 22:21", min_votes=999)
+    _assert(out == [], f"expected [], got {out}")
+    inc = get_reciprocal("Revelation 22:21", min_votes=999)
+    _assert(inc == [], f"expected [], got {inc}")
+
+
+@_register("t_xrefs_garbage_input_returns_empty")
+def t_xrefs_garbage_input_returns_empty():
+    """Unparseable refs return empty without crashing."""
+    for bad in ["foo bar", "xyzzy", "1jn 999:999", "", "Genesis"]:
+        _assert(get_references(bad) == [], f"unexpected edges for {bad!r}")
+        _assert(get_reciprocal(bad) == [], f"unexpected incoming for {bad!r}")
+
+
+@_register("t_xrefs_traverse_2hop_john_3_16")
+def t_xrefs_traverse_2hop_john_3_16():
+    """2-hop traversal from John 3:16 should reach many verses.
+    Hop 1 must include Romans 5:8 (top edge at min_votes=50)."""
+    t = traverse("John 3:16", hops=2, min_votes=50, per_hop_limit=200)
+    _assert(1 in t and 2 in t, list(t.keys()))
+    _assert(len(t[1]) > 5, f"hop 1 only has {len(t[1])} edges")
+    _assert(len(t[2]) > 5, f"hop 2 only has {len(t[2])} edges")
+    targets_h1 = {e["to"] for e in t[1]}
+    _assert("Romans 5:8" in targets_h1, f"hop 1 missing Romans 5:8: {targets_h1}")
+
+
+@_register("t_xrefs_traverse_clamps_hops")
+def t_xrefs_traverse_clamps_hops():
+    """hops=10 should clamp to 3 (per HANDOFF §5 design)."""
+    t = traverse("John 3:16", hops=10, min_votes=200)
+    _assert(max(t.keys()) <= 3, list(t.keys()))
+
+
+@_register("t_xrefs_self_loops_excluded")
+def t_xrefs_self_loops_excluded():
+    """No outgoing edge from a verse should point back to itself."""
+    edges = get_references("John 3:16", min_votes=1, limit=500)
+    for e in edges:
+        _assert(e["to"] != "John 3:16", f"self-loop: {e}")
+
+
+@_register("t_xrefs_votes_sorted_descending")
+def t_xrefs_votes_sorted_descending():
+    """Results must be sorted by votes descending."""
+    edges = get_references("John 3:16", min_votes=1, limit=200)
+    for i in range(len(edges) - 1):
+        _assert(edges[i]["votes"] >= edges[i + 1]["votes"],
+                f"out of order at {i}: {edges[i]} vs {edges[i + 1]}")
+
+
+@_register("t_xrefs_cli_basic")
+def t_xrefs_cli_basic():
+    """CLI: 'python -m bible references John 3:16' must succeed."""
+    out = _capture_run(
+        __import__("bible.references", fromlist=["run_references"]).run_references,
+        "John 3:16",
+    )
+    _assert("Cross-references for John 3:16" in out)
+    _assert("Romans 5:8" in out)
+
+
+@_register("t_xrefs_cli_reciprocal")
+def t_xrefs_cli_reciprocal():
+    out = _capture_run(
+        __import__("bible.references", fromlist=["run_references"]).run_references,
+        "John 3:16", direction="in",
+    )
+    _assert("Incoming / Reciprocal" in out)
 
 
 # ---------------------------------------------------------------------------

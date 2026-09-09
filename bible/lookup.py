@@ -113,9 +113,9 @@ BOOK_ALIASES = {
     "jas": "James", "james": "James",
     "1pet": "1 Peter", "1 peter": "1 Peter",
     "2pet": "2 Peter", "2 peter": "2 Peter",
-    "1john": "1 John", "1 jn": "1 John",
-    "2john": "2 John", "2 jn": "2 John",
-    "3john": "3 John", "3 jn": "3 John",
+    "1john": "1 John", "1jn": "1 John", "1 jn": "1 John",
+    "2john": "2 John", "2jn": "2 John", "2 jn": "2 John",
+    "3john": "3 John", "3jn": "3 John", "3 jn": "3 John",
     "jude": "Jude",
     "rev": "Revelation", "revelation": "Revelation", "apocalypse": "Revelation",
 }
@@ -141,18 +141,28 @@ REF_RE = re.compile(
 
 
 def resolve_book_name(raw: str) -> Optional[str]:
-    """Resolve a user-provided book name to a canonical name."""
+    """Resolve a user-provided book name to a canonical name.
+
+    Resolution order:
+      1. Exact match (with or without spaces) against BOOK_ALIASES keys.
+      2. Fuzzy match: exact book name (case-insensitive) against CANONICAL_BOOKS.
+
+    Returns None if no exact match is found. Fuzzy alias-substring match was
+    removed 2026-09-09: it was over-permissive and turned "1jn" into "John"
+    instead of "1 John" (the alias key "1john" exists but the substring
+    fallback matched "jn" first).
+    """
     key = raw.strip().lower()
     if key in BOOK_ALIASES:
         return BOOK_ALIASES[key]
-    # try without spaces
+    # try without spaces (so "1 john" matches "1john")
     key_nospace = key.replace(" ", "")
     if key_nospace in BOOK_ALIASES:
         return BOOK_ALIASES[key_nospace]
-    # fuzzy: check if any alias contains or is contained
-    for alias, name in BOOK_ALIASES.items():
-        if alias in key or key in alias:
-            return name
+    # exact case-insensitive match against canonical names (no fuzzy)
+    for canon in CANONICAL_BOOKS:
+        if canon.lower() == key or canon.lower() == key_nospace:
+            return canon
     return None
 
 

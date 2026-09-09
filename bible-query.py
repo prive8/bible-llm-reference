@@ -189,16 +189,35 @@ def search_bible(query: str, max_verses=60):
 # ---------- Strong’s enrichment ----------
 STRONGS_TAG_RE = re.compile(r"<S>(\d+)</S>")
 
-def enrich_with_strongs(text: str) -> str:
-    def repl(m):
-        num = m.group(1)
-        entry = HEB.get(f"H{num}") or GRK.get(f"G{num}")
-        if not entry:
-            return f"[S{num}]"
-        lemma = entry.get("lemma") or entry.get("xlit") or entry.get("translit") or ""
-        gloss = entry.get("strongs_def") or entry.get("kjv_def") or ""
-        return f"{lemma} (S{num}: {gloss[:60]}…)" if gloss else f"{lemma} (S{num})"
-    return STRONGS_TAG_RE.sub(repl, text)
+def enrich_with_strongs(text: str) -> tuple[str, list[str]]:
+    """Return (plain_text, [strongs_refs...]) instead of inlining.
+
+    Inlining lemma+gloss into the English text was unreadable (see HANDOFF §5
+    bug noted 2026-09-09). Use `python -m bible parallel --strongs` for the
+    properly formatted two-block output; this legacy helper just strips tags
+    and returns the raw numbers so the caller can decide how to display.
+    """
+    nums = STRONGS_TAG_RE.findall(text)
+    return STRONGS_TAG_RE.sub("", text), [f"S{n}" for n in nums]
+
+
+def format_strongs_refs(nums: list[str]) -> str:
+    """Format a list of S-numbers into a compact, readable summary line."""
+    if not nums:
+        return ""
+    parts = []
+    for n in nums:
+        s = n if n.startswith("S") else f"S{n}"
+        # Strip the S prefix to look up
+        bare = s[1:]
+        entry = HEB.get(f"H{bare}") or GRK.get(f"G{bare}")
+        if entry:
+            lemma = entry.get("lemma") or entry.get("xlit") or entry.get("translit") or ""
+            gloss = (entry.get("strongs_def") or entry.get("kjv_def") or "")[:50]
+            parts.append(f"  {s} {lemma} — {gloss}{'…' if gloss else ''}")
+        else:
+            parts.append(f"  {s} (no entry)")
+    return "\n".join(parts)
 
 # ---------- Main ----------
 def main():
@@ -219,8 +238,10 @@ def main():
         verses = get_verses_by_ref(book, ch, vs, ve)
         print(f"\nExact reference: {book} {ch}" + (f":{vs}" + (f"-{ve}" if ve and ve != vs else "") if vs else ""))
         for v in verses:
-            text = enrich_with_strongs(v["text"]) if want_strongs else v["text"]
+            text, nums = enrich_with_strongs(v["text"])
             print(f"  [{book} {ch}:{v['verse']}] {text}")
+            if want_strongs and nums:
+                print(format_strongs_refs(nums))
         if want_json:
             print(json.dumps(verses, indent=2, ensure_ascii=False))
         return
@@ -237,14 +258,18 @@ def main():
 
     print(f"\nPRIMARY ({len(primary)}):")
     for r in primary[:15]:
-        text = enrich_with_strongs(r["text"]) if want_strongs else r["text"]
+        text, nums = enrich_with_strongs(r["text"])
         print(f"  [{r['book']} {r['chapter']}:{r['verse']}] {text}")
+        if want_strongs and nums:
+            print(format_strongs_refs(nums))
 
     if related:
         print(f"\nRELATED ({len(related)}):")
         for r in related[:20]:
-            text = enrich_with_strongs(r["text"]) if want_strongs else r["text"]
+            text, nums = enrich_with_strongs(r["text"])
             print(f"  [{r['book']} {r['chapter']}:{r['verse']}] {text}")
+            if want_strongs and nums:
+                print(format_strongs_refs(nums))
 
     # LLM context block
     print("\n" + "=" * 60)
@@ -252,7 +277,7 @@ def main():
     print("=" * 60)
     print(f"Query: {query}\n")
     for r in (primary + related)[:25]:
-        text = enrich_with_strongs(r["text"]) if want_strongs else r["text"]
+        text, _ = enrich_with_strongs(r["text"])
         print(f"[{r['book']} {r['chapter']}:{r['verse']}] {text}")
     print("=" * 60)
     print("NOTE: This is structured text only. Treat as a reference tool, not a spiritual authority.")

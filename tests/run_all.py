@@ -56,6 +56,22 @@ from bible.references import (  # noqa: E402
 )
 from bible.strongs import run_strongs  # noqa: E402
 from bible.search import get_bm25_index, run_search  # noqa: E402
+from bible.quran import (  # noqa: E402
+    get_quran_verses,
+    list_quran_translations,
+    load_quran_edition,
+    parse_quran_ref,
+    run_quran,
+)
+from bible.semantic import (  # noqa: E402
+    cosine_similarity,
+    dot_product,
+    l2_normalize,
+    run_semantic,
+    search_semantic,
+    vector_norm,
+    MockDeterministicEmbedder,
+)
 
 # ---------------------------------------------------------------------------
 # Mini-framework: results + reporter
@@ -458,6 +474,183 @@ def t_xrefs_cli_reciprocal():
         "John 3:16", direction="in",
     )
     _assert("Incoming / Reciprocal" in out)
+
+
+# ---------------------------------------------------------------------------
+# Quran tests (Phase 3.1)
+# ---------------------------------------------------------------------------
+
+@_register("t_quran_data_files_exist")
+def t_quran_data_files_exist():
+    """Verify data/quran contains all 6 required edition files."""
+    editions = list_quran_translations()
+    required = {
+        "saheeh-international", "yusuf-ali", "pickthall",
+        "mufti-taqi-usmani", "arberry", "uthmani",
+    }
+    _assert(required.issubset(set(editions)),
+            f"missing required editions: {required - set(editions)}")
+
+
+@_register("t_quran_loads_saheeh")
+def t_quran_loads_saheeh():
+    """Verify Saheeh International loads with 114 surahs and 6236 ayahs."""
+    data = load_quran_edition("saheeh-international")
+    _assert(data.get("tradition") == "islam")
+    _assert(data.get("structure") == "surah_ayah")
+    divisions = data.get("divisions", [])
+    _assert(len(divisions) == 114)
+    total_ayahs = sum(len(d["ayahs"]) for d in divisions)
+    _assert(total_ayahs == 6236, f"expected 6236 ayahs, got {total_ayahs}")
+
+
+@_register("t_quran_parse_canonical_name")
+def t_quran_parse_canonical_name():
+    """'Al-Baqarah 2:255' must resolve to (2, 255)."""
+    parsed = parse_quran_ref("Al-Baqarah 2:255")
+    _assert(parsed == (2, 255), f"failed to parse canonical: {parsed}")
+
+
+@_register("t_quran_parse_numeric_ref")
+def t_quran_parse_numeric_ref():
+    """'2:255' and 'Quran 2:255' must resolve to (2, 255)."""
+    _assert(parse_quran_ref("2:255") == (2, 255))
+    _assert(parse_quran_ref("Quran 2:255") == (2, 255))
+    _assert(parse_quran_ref("Surah 2:255") == (2, 255))
+
+
+@_register("t_quran_parse_alias_and_named_verse")
+def t_quran_parse_alias_and_named_verse():
+    """Aliases like 'baqarah 255' and 'Ayat al-Kursi' must resolve to (2, 255)."""
+    _assert(parse_quran_ref("baqarah 255") == (2, 255))
+    _assert(parse_quran_ref("Ayat al-Kursi") == (2, 255))
+    _assert(parse_quran_ref("Verse of the Throne") == (2, 255))
+
+
+@_register("t_quran_parse_range")
+def t_quran_parse_range():
+    """'Quran 112:1-4' and 'Al-Fatihah 1-7' must resolve to range tuples."""
+    _assert(parse_quran_ref("Quran 112:1-4") == (112, (1, 4)))
+    _assert(parse_quran_ref("Al-Fatihah 1-7") == (1, (1, 7)))
+    _assert(parse_quran_ref("2:255-256") == (2, (255, 256)))
+
+
+@_register("t_quran_parse_garbage_returns_none")
+def t_quran_parse_garbage_returns_none():
+    """Garbage, out-of-range surahs, or out-of-range ayahs must return None."""
+    _assert(parse_quran_ref("garbage input") is None)
+    _assert(parse_quran_ref("115:1") is None)
+    _assert(parse_quran_ref("Al-Baqarah 999") is None)
+    _assert(parse_quran_ref("Al-Fatihah 10") is None)
+
+
+@_register("t_quran_verse_text_uthmani_arabic")
+def t_quran_verse_text_uthmani_arabic():
+    """Uthmani text for 2:255 must contain Allah and Al-Qayyum in Arabic script."""
+    verses = get_quran_verses("uthmani", 2, 255)
+    _assert(len(verses) == 1)
+    text = verses[0]["text"]
+    _assert("ٱللَّهُ" in text or "الله" in text or "ٱللَّهُ" in text)
+    _assert("ٱلۡقَيُّومُ" in text or "القيوم" in text or "ٱلۡقَيُّومُ" in text)
+
+
+@_register("t_quran_multi_translation_lookup")
+def t_quran_multi_translation_lookup():
+    """112:1 lookup across Saheeh, Yusuf Ali, and Pickthall must return expected text."""
+    v_saheeh = get_quran_verses("saheeh-international", 112, 1)[0]["text"]
+    v_yusuf = get_quran_verses("yusuf-ali", 112, 1)[0]["text"]
+    v_pickthall = get_quran_verses("pickthall", 112, 1)[0]["text"]
+    _assert("One" in v_saheeh)
+    _assert("One" in v_yusuf)
+    _assert("One" in v_pickthall)
+
+
+@_register("t_quran_cli_json")
+def t_quran_cli_json():
+    """CLI run_quran with as_json=True must produce valid structured JSON."""
+    raw = _capture_run(run_quran, "Al-Baqarah 2:255", as_json=True)
+    parsed = json.loads(raw)
+    _assert(parsed["query"] == "Al-Baqarah 2:255")
+    _assert(parsed["surah"]["id"] == 2)
+    _assert(len(parsed["ayahs"]) == 1)
+    _assert(parsed["ayahs"][0]["ayah"] == 255)
+    translations = parsed["ayahs"][0]["translations"]
+    _assert("uthmani" in translations)
+    _assert("saheeh-international" in translations)
+
+
+# ---------------------------------------------------------------------------
+# Semantic search (Milestone 3B) tests
+# ---------------------------------------------------------------------------
+
+@_register("t_semantic_vector_math")
+def t_semantic_vector_math():
+    """Verify dot product, L2 norm, and cosine similarity."""
+    _assert(dot_product([1.0, 0.0], [0.0, 1.0]) == 0.0)
+    _assert(dot_product([1.0, 2.0], [3.0, 4.0]) == 11.0)
+    _assert(vector_norm([3.0, 4.0]) == 5.0)
+    _assert(cosine_similarity([1.0, 0.0], [1.0, 0.0]) == 1.0)
+    _assert(cosine_similarity([1.0, 0.0], [0.0, 1.0]) == 0.0)
+    _assert(round(cosine_similarity([1.0, 1.0], [-1.0, -1.0]), 4) == -1.0)
+
+
+@_register("t_semantic_vector_normalize")
+def t_semantic_vector_normalize():
+    """L2 normalization must produce a unit-length vector."""
+    v = l2_normalize([3.0, 4.0])
+    _assert(len(v) == 2)
+    _assert(round(v[0], 2) == 0.6)
+    _assert(round(v[1], 2) == 0.8)
+    _assert(round(vector_norm(v), 4) == 1.0)
+
+
+@_register("t_semantic_mock_embedder")
+def t_semantic_mock_embedder():
+    """Mock deterministic embedder produces normalized vectors of requested dim."""
+    embedder = MockDeterministicEmbedder(dim=32)
+    vecs = embedder.embed_texts(["grace and mercy", "light and truth"])
+    _assert(len(vecs) == 2)
+    _assert(len(vecs[0]) == 32)
+    _assert(len(vecs[1]) == 32)
+    _assert(round(vector_norm(vecs[0]), 4) == 1.0)
+    _assert(round(vector_norm(vecs[1]), 4) == 1.0)
+
+
+@_register("t_semantic_custom_index_search")
+def t_semantic_custom_index_search():
+    """search_semantic ranks nearest neighbor correctly with custom in-memory index."""
+    embedder = MockDeterministicEmbedder(dim=32)
+    entries = [
+        {"id": 0, "citation": "John 3:16", "text": "For God so loved the world", "tradition": "christianity"},
+        {"id": 1, "citation": "Genesis 1:1", "text": "In the beginning God created the heaven and earth", "tradition": "christianity"},
+        {"id": 2, "citation": "Quran 1:1", "text": "In the name of Allah the Entirely Merciful", "tradition": "islam"},
+    ]
+    vecs = embedder.embed_texts([e["text"] for e in entries])
+    custom_index = (entries, vecs, 32)
+
+    results = search_semantic(
+        query="God loved the world",
+        custom_index=custom_index,
+        backend="mock",
+        top_k=2,
+    )
+    _assert(len(results) == 2)
+    _assert(results[0]["citation"] == "John 3:16")
+    _assert("score" in results[0])
+    _assert(results[0]["score"] > 0.0)
+
+
+@_register("t_semantic_cli_missing_index_graceful")
+def t_semantic_cli_missing_index_graceful():
+    """CLI run_semantic handles missing vector index without crashing."""
+    out = _capture_run(run_semantic, "peace in suffering", index_name="__nonexistent_index__")
+    _assert("No precomputed vector index found" in out or "No matching passages found" in out)
+
+    # Test JSON mode
+    raw_json = _capture_run(run_semantic, "peace in suffering", index_name="__nonexistent_index__", as_json=True)
+    data = json.loads(raw_json)
+    _assert(data["query"] == "peace in suffering")
+    _assert(data["results_count"] == 0)
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 # Phase 3 Scope — Quran as the second tradition
 
-> **Status:** Scouting document (v0.5.0-pre, 2026-09-09). No code shipped
-> yet — this is the decision package for "should we ingest the Quran,
-> and if so, what does the work look like?"
+> **Status:** Shipped (v0.6.0, 2026-09-09 per ADR-009). Shipped 6 editions in
+> `data/quran/`, `bible/quran.py` adapter, CLI `python -m bible quran`, and 10
+> sister-script tests (48 passing).
 >
 > **Read alongside:** `docs/data-schema.md` §2 (Quran illustrative
 > schema), `HANDOFF.md` §2 (Phase 3 success state), `COUNCIL.md` §1–§2

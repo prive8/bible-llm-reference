@@ -32,6 +32,7 @@ Built for:
 - **Parallel view** across all translations, with optional Strong's enrichment and JSON output
 - **Okapi BM25 keyword search** — multilingual (Latin, Hebrew, Greek, Cyrillic, CJK), diacritic-insensitive, translation-pluggable
 - **Cross-reference engine** — 605K+ edges from openbible.info (CC-BY 4.0), with outgoing, reciprocal, and 1–3 hop traversal
+- **Quran multi-tradition adapter (Phase 3.1)** — 6 editions in `data/quran/` (5 English + Uthmani Arabic), citation parsing, and parallel lookup
 - **JSON output** on every command for downstream pipelines
 - **100% local, zero new dependencies** — stdlib only (Python 3.9+)
 
@@ -64,6 +65,15 @@ python3 -m bible references "John 3:16"                  # outgoing edges
 python3 -m bible references "John 3:16" --direction in   # reciprocal
 python3 -m bible references "Genesis 1:1" --hops 2       # multi-hop expansion
 python3 -m bible references "John 3:16" --min-votes 50 --json
+
+# Quran multi-translation lookup (Phase 3.1 pilot tradition)
+python3 -m bible quran "Al-Baqarah 2:255"                # Arabic Uthmani + Saheeh
+python3 -m bible quran "2:255" -t uthmani,saheeh-international,yusuf-ali
+python3 -m bible quran "Ayat al-Kursi" --json            # named verses + JSON
+
+# Semantic vector search (Milestone 3B)
+python3 -m bible semantic "finding peace in suffering"
+python3 -m bible semantic "verses about mercy" --tradition all --json
 
 # Generate a flat JSONL for embedding / training
 python3 make_flat_training.py              # Output: kjv_training.jsonl
@@ -205,7 +215,7 @@ A tool that takes a question and writes a response in the voice of the tradition
 
 Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. Each tradition gets parallel structure (same canonical schema, same citation format, same cross-reference API, tradition-specific lexicon). The Phase 1 data layer is designed so this is a **config change, not a code rebuild**.
 
-**Phase 3.1 pilot: Quran.** Scope doc at [`docs/phase3-scope-quran.md`](./docs/phase3-scope-quran.md). Canonical source identified: [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (Unlicense, 492 editions, 6,236 verses across 114 surahs). Estimated ~600 lines of stdlib code, shippable in one focused day. When this lands, the adapter pattern proves itself and Phase 3 becomes mechanical for other traditions.
+**Phase 3.1 pilot: Quran (shipped in v0.6.0).** 6 editions in `data/quran/` (Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, and Arabic Uthmani Hafs) via [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (Unlicense). Accessible via `python3 -m bible quran` with citation parsing and parallel view. See [`docs/phase3-scope-quran.md`](./docs/phase3-scope-quran.md) and ADR-009.
 
 Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
 
@@ -217,7 +227,7 @@ The project has a constitution ([`COUNCIL.md`](./COUNCIL.md)) and a long-form Co
 
 The runtime contract that any agent using this data must follow lives in [`HANDOFF.md` §11](./HANDOFF.md#11-runtime-contract-for-any-agent-using-this-data).
 
-Architectural decisions are tracked as ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md). Currently eight ADRs, ranging from "stdlib-only for Phase 1" (ADR-001) to "openbible.info as the cross-reference substrate" (ADR-008).
+Architectural decisions are tracked as ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md). Currently nine ADRs, ranging from "stdlib-only for Phase 1" (ADR-001) to "Quran as Phase 3 pilot tradition" (ADR-009).
 
 ---
 

@@ -115,7 +115,46 @@
 
 ---
 
+## ADR-009 — Quran as Phase 3 Pilot Tradition and Multi-Tradition Adapter Pattern
+
+**Status:** Accepted (2026-09-09).
+**Context:** The project's long-term vision requires extending beyond the Christian Bible to multiple religious traditions (`COUNCIL.md` §1). The Quran was chosen as the pilot second tradition (`docs/phase3-scope-quran.md`) because of its structural clarity (114 surahs, 6,236 ayahs), rich public-domain ecosystem (Tanzil.net, King Fahd Quran Complex via `fawazahmed0/quran-api`), and monotheistic Abrahamic thematic overlap.
+
+**Decision:**
+1. **Ingestion:** Pure stdlib script `scripts/ingest_quran.py` transforms 5 public-domain English translations (Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry) + Uthmani Hafs Arabic text into `data/quran/{edition}.json` matching `docs/data-schema.md` §2 (`tradition: "islam"`, `structure: "surah_ayah"`, `divisions` with surah metadata).
+2. **Adapter Pattern:** `bible/quran.py` mirrors the public contract of `bible/lookup.py`. It parses Quran citations (`"Quran 2:255"`, `"Al-Baqarah 2:255"`, `"2:255"`, `"Ayat al-Kursi"`, ranges `"112:1-4"`), caches loaded editions, and returns structured verse objects.
+3. **CLI Integration:** `python -m bible quran "Al-Baqarah 2:255"` presents Arabic Uthmani text alongside English translation, supports multi-translation views (`-t`), and outputs JSON (`--json`).
+
+**Consequences:**
+- The adapter pattern proves that non-Christian scripture structures (`surah/ayah` vs `book/chapter/verse`) can be seamlessly added without modifying core Bible lookup code.
+- Zero external dependencies: stdlib-only throughout (ADR-001 preserved).
+- Cross-platform UTF-8 handling verified for Arabic script on Windows and Linux consoles.
+- Total test suite expanded from 38 to 48 sister-script tests with 0 failures.
+
+---
+
+## ADR-010 — Milestone 3B Semantic Search Architecture & Pluggable Backend
+
+**Status:** Accepted (2026-09-09).
+**Context:** Milestone 3B requires semantic / conceptual retrieval across scriptures (e.g. "finding peace in suffering"). Adding neural libraries (torch, sentence-transformers, numpy) directly into base dependencies would violate ADR-001 (stdlib-only baseline). Hosted inference introduces credentials and costs.
+**Decision:**
+1. **Stdlib-First Vector Engine:** `bible/semantic.py` implements vector mathematics (dot product, Euclidean norm, cosine similarity, top-$k$ ranking) in pure Python standard library (`math`, `struct`, `heapq`).
+2. **Binary Flat Vector Index:** Serialized float32 binary format (`.bin`) paired with JSON metadata (`.json`) enables sub-millisecond in-memory vector cosine similarity search with zero external vector database dependencies.
+3. **Pluggable Embedders:**
+   - `local`: Local CPU/GPU sentence-transformers (`all-MiniLM-L6-v2`, ~80MB) configured via `[project.optional-dependencies] embeddings = ["sentence-transformers>=2.2.0", "numpy>=1.20.0"]`.
+   - `mock`: Deterministic stdlib hash-projection embedder for zero-dependency test suites and offline verification.
+   - `nim`: Pluggable hosted NIM provider if `NVIDIA_API_KEY` is present in the environment (never hardcoded or committed).
+4. **Offline Indexing Script:** `scripts/index_embeddings.py` generates multi-tradition vector indices offline across Christian Bible and Quran.
+5. **CLI:** `python -m bible semantic "query" [--top-k 10] [--tradition all|bible|islam] [--json]`.
+
+**Consequences:**
+- Base runtime remains 100% zero-dependency stdlib (ADR-001 preserved).
+- Development and test suites remain $0.00 compute cost.
+- Hermes or local environments can generate full neural embeddings offline whenever ready.
+- Test suite expanded from 48 → 53 sister-script tests with 0 failures.
+
+---
+
 ## Pending ADRs (to be drafted when the decision is made)
 
-- **ADR-008 — RESOLVED 2026-09-09** → openbible.info cross-references as the
-  Phase 1 cross-reference substrate (CC-BY 4.0).
+- **ADR-011** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.

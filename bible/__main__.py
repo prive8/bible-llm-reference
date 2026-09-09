@@ -52,12 +52,23 @@ Usage:
     python -m bible references "Genesis 1:1" --hops 2
         Multi-hop cross-reference expansion (openbible.info, CC-BY 4.0).
 
+    python -m bible quran "Al-Baqarah 2:255"
+        Show Quran verse with Arabic text and Saheeh International English.
+
+    python -m bible quran "2:255" -t uthmani,saheeh-international,yusuf-ali
+        Show Quran verse across multiple translations.
+
+    python -m bible semantic "finding peace in suffering"
+        Search scripture using dense vector embeddings (Milestone 3B).
+
 Flags:
     --strongs, -s       Include Strong's enrichment
     --json              JSON output
-    -t, --translations  Comma-separated list of translations (parallel)
+    -t, --translations  Comma-separated list of translations (parallel, quran)
     -t, --translation   Translation to search (search, default: KJV)
     -n, --limit         Result limit (search, default: 10)
+    --top-k             Result limit (semantic, default: 10)
+    --tradition         Filter tradition: all|bible|islam (semantic, default: all)
     --hops              Multi-hop depth (references, 1-3, default: 1)
     --min-votes         Vote threshold (references, default: 3)
     --direction         out|in|both (references, default: out)
@@ -88,6 +99,14 @@ def main():
         from bible.references import main as references_main
         sys.argv = ["bible references"] + rest
         references_main()
+    elif command == "quran":
+        from bible.quran import main as quran_main
+        sys.argv = ["bible quran"] + rest
+        quran_main()
+    elif command == "semantic":
+        from bible.semantic import main as semantic_main
+        sys.argv = ["bible semantic"] + rest
+        semantic_main()
     else:
         print(f"Unknown command: {command!r}")
         print(USAGE)

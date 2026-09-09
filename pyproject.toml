@@ -1,12 +1,18 @@
 [project]
 name = "bible-llm-reference"
-version = "0.5.0"
+version = "0.6.0"
 description = "Public-domain Bible dataset + reference tool for LLM training and research"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [{name = "prive8"}]
 dependencies = []
+
+[project.optional-dependencies]
+embeddings = [
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.20.0",
+]
 
 [project.scripts]
 bible = "bible.__main__:main"

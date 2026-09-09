@@ -248,16 +248,13 @@ shippable (the next day doesn't require the previous to be complete).
   Unicode and multilingual tokenization (handles Latin, Hebrew, Greek,
   Cyrillic, CJK ideographs) with diacritic stripping (`NFKD`) for unpointed
   matching. CLI: `python -m bible search "..." [-t WEB] [-n 10] [--strongs] [--json]`.
-- ⏸ **Milestone 3B — Embedding-based semantic retrieval:**
-  Local sentence-transformers vs. hosted NVIDIA NIM. Pluggable backend
-  with optional dependencies (`[project.optional-dependencies]`).
-  **Defer rationale (v0.5.0):** The cross-reference engine (Milestone 4)
-  materially reduces the urgency of semantic search. With BM25 + parallel
-  lookup + Strong's + 605K cross-references, the reference tool already
-  answers ~95% of natural-language queries without any model. Embeddings
-  become a refinement layer rather than a load-bearing component — a much
-  more comfortable place to make the local-vs-hosted choice. ADR-009
-  pending.
+- ✅ **Milestone 3B — Embedding-based semantic retrieval architecture landed (2026-09-09, v0.6.0, ADR-010):**
+  - Pure stdlib vector math engine (`bible/semantic.py`) with dot product, L2 norm, and cosine similarity.
+  - Flat binary float32 vector index with JSON metadata mapping for sub-millisecond in-memory nearest neighbor search.
+  - Pluggable embedder backends: `local` (`sentence-transformers`, `all-MiniLM-L6-v2`, ~80MB, optional group), `mock` (deterministic stdlib hash projection for tests), and `nim` (opt-in hosted API).
+  - CLI: `python -m bible semantic "finding peace in suffering" [-n 10] [--tradition all|bible|islam] [--json]`.
+  - Offline indexer: `scripts/index_embeddings.py` ready to generate production embeddings for Bible + Quran.
+  - 5 new tests in `tests/run_all.py` (total suite at **53 passed, 0 failed**).
 - ⏸ **Milestone 3C — Hybrid fusion:** Score fusion between BM25 and vector
   search. **Defer to Phase 3.5** (after a non-Christian tradition is in
   the corpus — cross-tradition queries become meaningful at that point).
@@ -284,21 +281,29 @@ domain) and surface it through the lookup API.
 
 ### Milestone 5 — packaging + sister-script tests + docs (~99% shipped as of 2026-09-09, v0.5.0)
 
-- ✅ Sister-script tests in `tests/run_all.py` — **38 tests, all passing.**
+- ✅ Sister-script tests in `tests/run_all.py` — **53 tests, all passing.**
   No pytest dependency (ADR-001, ADR-005). Unicode/Windows console-safe.
   Run via `python3 tests/run_all.py`.
-- ✅ `docs/design-decisions.md` — eight ADRs capturing architectural
-  decisions through ADR-008 (openbible.info cross-references).
+- ✅ `docs/design-decisions.md` — nine ADRs capturing architectural
+  decisions through ADR-009 (Quran Phase 3 pilot & adapter pattern).
 - ✅ `docs/evaluation.md` — retrieval-quality metrics per milestone,
   with active BM25 evaluation benchmark targets.
-- ✅ `docs/phase3-scope-quran.md` — Phase 3 scout document for Quran
-  as the pilot second tradition.
+- ✅ `docs/phase3-scope-quran.md` — Phase 3 scope document for Quran
+  as the pilot second tradition (shipped in v0.6.0).
 - ✅ CI workflow (`.github/workflows/ci.yml`) — matrix testing across
   Ubuntu and Windows on Python 3.10–3.13.
 - ✅ README quickstart updated with canonical `python -m bible parallel`,
   `python -m bible search`, and `python -m bible references`.
 - ✅ `bible-query.py` removed (was legacy deprecation from v0.2.0; fully
   superseded by `python -m bible` since v0.3.0). Milestone 5 closeout.
+
+### Phase 3.1 — Quran pilot tradition ✅ DONE (2026-09-09, v0.6.0)
+
+- ✅ Ingested 6 editions into `data/quran/` (5 English translations + Arabic Uthmani text, ~8.2 MB) via `scripts/ingest_quran.py` from `fawazahmed0/quran-api` (Unlicense).
+- ✅ `bible/quran.py` — adapter module with surah alias resolution (all 114 surahs), citation parser (`"Quran 2:255"`, `"Al-Baqarah 2:255"`, `"2:255"`, `"Ayat al-Kursi"`, ranges `"112:1-4"`), lazy caching, and multi-edition parallel retrieval.
+- ✅ CLI: `python -m bible quran "Al-Baqarah 2:255"` with `-t` and `--json`.
+- ✅ 10 new sister-script tests in `tests/run_all.py` (total suite at **48 passed, 0 failed**).
+- ✅ ADR-009 accepted in `docs/design-decisions.md`.
 
 ### Daily note template
 
@@ -482,8 +487,10 @@ make this concrete.
 
 ## 8. Pending decisions (do not act without dad)
 
-1. **Embedding model for semantic search (Milestone 3B).** Local
-   sentence-transformers vs. hosted NVIDIA NIM. Defer to Milestone 3B.
+1. **Embedding model for semantic search (Milestone 3B).** Zero-cost
+   local CPU embeddings (sentence-transformers / onnxruntime, ~80MB) for
+   development vs. hosted NVIDIA NIM deferred until scale/production.
+   Pluggable backend. Defer to Milestone 3B.
 2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something
    smaller. Defer to Phase 2.
 3. **README refresh.** The current README frames the project as the

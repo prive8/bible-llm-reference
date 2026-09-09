@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-09
+
+### Added
+- **Phase 3.1 — Quran as the second tradition shipped (ADR-009).**
+- `scripts/ingest_quran.py` — stdlib ingestion script fetching 6 editions from `fawazahmed0/quran-api` (Unlicense) and repacking into the canonical multi-tradition JSON schema (`docs/data-schema.md` §2).
+- `data/quran/` — 6 public-domain Quran editions (~8.2 MB): Saheeh International (1996), Abdullah Yusuf Ali (1934), Marmaduke Pickthall (1930), Mufti Taqi Usmani, A. J. Arberry (1955), and Arabic Quran Uthmani Hafs recitation from King Fahd Quran Complex.
+- `data/quran/README.md` — dataset documentation, Tanzil/Unlicense provenance, and schema documentation.
+- `bible/quran.py` — Quran adapter module mirroring `bible.lookup`. Features comprehensive surah alias normalization (all 114 surahs, prefixes, transliterations, and named verses like Ayat al-Kursi), citation parsing (`parse_quran_ref`), lazy JSON loading with `@lru_cache`, and parallel multi-edition retrieval.
+- `python -m bible quran "Al-Baqarah 2:255"` CLI subcommand — displays Arabic Uthmani script alongside English translation, supports multi-translation comparison (`-t`), and outputs structured JSON (`--json`). Safe UTF-8 console output across Linux and Windows.
+- 10 new sister-script tests in `tests/run_all.py` — suite expanded from 38 → 48 passing tests (0 failed).
+- ADR-009 recorded in `docs/design-decisions.md`.
+- **Milestone 3B — Dense semantic retrieval architecture (ADR-010).**
+- `bible/semantic.py` — stdlib-first vector search engine with dot product, Euclidean norm, and cosine similarity. Features flat binary float32 index storage (`.bin` + `.json`), pluggable backends (`local`, `mock`, `nim`), and multi-tradition cross-corpus filtering.
+- `scripts/index_embeddings.py` — offline embedding generation script for Bible + Quran corpora.
+- `python -m bible semantic "..."` CLI subcommand with `--top-k`, `--tradition`, and `--json` support.
+- `pyproject.toml` — declared `[project.optional-dependencies] embeddings = ["sentence-transformers>=2.2.0", "numpy>=1.20.0"]`. Base install remains pure zero-dependency stdlib.
+- 5 new sister-script tests in `tests/run_all.py` — total suite expanded to **53 passed tests (0 failed)**.
+- ADR-010 recorded in `docs/design-decisions.md`.
+
 ## [0.5.0] — 2026-09-09
 
 ### Added

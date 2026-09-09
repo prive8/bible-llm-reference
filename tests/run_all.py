@@ -23,6 +23,17 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -37,12 +48,25 @@ from bible.lookup import (  # noqa: E402
 )
 from bible.parallel import run_parallel  # noqa: E402
 from bible.strongs import run_strongs  # noqa: E402
+from bible.search import get_bm25_index, run_search  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Mini-framework: results + reporter
 # ---------------------------------------------------------------------------
 
 _results: list[tuple[str, str, str]] = []
+
+
+def _can_unicode() -> bool:
+    try:
+        "✓".encode(sys.stdout.encoding or "ascii")
+        return True
+    except Exception:
+        return False
+
+
+ICON_PASS = "✓" if _can_unicode() else "[PASS]"
+ICON_FAIL = "✗" if _can_unicode() else "[FAIL]"
 
 
 def _capture_run(fn, *args, **kwargs):
@@ -65,13 +89,13 @@ def _register(name: str):
             try:
                 fn()
                 _results.append((name, "PASS", ""))
-                print(f"  ✓ {name}")
+                print(f"  {ICON_PASS} {name}")
             except AssertionError as e:
                 _results.append((name, "FAIL", str(e) or "assertion failed"))
-                print(f"  ✗ {name}: {e or 'assertion failed'}")
+                print(f"  {ICON_FAIL} {name}: {e or 'assertion failed'}")
             except Exception as e:
                 _results.append((name, "ERROR", f"{type(e).__name__}: {e}"))
-                print(f"  ✗ {name}: {type(e).__name__}: {e}")
+                print(f"  {ICON_FAIL} {name}: {type(e).__name__}: {e}")
                 traceback.print_exc()
         wrapper.__name__ = name
         # Stash in module globals so the runner can find us by name
@@ -246,10 +270,14 @@ def t_legacy_bible_query_does_not_inline_strongs_into_text():
     text, producing unreadable output. Verify the legacy script now emits
     clean English with Strong's refs on separate lines.
     """
+    import os
     import subprocess
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
     p = subprocess.run(
-        ["python3", "bible-query.py", "John 3:16", "--strongs"],
-        capture_output=True, text=True, cwd=ROOT,
+        [sys.executable, "bible-query.py", "John 3:16", "--strongs"],
+        capture_output=True, text=True, cwd=ROOT, env=env, encoding="utf-8", errors="replace",
     )
     _assert(p.returncode == 0, f"exit {p.returncode}: {p.stderr}")
     # The English line should be clean — no Hebrew interleaved
@@ -258,6 +286,51 @@ def t_legacy_bible_query_does_not_inline_strongs_into_text():
             _assert("בִּכּוּרָה" not in line, f"inlined Hebrew in: {line}")
             _assert("God so loved the world" in line, line)
             break
+
+
+# ---------------------------------------------------------------------------
+# Search (BM25) tests (Milestone 3A)
+# ---------------------------------------------------------------------------
+
+@_register("t_search_faith_without_works")
+def t_search_faith_without_works():
+    idx = get_bm25_index("KJV")
+    res = idx.search("faith without works", limit=5)
+    _assert(len(res) > 0, "expected search results")
+    top = res[0]
+    _assert(top["reference"] in ("James 2:20", "James 2:26"), f"unexpected top result: {top['reference']}")
+    _assert("faith without works" in top["text"].lower())
+
+
+@_register("t_search_no_results")
+def t_search_no_results():
+    idx = get_bm25_index("KJV")
+    res = idx.search("zyxwvutsrqponmlkjihgfedcba9876543210", limit=5)
+    _assert(len(res) == 0, f"expected no results, got {res}")
+
+
+@_register("t_search_translation_web")
+def t_search_translation_web():
+    idx = get_bm25_index("WEB")
+    res = idx.search("light", limit=5)
+    refs = [r["reference"] for r in res]
+    _assert("Genesis 1:3" in refs, f"expected Genesis 1:3 in {refs}")
+
+
+@_register("t_search_cli_json")
+def t_search_cli_json():
+    out = _capture_run(run_search, "faith without works", limit=2, as_json=True)
+    data = json.loads(out)
+    _assert(isinstance(data, list) and len(data) == 2, f"unexpected data: {data}")
+    _assert("reference" in data[0] and "score" in data[0])
+
+
+@_register("t_search_multilingual_wlca_hebrew")
+def t_search_multilingual_wlca_hebrew():
+    idx = get_bm25_index("WLCa")
+    res = idx.search("ברא", limit=5)
+    refs = [r["reference"] for r in res]
+    _assert("Genesis 1:1" in refs or "Genesis 1:27" in refs, f"expected Genesis 1 in {refs}")
 
 
 # ---------------------------------------------------------------------------

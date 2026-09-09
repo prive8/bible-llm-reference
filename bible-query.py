@@ -12,6 +12,17 @@ import os
 from pathlib import Path
 from collections import defaultdict
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 ROOT = Path(__file__).parent
 KJV_PATH = ROOT / "kjv.json"
 STRONGS_HEB = ROOT / "strongs_data/hebrew/strongs-hebrew-dictionary.js"

@@ -57,7 +57,13 @@ python3 -m bible parallel "John 3:16" -t WEB,YLT,RSV # limit translations
 python3 -m bible strongs H1254              # look up a number
 python3 -m bible strongs "Genesis 1:1"      # all Strong's in a verse
 
-# Legacy keyword search (deprecated; will be replaced by `bible search` in v0.3.0)
+# Okapi BM25 keyword search (Milestone 3A)
+python3 -m bible search "faith without works"       # ranked BM25 search in KJV
+python3 -m bible search "light" -t WEB -n 5         # search in World English Bible
+python3 -m bible search "In the beginning" --strongs # with Strong's tags
+python3 -m bible search "ברא" -t WLCa --limit 3     # multilingual ancient texts
+
+# Legacy keyword search (deprecated; superseded by `bible search`)
 python3 bible-query.py "faith without works"
 
 # Generate a flat JSONL for embedding / training
@@ -68,7 +74,7 @@ python3 make_flat_training.py
 python3 convert_strongs_to_json.py
 # Output: strongs_data/hebrew/strongs-hebrew.json + strongs_data/greek/strongs-greek.json
 
-# Run the sister-script test suite (20 tests, stdlib-only)
+# Run the sister-script test suite (25 tests, stdlib-only)
 python3 tests/run_all.py
 ```
 

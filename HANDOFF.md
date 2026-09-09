@@ -239,26 +239,18 @@ shippable (the next day doesn't require the previous to be complete).
 - ✅ CLI: `python -m bible strongs H1254` and
   `python -m bible strongs "Genesis 1:1"`
 
-### Milestone 3 — semantic search (Days 4–8)
+### Milestone 3 — search engine (Days 4–8) (~60% shipped as of 2026-09-09)
 
-Choices (same as before):
-
-(a) **Embedding-based retrieval** (recommended). Use
-sentence-transformers for verse embeddings, store in a vector DB
-(or just an on-disk numpy array to start). Query by natural
-language and return nearest verses by cosine similarity. Requires
-a model — local (sentence-transformers/all-MiniLM-L6-v2 is ~80MB,
-runs on CPU) or hosted (NVIDIA NIM).
-
-(b) **BM25 / keyword-rank baseline.** No model needed. Pure
-Python. Fast to ship, less semantically aware. Good fallback.
-
-(c) **Hybrid.** BM25 + embeddings, score-fused. Best quality, more
-code to maintain.
-
-**Recommendation: ship (b) first as a baseline, then (a) on top.**
-BM25 ships in a day. Embeddings add a model dependency that needs
-a separate decision (see §7.2).
+- ✅ **Milestone 3A — BM25 keyword search baseline (shipped 2026-09-09):**
+  Pure stdlib Okapi BM25 implementation (`bible/search.py`, ADR-007).
+  Unicode and multilingual tokenization (handles Latin, Hebrew, Greek,
+  Cyrillic, CJK ideographs) with diacritic stripping (`NFKD`) for unpointed
+  matching. CLI: `python -m bible search "..." [-t WEB] [-n 10] [--strongs] [--json]`.
+- ⏸ **Milestone 3B — Embedding-based semantic retrieval:**
+  Local sentence-transformers vs. hosted NVIDIA NIM. Pluggable backend
+  with optional dependencies (`[project.optional-dependencies]`).
+- ⏸ **Milestone 3C — Hybrid fusion:** Score fusion between BM25 and vector
+  search.
 
 ### Milestone 4 — cross-reference engine (Days 9–12)
 
@@ -268,20 +260,19 @@ from scratch is feasible but slow. Faster path: import an existing
 public-domain cross-reference dataset (TSKe is on GitHub, public
 domain) and surface it through the lookup API.
 
-### Milestone 5 — packaging + sister-script tests + docs (~70% shipped as of 2026-09-09)
+### Milestone 5 — packaging + sister-script tests + docs (~95% shipped as of 2026-09-09)
 
-- ✅ Sister-script tests in `tests/run_all.py` — 20 tests, all passing.
-  No pytest dependency (ADR-001, ADR-005). Run via
-  `python3 tests/run_all.py`.
-- ✅ `docs/design-decisions.md` — six ADRs capturing the
-  architectural decisions made through v0.2.0.
-- ✅ `docs/evaluation.md` — shell document defining retrieval-quality
-  metrics per milestone.
-- ⏸ CI workflow (.github/workflows/) — runner command is
-  `python3 tests/run_all.py`; just needs a YAML file.
-- ⏸ README deprecation pointer — the README's quickstart still shows
-  `bible-query.py`; should be updated to `python -m bible` per
-  ADR-004.
+- ✅ Sister-script tests in `tests/run_all.py` — 25 tests, all passing.
+  No pytest dependency (ADR-001, ADR-005). Unicode/Windows console-safe.
+  Run via `python3 tests/run_all.py`.
+- ✅ `docs/design-decisions.md` — seven ADRs capturing architectural
+  decisions through ADR-007 (stdlib Okapi BM25).
+- ✅ `docs/evaluation.md` — retrieval-quality metrics per milestone,
+  with active BM25 evaluation benchmark targets.
+- ✅ CI workflow (`.github/workflows/ci.yml`) — matrix testing across
+  Ubuntu and Windows on Python 3.10–3.13.
+- ✅ README quickstart updated with canonical `python -m bible parallel`
+  and `python -m bible search`.
 
 ### Daily note template
 

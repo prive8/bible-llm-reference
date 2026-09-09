@@ -1,6 +1,6 @@
 [project]
 name = "bible-llm-reference"
-version = "0.2.0"
+version = "0.3.0"
 description = "Public-domain Bible dataset + reference tool for LLM training and research"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -65,10 +65,21 @@
 **Consequences:** Some edge inputs that *used to* work via fuzzy matching now return None (and surface a clearer error to the user). Added `"1jn"` / `"2jn"` / `"3jn"` no-space aliases for the common abbreviated form.
 **Test:** `tests/run_all.py::t_parse_alias_1jn` now passes; `1jn 4:8` → `1 John`, not `John`.
 
+## ADR-007 — Stdlib Okapi BM25 as canonical search baseline
+
+**Status:** Accepted (2026-09-09).
+**Context:** Milestone 3 requires search capabilities. Adding an embedding model or vector database immediately would introduce heavy external dependencies (sentence-transformers, torch, numpy) violating ADR-001 before establishing a deterministic baseline. Additionally, the project's long-term vision requires supporting multiple religious texts and ancient languages (Hebrew, Greek, Arabic, Sanskrit, CJK, etc.).
+**Decision:** Implement an in-memory Okapi BM25 search engine (`bible/search.py`) using Python standard library only (`math`, `re`, `unicodedata`, `collections`).
+- Tokenizer is Unicode-aware (`\w+` across multilingual scripts, individual CJK character segmentation) with diacritic stripping (`unicodedata.normalize('NFD')`) so unpointed/unaccented queries match pointed ancient texts (e.g. WLCa Hebrew, LXX Greek).
+- Ranking uses Okapi BM25 ($k_1=1.5, b=0.75$) with Lucene non-negative IDF, coverage bonus for multi-word queries, and exact phrase boosts.
+- Translation-pluggable: searches KJV by default, or any loaded translation (`-t WEB`, `-t YLT`, `-t WLCa`, etc.).
+- Search is exposed via `python -m bible search "..."`. `bible-query.py` keyword search is superseded.
+**Consequences:** Fast (<0.5s cold, <5ms warm) deterministic keyword search across all translations without any `pip install` dependencies. Embedding-based search (Milestone 3B) will build on top of this as an optional enhancement.
+
 ---
 
 ## Pending ADRs (to be drafted when the decision is made)
 
-- **ADR-007** — Embedding model selection for Milestone 3 (local sentence-transformers vs. hosted NVIDIA NIM). Defer to Milestone 3.
-- **ADR-008** — Cross-reference dataset source (TSKe vs. build from scratch). Defer to Milestone 4.
-- **ADR-009** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.
+- **ADR-008** — Dense embedding retrieval backend (local sentence-transformers vs. hosted NVIDIA NIM). Defer to Milestone 3B.
+- **ADR-009** — Cross-reference dataset source (TSKe vs. build from scratch). Defer to Milestone 4.
+- **ADR-010** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.

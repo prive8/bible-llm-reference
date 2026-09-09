@@ -38,13 +38,21 @@ These are pass/fail, not scored. Implemented in `tests/run_all.py`:
 
 **Running:** `python3 tests/run_all.py` — should print `N passed, 0 failed` and exit 0.
 
-## 4. Keyword search metrics (Milestone 3, draft)
+## 4. Keyword search metrics (Milestone 3A, shipped)
 
-When BM25 ships (per HANDOFF.md §5 Milestone 3), define:
+BM25 Okapi search engine (`bible/search.py`, ADR-007) is evaluated in `tests/run_all.py`:
 
-- **Top-1 accuracy:** For a curated set of 50 (query, expected-verse) pairs, does the top result match the expected verse? Target: ≥80%.
-- **Primary vs. related recall:** Multi-word queries should rank verses matching all words above verses matching one word. Verify with a hand-built test set.
-- **No-false-positive baseline:** A clearly off-topic query ("biology textbook") should return zero results (or all results below the relevance threshold).
+| Metric | Test | Pass criterion |
+|--------|------|----------------|
+| Phrase relevance / Top-1 accuracy | `t_search_faith_without_works` | Top-1 result is James 2:20 or James 2:26 |
+| No-false-positive baseline | `t_search_no_results` | Nonsense tokens return 0 results |
+| Multi-translation support | `t_search_translation_web` | Querying WEB surfaces Genesis 1:3 in top 3 |
+| Pipeline serialization | `t_search_cli_json` | JSON output parses with `reference`, `text`, `score` |
+| Ancient language diacritic handling | `t_search_multilingual_wlca_hebrew` | Unpointed Hebrew `ברא` surfaces Genesis 1:1/1:27 in WLCa |
+
+- **Top-1 accuracy:** Evaluated on reference phrases. Target: ≥80%.
+- **Phrase boost:** Exact phrase occurrence receives scoring priority over scattered occurrences.
+- **Multi-tradition & multilingual readiness:** Diacritic-insensitive Unicode tokenization handles unpointed Hebrew, Greek accents, and non-ASCII scripts.
 
 ## 5. Semantic search metrics (Milestone 3+, draft)
 

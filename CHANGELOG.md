@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-09-09
+
+### Added
+- `bible/search.py` — pure-stdlib Okapi BM25 search engine (ADR-007) with $k_1=1.5, b=0.75$, Unicode/multilingual tokenization (handles Latin, Hebrew, Greek, Cyrillic, and CJK characters), diacritic-insensitive normalization (`NFKD`), phrase boost, and coverage multiplier.
+- `python -m bible search "..."` CLI command with flags `-t/--translation`, `-n/--limit`, `--strongs`, and `--json`.
+- `.github/workflows/ci.yml` — continuous integration workflow matrix testing across Ubuntu and Windows on Python 3.10–3.13.
+- `docs/design-decisions.md` ADR-007: Stdlib Okapi BM25 as Canonical Search Baseline.
+- 5 new search test cases in `tests/run_all.py` (`t_search_faith_without_works`, `t_search_no_results`, `t_search_translation_web`, `t_search_cli_json`, `t_search_multilingual_wlca_hebrew`), bringing test suite to 25 passing tests.
+
+### Fixed
+- UTF-8 console output on Windows in `tests/run_all.py`, `bible/__main__.py`, and `bible-query.py` avoiding `UnicodeEncodeError` when printing non-ASCII / ancient language texts and checkmarks.
+
 ## [0.2.0] — 2026-09-09
 
 ### Added

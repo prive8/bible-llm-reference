@@ -260,19 +260,31 @@ from scratch is feasible but slow. Faster path: import an existing
 public-domain cross-reference dataset (TSKe is on GitHub, public
 domain) and surface it through the lookup API.
 
+### Milestone 4 — cross-reference engine (Days 9–12) ✅ DONE (2026-09-09, this commit)
+
+- ✅ Ingested openbible.info cross-reference dataset (344,800 raw edges,
+  605,043 after range expansion) into
+  `data/references/cross_references.json` (19 MB, CC-BY 4.0).
+- ✅ `bible/references.py` — `get_references()` (outgoing), `get_reciprocal()`
+  (incoming, lazy-built index), `traverse()` (1–3 hops, clamped, cycle-safe).
+- ✅ CLI: `python -m bible references "John 3:16" [--hops N] [--min-votes V]
+  [--direction out|in|both] [--json]`
+- ✅ Smoke test: John 3:16's top outgoing edge is Romans 5:8 (871 votes);
+  Genesis 1:1's top hop-2 edge is John 1:1 (304 votes).
+
 ### Milestone 5 — packaging + sister-script tests + docs (~95% shipped as of 2026-09-09)
 
-- ✅ Sister-script tests in `tests/run_all.py` — 25 tests, all passing.
+- ✅ Sister-script tests in `tests/run_all.py` — **39 tests, all passing.**
   No pytest dependency (ADR-001, ADR-005). Unicode/Windows console-safe.
   Run via `python3 tests/run_all.py`.
-- ✅ `docs/design-decisions.md` — seven ADRs capturing architectural
-  decisions through ADR-007 (stdlib Okapi BM25).
+- ✅ `docs/design-decisions.md` — eight ADRs capturing architectural
+  decisions through ADR-008 (openbible.info cross-references).
 - ✅ `docs/evaluation.md` — retrieval-quality metrics per milestone,
   with active BM25 evaluation benchmark targets.
 - ✅ CI workflow (`.github/workflows/ci.yml`) — matrix testing across
   Ubuntu and Windows on Python 3.10–3.13.
-- ✅ README quickstart updated with canonical `python -m bible parallel`
-  and `python -m bible search`.
+- ✅ README quickstart updated with canonical `python -m bible parallel`,
+  `python -m bible search`, and `python -m bible references`.
 
 ### Daily note template
 
@@ -455,18 +467,18 @@ make this concrete.
 
 ## 8. Pending decisions (do not act without dad)
 
-1. **Embedding model for semantic search (Milestone 3).** Local
-   sentence-transformers vs. hosted NVIDIA NIM. Defer to Milestone 3.
-2. **Cross-reference dataset source (Milestone 4).** TSKe (public
-   domain) vs. building from scratch. Recommendation: TSKe, but
-   verify the license before committing.
-3. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something
+1. **Embedding model for semantic search (Milestone 3B).** Local
+   sentence-transformers vs. hosted NVIDIA NIM. Defer to Milestone 3B.
+2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something
    smaller. Defer to Phase 2.
-4. **README refresh.** The current README frames the project as the
+3. **README refresh.** The current README frames the project as the
    "Abrahamic / Christian slice of the Religion & Spirituality AI"
    (per the Grok upgrade). The broader vision is in `COUNCIL.md`.
    A README rewrite is not urgent; do it after Milestone 1 so the
    new framing is grounded in shipped code.
+4. (Resolved.) Cross-reference dataset source: openbible.info via
+   scrollmapper mirror, CC-BY 4.0 (ADR-008, 2026-09-09). See
+   `docs/data-schema.md` and `data/references/README.md`.
 5. (Resolved.) The original `agents.md` had a malformed code block
    in the quick-integration example. That file was absorbed into §11
    of this file, and the Python integration example was removed

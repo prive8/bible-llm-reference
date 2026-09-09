@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-09
+
+### Added
+- `bible/references.py` — cross-reference engine backed by 605K+ openbible.info edges across 29K+ source verses. Public surface: `get_references(ref)`, `get_reciprocal(ref)`, `traverse(ref, hops)`, `load_xrefs()`, `metadata()`.
+- `python -m bible references "John 3:16"` CLI subcommand with `--hops` (1–3), `--min-votes` (default 3), `--direction out|in|both`, and `--json` output.
+- `data/references/cross_references.json` — normalized JSON keyed by canonical verse ref (19 MB). Derived from openbible.info (CC-BY 4.0).
+- `data/references/cross_references.txt` — raw 8 MB TSV snapshot (commit 2024-11-04).
+- `data/references/README.md` — license provenance + schema + refresh instructions.
+- `scripts/ingest_cross_references.py` — one-shot ingestion script. Idempotent; re-run to refresh.
+- 13 new sister-script tests for the cross-reference engine. Suite now at 39 passing tests.
+- ADR-008 (`docs/design-decisions.md`) — openbible.info cross-references as Phase 1 cross-reference substrate.
+
+### Changed
+- `bible/__main__.py` — added `references` to the CLI dispatcher + USAGE string.
+- `pyproject.toml` version bumped to `0.4.0`.
+
 ## [0.3.0] — 2026-09-09
 
 ### Added

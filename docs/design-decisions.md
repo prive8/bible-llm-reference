@@ -80,6 +80,42 @@
 
 ## Pending ADRs (to be drafted when the decision is made)
 
-- **ADR-008** — Dense embedding retrieval backend (local sentence-transformers vs. hosted NVIDIA NIM). Defer to Milestone 3B.
-- **ADR-009** — Cross-reference dataset source (TSKe vs. build from scratch). Defer to Milestone 4.
-- **ADR-010** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.
+- **ADR-008 — RESOLVED 2026-09-09** → Cross-reference dataset source is
+  openbible.info (CC-BY 4.0), not TSKe-from-scratch. See ADR-008 in this
+  file.
+- **ADR-009** — Dense embedding retrieval backend (local sentence-transformers
+  vs. hosted NVIDIA NIM). Defer to Milestone 3B.
+- **ADR-010** — Phase 2 base model (Llama / Mistral / Qwen / smaller).
+  Defer to Phase 2.
+
+---
+
+## ADR-008 — openbible.info cross-references as Phase 1 cross-reference substrate
+
+**Status:** Accepted (2026-09-09).
+**Context:** HANDOFF §5 Milestone 4 called for ingesting a public-domain cross-reference dataset ("TSKe recommended, verify license"). Three candidates were considered:
+1. **scrollmapper/bible_databases `cross_references.txt`** — TSV of openbible.info data, CC-BY 4.0, 344,800 edges. Hosted on GitHub; stable mirror.
+2. **CrossReferences-org/bible-cross-references** — TSK with phrase-level anchors for English/French/Afrikaans, CC-BY 4.0 (not pure public domain — attribution required).
+3. **Build from scratch** — infeasible at this scale (~300K edges); no precedent for a non-crowdsourced TSKe-quality graph.
+
+**Decision:** Use the openbible.info dataset via the scrollmapper mirror, ingested by `scripts/ingest_cross_references.py` into `data/references/cross_references.json`. License is **CC-BY 4.0**, propagated via the data README and the project README. Raw TSV is committed alongside the JSON so the data is auditable without re-downloading.
+
+**Rationale:**
+- openbible.info is the de-facto modern cross-reference source for Bible software (Logos, Olive Tree, TheWord all use derived datasets).
+- CC-BY 4.0 is acceptable per HANDOFF §7.5 (the Strong's CC-BY-SA is already in the same license family; attribution to openbible.info is straightforward).
+- 605K+ post-range-expansion edges is enough signal for a useful traversal; building a graph from scratch would take weeks of research.
+
+**Consequences:**
+- The cross-reference engine (`bible/references.py`) is stdlib-only (ADR-001 consistent) — pure JSON load + dict traversal.
+- Votes are an interpretive signal (crowd-sourced quality scores), not authoritative. CLI surfaces the votes so consumers can filter.
+- Negative-vote edges are dropped at ingest (1,166 of 344,800 rows). Consumer can re-enable by editing the ingest script.
+- Self-loops are dropped at ingest (already-excluded in the openbible data, but the script filters defensively).
+- Future migration: if a better public-domain cross-reference dataset appears, the JSON shape is decoupled from the source — re-ingest only.
+- **Phase 3 implication:** non-Christian traditions have no openbible equivalent. The cross-reference engine will need to be either omitted for those traditions or sourced separately (e.g., Quran tafsir cross-references, rabbinic cross-references for Tanakh).
+
+---
+
+## Pending ADRs (to be drafted when the decision is made)
+
+- **ADR-008 — RESOLVED 2026-09-09** → openbible.info cross-references as the
+  Phase 1 cross-reference substrate (CC-BY 4.0).

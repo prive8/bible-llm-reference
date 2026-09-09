@@ -37,10 +37,9 @@ Generates personalized, citation-grounded answers about the Bible across 13 tran
 
 ## Quick start
 
-> **As of v0.2.0** the canonical CLI is `python -m bible ...`. The older
+> **As of v0.4.0** the canonical CLI is `python -m bible ...`. The older
 > `bible-query.py` is still in the repo as a legacy keyword-search
-> convenience — see ADR-004 for why and `CHANGELOG.md` v0.2.0 for what
-> changed.
+> convenience — see ADR-004 for why and `CHANGELOG.md` for what changed.
 
 ```bash
 # Clone
@@ -63,6 +62,12 @@ python3 -m bible search "light" -t WEB -n 5         # search in World English Bi
 python3 -m bible search "In the beginning" --strongs # with Strong's tags
 python3 -m bible search "ברא" -t WLCa --limit 3     # multilingual ancient texts
 
+# Cross-references (Milestone 4, openbible.info CC-BY 4.0)
+python3 -m bible references "John 3:16"                # outgoing edges
+python3 -m bible references "John 3:16" --direction in # reciprocal
+python3 -m bible references "Genesis 1:1" --hops 2     # multi-hop expansion
+python3 -m bible references "John 3:16" --min-votes 50 --json
+
 # Legacy keyword search (deprecated; superseded by `bible search`)
 python3 bible-query.py "faith without works"
 
@@ -74,7 +79,7 @@ python3 make_flat_training.py
 python3 convert_strongs_to_json.py
 # Output: strongs_data/hebrew/strongs-hebrew.json + strongs_data/greek/strongs-greek.json
 
-# Run the sister-script test suite (25 tests, stdlib-only)
+# Run the sister-script test suite (39 tests, stdlib-only)
 python3 tests/run_all.py
 ```
 

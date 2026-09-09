@@ -4,20 +4,24 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-09
+
 ### Added
-- `HANDOFF.md` — engineering handoff (vision, state, conventions, milestone roadmap).
-- `COUNCIL.md` — governance constitution (short stub).
-- `docs/data-schema.md` — parallel-structure schema for multi-tradition support.
-- `docs/governance/council-design.md` — long-form Council spec (agent roster, decision protocol, scoping guardrails).
-- `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` (this file), `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`.
-- Runtime contract for any agent using this data — see `HANDOFF.md` §11.
+- `tests/run_all.py` — sister-script test runner (stdlib-only, no pytest). 20 tests covering reference parser, KJV loading, translation enumeration, parallel lookup, Strong's CLI, and legacy-script regression. Run via `python3 tests/run_all.py`.
+- `docs/design-decisions.md` — six ADRs capturing the architectural decisions made since the Grok upgrade: stdlib-only, multi-tradition constraint, Strong's-as-JS, legacy CLI deprecation, sister-script tests, and the book-resolution fuzzy-match removal.
+- `docs/evaluation.md` — shell document defining what we measure (and explicitly what we don't) at each milestone.
+- `notes/2026-09-09.md` — daily journal entry (see HANDOFF.md §7.2).
 
 ### Changed
-- `README.md` rewritten to reflect the project's current vision, scope, and what's in the repo. The old framing ("Bible Q&A dataset + tool") is replaced with the Religion & Spirituality AI substrate framing.
-- `agents.md` (the 2026-07-31 Grok runtime contract) absorbed into `HANDOFF.md` §11. The file is removed; the contract is the canonical section of the engineering handoff.
+- `bible/lookup.py::resolve_book_name` — removed fuzzy substring fallback that incorrectly resolved `1jn` to `John` instead of `1 John`. Added `1jn`/`2jn`/`3jn` no-space aliases.
+- `pyproject.toml` version bumped to `0.2.0`. `[project.scripts]` exposes `bible` (the new package CLI), not `bible-query`.
 
-### Removed
-- `agents.md` (lowercase). The runtime contract survives in `HANDOFF.md` §11.
+### Fixed
+- `bible-query.py --strongs` — previously inlined lemma + gloss into the English text, producing unreadable output ("Forבִּכּוּרָה…Godחֲדַר…"). Now strips Strong's tags from the English line and prints Strong's references as a separate block. `python -m bible parallel --strongs` remains the canonical output path.
+- `tests/run_all.py` — exposes the regression test for the `--strongs` bug above so it can't silently come back.
+
+### Deprecated
+- `bible-query.py` is now legacy. Use `python -m bible parallel ...` / `python -m bible strongs ...`. Will be removed when Milestone 3 (semantic search) lands the `bible search` command.
 
 ## [0.1.0] — 2026-07-31
 

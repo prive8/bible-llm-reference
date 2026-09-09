@@ -143,23 +143,27 @@ layer must be designed so this is a config change.
 - `strongs_data/hebrew/` — H1–H8674 (8,674 entries), via Open Scriptures.
 - `strongs_data/greek/` — G1–G5624 (5,624 entries), via Open Scriptures.
 
-### 4.2 Code (after the 2026-07-31 Grok upgrade)
-- `bible-query.py` (260 lines) — upgraded retrieval CLI. Reads KJv,
-  parses exact references (book, chapter, verse, ranges), does
-  keyword search with multi-word scoring, supports Strong's
-  enrichment on demand, supports JSON output, ends with a
-  "CONTEXT FOR LLM" block ready for RAG pipelines. **This is the
-  working retrieval primitive.**
+### 4.2 Code (as of 2026-09-09, v0.2.0)
+- `bible/` package (stdlib-only) — `lookup.py` (data load + ref parser),
+  `parallel.py` (cross-translation lookup, JSON output), `strongs.py`
+  (H/G lookup, by number or verse), `__main__.py` (CLI dispatcher).
+  Entry point: `python -m bible parallel "..."` and
+  `python -m bible strongs ...`. **This is the canonical CLI surface.**
+- `bible-query.py` (260 lines) — **legacy**. Retained for backwards
+  compat with the Grok-upgrade CLI shape and as a keyword-search
+  convenience until `bible search` lands in Milestone 3. The
+  `--strongs` output was unreadable as of v0.1.0 (lemma+gloss inlined
+  into English text); fixed in v0.2.0 (English clean, Strong's on
+  separate block). See ADR-004 and `tests/run_all.py::t_legacy_*`.
 - `convert_strongs_to_json.py` (18 lines) — converts the Open
   Scriptures `.js` Strong's files into clean JSON for downstream
-  consumption.
-- `make_flat_training.py` (23 lines) — produces a JSONL suitable
-  for embedding / training. Output: `kjv_training.jsonl`.
-- `normalize.py` (93 lines) — JSON normalization utilities (one
-  translation).
-- `normalize_all.py` (194 lines) — batch normalizer for all
-  translations.
-- **No `bible/` Python package.** No tests. No CI.
+  consumption. Generated JSON is gitignored (see ADR-003).
+- `make_flat_training.py` (23 lines) — produces a JSONL suitable for
+  embedding / training. Output: `kjv_training.jsonl`.
+- `normalize.py` (93 lines), `normalize_all.py` (194 lines) — JSON
+  normalization utilities.
+- `tests/run_all.py` — **new in v0.2.0.** Sister-script test runner,
+  20 tests, stdlib-only. All passing as of 2026-09-09.
 
 ### 4.3 Docs
 - `README.md` — user-facing, framed as "Bible Q&A dataset + tool."
@@ -211,27 +215,28 @@ shippable (the next day doesn't require the previous to be complete).
 - ✅ Runtime contract done (originally in `agents.md`, since
   absorbed into §11 of this file).
 
-### Milestone 1 — multi-translation lookup (Days 2–3)
+### Milestone 1 — multi-translation lookup (Days 2–3) ✅ DONE (2026-08-01, commit `9a7d3b2`)
 
-- `bible/lookup.py` — refactor `bible-query.py` into a package with
-  pluggable translation loaders. The current `bible-query.py` is
-  hardcoded to KJV; the lookup surface should accept any translation
-  in `translations/`.
-- `bible/parallel.py` — given a reference, return the verse text
-  across all translations side-by-side.
-- CLI: `python -m bible parallel "Genesis 1:1"`
-- Smoke: assert Genesis 1:1 returns 13 rows.
+- ✅ `bible/lookup.py` — refactored `bible-query.py` into a package with
+  pluggable translation loaders (named, indexed, unknown-named book
+  schemes all handled).
+- ✅ `bible/parallel.py` — given a reference, returns verse text across
+  all translations side-by-side, plus optional Strong's enrichment and
+  JSON output.
+- ✅ CLI: `python -m bible parallel "Genesis 1:1" [--strongs] [--json]`
+- ✅ Smoke test: Genesis 1:1 returns all 13 translations.
 
-### Milestone 2 — Strong's integration (~90% shipped)
+### Milestone 2 — Strong's integration (~95% shipped as of 2026-09-09)
 
-- ✅ Strong's parsing (in `bible-query.py` `load_strongs()` and
-  `enrich_with_strongs()`).
+- ✅ Strong's parsing (in `bible/lookup.py` `load_strongs_hebrew()` /
+  `load_strongs_greek()` and `extract_strongs_nums()`).
 - ⏸ Wire through `convert_strongs_to_json.py` output instead of
-  parsing the `.js` files on every load. Result: faster startup.
-- ⏸ `verse_to_strongs.py` as a standalone module — extract the
-  `<S>nnnn</S>` tags from a KJV verse and return the list of
-  (word, Strong's, lexicon entry) tuples.
-- ⏸ CLI: `python -m bible strongs H1254` and
+  parsing the `.js` files on every load. Generated JSON is gitignored
+  by design (ADR-003); revisit when runtime becomes a hot path.
+- ⏸ `verse_to_strongs.py` as a standalone module — partially
+  implemented inside `bible/lookup.py` via `extract_strongs_nums() +
+  lookup_strongs()`. The standalone module can wait until Phase 2.
+- ✅ CLI: `python -m bible strongs H1254` and
   `python -m bible strongs "Genesis 1:1"`
 
 ### Milestone 3 — semantic search (Days 4–8)
@@ -263,14 +268,20 @@ from scratch is feasible but slow. Faster path: import an existing
 public-domain cross-reference dataset (TSKe is on GitHub, public
 domain) and surface it through the lookup API.
 
-### Milestone 5 — packaging + sister-script tests (Days 13–14)
+### Milestone 5 — packaging + sister-script tests + docs (~70% shipped as of 2026-09-09)
 
-- Sister-script tests in `tests/` — independent test scripts that
-  exercise the CLI from the command line and assert expected output.
-  No pytest dependency; the project is stdlib-only.
-- `docs/design-decisions.md` — capture architectural decisions as
-  ADRs (one per significant decision).
-- `docs/evaluation.md` — define how retrieval quality is measured.
+- ✅ Sister-script tests in `tests/run_all.py` — 20 tests, all passing.
+  No pytest dependency (ADR-001, ADR-005). Run via
+  `python3 tests/run_all.py`.
+- ✅ `docs/design-decisions.md` — six ADRs capturing the
+  architectural decisions made through v0.2.0.
+- ✅ `docs/evaluation.md` — shell document defining retrieval-quality
+  metrics per milestone.
+- ⏸ CI workflow (.github/workflows/) — runner command is
+  `python3 tests/run_all.py`; just needs a YAML file.
+- ⏸ README deprecation pointer — the README's quickstart still shows
+  `bible-query.py`; should be updated to `python -m bible` per
+  ADR-004.
 
 ### Daily note template
 

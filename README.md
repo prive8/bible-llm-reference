@@ -37,22 +37,28 @@ Generates personalized, citation-grounded answers about the Bible across 13 tran
 
 ## Quick start
 
+> **As of v0.2.0** the canonical CLI is `python -m bible ...`. The older
+> `bible-query.py` is still in the repo as a legacy keyword-search
+> convenience — see ADR-004 for why and `CHANGELOG.md` v0.2.0 for what
+> changed.
+
 ```bash
 # Clone
 git clone https://github.com/prive8/bible-llm-reference.git
 cd bible-llm-reference
 
-# Exact reference lookup
-python3 bible-query.py "John 3:16"
+# Canonical CLI — multi-translation parallel lookup
+python3 -m bible parallel "John 3:16"                # all 13 translations
+python3 -m bible parallel "Genesis 1:1" --strongs    # + Strong's enrichment
+python3 -m bible parallel "Genesis 1:1" --json      # JSON output for pipelines
+python3 -m bible parallel "John 3:16" -t WEB,YLT,RSV # limit translations
 
-# Keyword search
+# Strong's concordance
+python3 -m bible strongs H1254              # look up a number
+python3 -m bible strongs "Genesis 1:1"      # all Strong's in a verse
+
+# Legacy keyword search (deprecated; will be replaced by `bible search` in v0.3.0)
 python3 bible-query.py "faith without works"
-
-# With Strong's enrichment
-python3 bible-query.py "John 3:16" --strongs
-
-# JSON output
-python3 bible-query.py "love" --json
 
 # Generate a flat JSONL for embedding / training
 python3 make_flat_training.py
@@ -61,6 +67,9 @@ python3 make_flat_training.py
 # Convert Strong's .js files to clean JSON
 python3 convert_strongs_to_json.py
 # Output: strongs_data/hebrew/strongs-hebrew.json + strongs_data/greek/strongs-greek.json
+
+# Run the sister-script test suite (20 tests, stdlib-only)
+python3 tests/run_all.py
 ```
 
 ### As a Python module

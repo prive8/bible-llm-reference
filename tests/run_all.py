@@ -267,32 +267,12 @@ def t_strongs_cli_genesis_1_1():
 
 
 # ---------------------------------------------------------------------------
-# Legacy bible-query.py (deprecation path)
-# ---------------------------------------------------------------------------
-
-@_register("t_legacy_bible_query_does_not_inline_strongs_into_text")
-def t_legacy_bible_query_does_not_inline_strongs_into_text():
-    """Regression test for the bug fixed 2026-09-09:
-    `bible-query.py --strongs` used to inline lemma+gloss into the English
-    text, producing unreadable output. Verify the legacy script now emits
-    clean English with Strong's refs on separate lines.
-    """
-    import os
-    import subprocess
-    env = dict(os.environ)
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONUTF8"] = "1"
-    p = subprocess.run(
-        [sys.executable, "bible-query.py", "John 3:16", "--strongs"],
-        capture_output=True, text=True, cwd=ROOT, env=env, encoding="utf-8", errors="replace",
-    )
-    _assert(p.returncode == 0, f"exit {p.returncode}: {p.stderr}")
-    # The English line should be clean — no Hebrew interleaved
-    for line in p.stdout.splitlines():
-        if "[John 3:16]" in line:
-            _assert("בִּכּוּרָה" not in line, f"inlined Hebrew in: {line}")
-            _assert("God so loved the world" in line, line)
-            break
+# (Legacy bible-query.py removed in v0.5.0 — see ADR-004 + CHANGELOG.)
+# The --strongs regression test that lived here is gone with the script.
+# (The function definition was removed in the bible-query.py removal commit
+# 2ee91fe but was accidentally re-introduced by an unrecorded edit; this
+# tombstone replaces both the test and its registration. The fix here
+# makes the failure go away for good.)
 
 
 # ---------------------------------------------------------------------------

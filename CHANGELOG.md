@@ -4,6 +4,40 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-09-09
+
+### Added
+- `bible/semantic.py` — `NIMEmbedder` class. Real implementation of the
+  NIM backend (Gemini's commit `ef61976` documented it but stubbed it).
+  Talks to `https://integrate.api.nvidia.com/v1/embeddings` via
+  `urllib.request` (stdlib-only). Reads `NVIDIA_API_KEY` from env
+  (`~/.hermes/.env` per HANDOFF §7.6). Defaults to
+  `nvidia/nv-embedqa-e5-v5` (1024-dim E5 retriever).
+- Six distinct error classes (`NIMAuthError`, `NIMRateLimitError`,
+  `NIMServerError`, `NIMResponseError`, `NIMConnectionError`, base
+  `NIMError`) so callers can distinguish retry-with-backoff from
+  abort without parsing strings.
+- `embed_query()` sets `input_type="query"` automatically for E5 models
+  — the single biggest quality lever for retrieval, and easy to get
+  wrong silently.
+- Out-of-order `index` sorting defends against buggy NIM responses.
+- `NIMEmbedder._http_post` is a monkey-patch hook so tests can inject
+  a fake transport without monkey-patching `urllib` globally.
+- 9 new sister-script tests (suite at **62 passing**): missing-key
+  guard, full roundtrip with mock transport, `input_type=query` for
+  ad-hoc queries, out-of-order index sort, HTTP 429/401/5xx mapping,
+  malformed JSON, default-model sanity, factory routing.
+
+### Changed
+- `get_embedder()` factory now supports `"nim"` explicitly and routes
+  `auto` mode through: local (if `sentence-transformers` importable)
+  → NIM (if `NVIDIA_API_KEY` set) → mock fallback.
+- `python -m bible semantic ...` and `scripts/index_embeddings.py`
+  both accept `--backend nim` in their CLI choices.
+- HANDOFF §5 M3B status: marked ✅ (was "embeddings are refinement,
+  not load-bearing" — that rationale stands, but the architecture
+  itself is now actually built, not just scoped).
+
 ## [0.6.0] — 2026-09-09
 
 ### Added

@@ -135,23 +135,35 @@
 
 ## ADR-010 — Milestone 3B Semantic Search Architecture & Pluggable Backend
 
-**Status:** Accepted (2026-09-09).
+**Status:** Accepted (2026-09-09). **Implementation complete in v0.7.0** (NIM `NIMEmbedder` class added; the architecture Gemini shipped in v0.6.0 had the contract documented but no actual NIM implementation).
+
 **Context:** Milestone 3B requires semantic / conceptual retrieval across scriptures (e.g. "finding peace in suffering"). Adding neural libraries (torch, sentence-transformers, numpy) directly into base dependencies would violate ADR-001 (stdlib-only baseline). Hosted inference introduces credentials and costs.
+
 **Decision:**
 1. **Stdlib-First Vector Engine:** `bible/semantic.py` implements vector mathematics (dot product, Euclidean norm, cosine similarity, top-$k$ ranking) in pure Python standard library (`math`, `struct`, `heapq`).
 2. **Binary Flat Vector Index:** Serialized float32 binary format (`.bin`) paired with JSON metadata (`.json`) enables sub-millisecond in-memory vector cosine similarity search with zero external vector database dependencies.
 3. **Pluggable Embedders:**
    - `local`: Local CPU/GPU sentence-transformers (`all-MiniLM-L6-v2`, ~80MB) configured via `[project.optional-dependencies] embeddings = ["sentence-transformers>=2.2.0", "numpy>=1.20.0"]`.
    - `mock`: Deterministic stdlib hash-projection embedder for zero-dependency test suites and offline verification.
-   - `nim`: Pluggable hosted NIM provider if `NVIDIA_API_KEY` is present in the environment (never hardcoded or committed).
-4. **Offline Indexing Script:** `scripts/index_embeddings.py` generates multi-tradition vector indices offline across Christian Bible and Quran.
-5. **CLI:** `python -m bible semantic "query" [--top-k 10] [--tradition all|bible|islam] [--json]`.
+   - `nim`: Hosted NVIDIA NIM via `NIMEmbedder` (v0.7.0+) — reads `NVIDIA_API_KEY` from env, defaults to `nvidia/nv-embedqa-e5-v5` (1024-dim E5 retriever), uses `input_type="query"` vs `"passage"` correctly for E5 family models.
+4. **Offline Indexing Script:** `scripts/index_embeddings.py` generates multi-tradition vector indices offline across Christian Bible and Quran. Supports `--backend nim` for hosted generation.
+5. **CLI:** `python -m bible semantic "query" [--top-k 10] [--tradition all|bible|islam] [--backend auto|local|mock|nim] [--json]`.
+
+**`NIMEmbedder` implementation details (v0.7.0):**
+- Stdlib `urllib.request` POST to `{NIM_BASE_URL}/embeddings`, defaults to `https://integrate.api.nvidia.com/v1`.
+- Bearer-token auth header (`Authorization: Bearer ${NVIDIA_API_KEY}`).
+- OpenAI-compatible request body: `{"input": [...], "model": "nvidia/nv-embedqa-e5-v5", "encoding_format": "float", "input_type": "passage"|"query"}`.
+- Six distinct error classes (`NIMAuthError`, `NIMRateLimitError`, `NIMServerError`, `NIMResponseError`, `NIMConnectionError`, base `NIMError`) so callers can distinguish retry-with-backoff from abort without parsing strings.
+- `embed_query()` sets `input_type="query"` automatically; `embed_texts()` defaults to `"passage"`.
+- Out-of-order `index` sorting defends against buggy NIM responses.
+- `_http_post` is a monkey-patch hook for test injection.
 
 **Consequences:**
 - Base runtime remains 100% zero-dependency stdlib (ADR-001 preserved).
-- Development and test suites remain $0.00 compute cost.
+- Development and test suites remain $0.00 compute cost (mock + stdlib-only).
 - Hermes or local environments can generate full neural embeddings offline whenever ready.
-- Test suite expanded from 48 → 53 sister-script tests with 0 failures.
+- Operational compute decision (NIM vs. local) is decoupled from the architecture.
+- Test suite expanded to **62 passing tests** with 0 failures.
 
 ---
 

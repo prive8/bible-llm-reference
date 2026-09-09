@@ -248,13 +248,14 @@ shippable (the next day doesn't require the previous to be complete).
   Unicode and multilingual tokenization (handles Latin, Hebrew, Greek,
   Cyrillic, CJK ideographs) with diacritic stripping (`NFKD`) for unpointed
   matching. CLI: `python -m bible search "..." [-t WEB] [-n 10] [--strongs] [--json]`.
-- ✅ **Milestone 3B — Embedding-based semantic retrieval architecture landed (2026-09-09, v0.6.0, ADR-010):**
+- ✅ **Milestone 3B — Embedding-based semantic retrieval (architecture landed, 2026-09-09, v0.6.0 + v0.7.0, ADR-010):**
   - Pure stdlib vector math engine (`bible/semantic.py`) with dot product, L2 norm, and cosine similarity.
   - Flat binary float32 vector index with JSON metadata mapping for sub-millisecond in-memory nearest neighbor search.
-  - Pluggable embedder backends: `local` (`sentence-transformers`, `all-MiniLM-L6-v2`, ~80MB, optional group), `mock` (deterministic stdlib hash projection for tests), and `nim` (opt-in hosted API).
-  - CLI: `python -m bible semantic "finding peace in suffering" [-n 10] [--tradition all|bible|islam] [--json]`.
-  - Offline indexer: `scripts/index_embeddings.py` ready to generate production embeddings for Bible + Quran.
-  - 5 new tests in `tests/run_all.py` (total suite at **53 passed, 0 failed**).
+  - Pluggable embedder backends: `local` (`sentence-transformers`, `all-MiniLM-L6-v2`, ~80MB, optional group), `mock` (deterministic stdlib hash projection for tests), and `nim` (NVIDIA NIM hosted embeddings via `NIMEmbedder`, ADR-010, fully implemented in v0.7.0).
+  - `NIMEmbedder` details: OpenAI-compatible `POST /v1/embeddings` via stdlib `urllib.request`; reads `NVIDIA_API_KEY` from env; defaults to `nvidia/nv-embedqa-e5-v5` (1024-dim E5 retriever); six distinct error classes for retry/abort disambiguation; `embed_query()` auto-sets `input_type="query"` for E5 quality; out-of-order index sort defensive.
+  - CLI: `python -m bible semantic "finding peace in suffering" [-n 10] [--tradition all|bible|islam] [--backend auto|local|mock|nim] [--json]`.
+  - Offline indexer: `scripts/index_embeddings.py` ready to generate production embeddings for Bible + Quran (now supports `--backend nim`).
+  - 9 NIM-specific sister-script tests in `tests/run_all.py` (total suite at **62 passed, 0 failed**).
 - ⏸ **Milestone 3C — Hybrid fusion:** Score fusion between BM25 and vector
   search. **Defer to Phase 3.5** (after a non-Christian tradition is in
   the corpus — cross-tradition queries become meaningful at that point).
@@ -281,7 +282,7 @@ domain) and surface it through the lookup API.
 
 ### Milestone 5 — packaging + sister-script tests + docs (~99% shipped as of 2026-09-09, v0.5.0)
 
-- ✅ Sister-script tests in `tests/run_all.py` — **53 tests, all passing.**
+- ✅ Sister-script tests in `tests/run_all.py` — **62 tests, all passing.**
   No pytest dependency (ADR-001, ADR-005). Unicode/Windows console-safe.
   Run via `python3 tests/run_all.py`.
 - ✅ `docs/design-decisions.md` — nine ADRs capturing architectural
@@ -487,12 +488,14 @@ make this concrete.
 
 ## 8. Pending decisions (do not act without dad)
 
-1. **Embedding model for semantic search (Milestone 3B).** Zero-cost
-   local CPU embeddings (sentence-transformers / onnxruntime, ~80MB) for
-   development vs. hosted NVIDIA NIM deferred until scale/production.
-   Pluggable backend. Defer to Milestone 3B.
-2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something
-   smaller. Defer to Phase 2.
+1. **Embedding model for semantic search (Milestone 3B).** Architecture
+   landed in v0.6.0 + v0.7.0 (ADR-010). NIM `NIMEmbedder` is implemented
+   and tested. Operational choice (when to actually index the 31K Bible +
+   6K Quran corpus with NIM vs. local sentence-transformers) deferred —
+   user has not yet authorized spend on hosted inference. The architecture
+   supports both backends interchangeably; either path works.
+2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something smaller.
+   Defer to Phase 2.
 3. **README refresh.** The current README frames the project as the
    "Abrahamic / Christian slice of the Religion & Spirituality AI"
    (per the Grok upgrade). The broader vision is in `COUNCIL.md`.

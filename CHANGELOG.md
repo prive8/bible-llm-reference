@@ -4,6 +4,42 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-09-10
+
+### Added
+- **`RUNTIME_CONTRACT.md`** — extracted from `HANDOFF.md` §11. Five
+  rules binding any agent that consumes this dataset (cite + translation,
+  Strong's lemma + gloss, no invented verses, internal diversity, no
+  Scripture impersonation). Includes an "Evolution" section for proposing
+  contract changes. Consumers no longer have to scroll past project
+  archaeology to find the rules they must follow.
+- **CI `eval-regression` job** in `.github/workflows/ci.yml`. Runs only on
+  push to main (not on PRs). Builds the local semantic index, runs
+  `scripts/run_eval.py`, and gates CI on recall@10 thresholds:
+  bm25 ≥ 0.06, semantic ≥ 0.25, hybrid ≥ 0.22. Catches future
+  regressions before they ship. Model + index are cached between runs.
+- 1 sister-script test (`t_eval_threshold_gate_parses_real_report`)
+  that locks the CI regex against harness output format drift.
+
+### Changed
+- **`DEFAULT_BM25_WEIGHT` lowered from 0.5 → 0.1** (the v0.10.0 hybrid-fusion
+  tuning sweep). Sweep results on the local `all-MiniLM-L6-v2`:
+  - bm25_weight=0.0 → hybrid recall 0.268 (pure semantic ceiling)
+  - **bm25_weight=0.1 → hybrid recall 0.258** (chosen default)
+  - bm25_weight=0.2 → hybrid recall 0.241
+  - bm25_weight=0.3 → hybrid recall 0.241
+  - bm25_weight=0.5 → hybrid recall 0.233 (v0.9.0 default; closed HANDOFF §8 #7)
+  - **Closed HANDOFF §8 #7** ("hybrid fusion defaults deferred from v0.8.0")
+  - Tuned default pinned by `t_hybrid_default_weights` so future regressions are loud
+  - CI `eval-regression` threshold updated to 0.22 to match the new baseline
+- README "How good is the search?" table now shows v0.10.0 numbers
+  (hybrid 0.258 at the new 0.1 default), with the unchanged
+  methodological caveat about benchmark expansion vs. model improvement.
+- `docs/evaluation.md` baseline section updated to v0.10.0 numbers +
+  full tuning rationale documented inline.
+- HANDOFF §8 #7 marked RESOLVED with the full tuning rationale and
+  pointer to `bible/hybrid.py` for the tuning history comment.
+
 ## [0.9.0] — 2026-09-09
 
 ### Added

@@ -6,8 +6,11 @@ A public-domain Bible dataset and reference tool for LLM training, retrieval, an
 
 > **Read first:** if you're an AI agent or new contributor, start with
 > [`HANDOFF.md`](./HANDOFF.md). It captures the project's vision,
-> current state, conventions, and the milestone roadmap. The
-> [`COUNCIL.md`](./COUNCIL.md) doc is the governance constitution.
+> current state, conventions, and the milestone roadmap.
+> [`COUNCIL.md`](./COUNCIL.md) is the dormant governance constitution —
+> see the Governance section below for what that means today.
+> [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) is the contract any
+> downstream agent must follow.
 
 ---
 
@@ -164,7 +167,8 @@ for edge in get_references("John 3:16", min_votes=50)[:5]:
 ```
 bible-llm-reference/
 ├── HANDOFF.md                          # engineering handoff (vision, milestones, conventions)
-├── COUNCIL.md                          # governance constitution
+├── COUNCIL.md                          # governance constitution (dormant until Phase 2 / 2nd contributor)
+├── RUNTIME_CONTRACT.md                 # 5 rules binding any consumer agent (v0.10.0)
 ├── README.md                           # this file
 ├── LICENSE                             # MIT (code)
 ├── CHANGELOG.md                        # public API / data changes
@@ -270,11 +274,23 @@ Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
 
 ## Governance
 
-The project has a constitution ([`COUNCIL.md`](./COUNCIL.md)) and a long-form Council design ([`docs/governance/council-design.md`](./docs/governance/council-design.md)). The Council is not yet constituted — it is a single-contributor body (the project owner, "father") operating under the principles in `COUNCIL.md` §2. The Council forms when either a second contributor joins or the project enters Phase 2.
+The project has a **dormant** constitution ([`COUNCIL.md`](./COUNCIL.md))
+that activates when either (a) a second contributor joins, or
+(b) the project enters Phase 2 (generative voice fine-tune). Until
+then, the project is run as a single-contributor body (the project
+owner, "father") operating under the seven principles in `COUNCIL.md` §2.
 
-The runtime contract that any agent using this data must follow lives in [`HANDOFF.md` §11](./HANDOFF.md#11-runtime-contract-for-any-agent-using-this-data).
+The detailed Council design — agent roster, decision protocol,
+evolution rules — lives in [`docs/governance/council-design.md`](./docs/governance/council-design.md)
+as the *target architecture* for when the Council forms. It is not
+running today.
 
-Architectural decisions are tracked as ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md). Currently nine ADRs, ranging from "stdlib-only for Phase 1" (ADR-001) to "Quran as Phase 3 pilot tradition" (ADR-009).
+The runtime contract that any agent consuming this data must follow
+lives in [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) (extracted
+from `HANDOFF.md` §11 in v0.10.0 so downstream consumers don't have
+to scroll past project archaeology to find the rules).
+
+Architectural decisions are tracked as ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md). Currently twelve ADRs covering stdlib-only baseline, Strong's sourcing, hybrid fusion defaults, NIM backend, and the Quran-as-Phase-3-pilot decision.
 
 ---
 

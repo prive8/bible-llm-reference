@@ -76,7 +76,7 @@ Flags:
     --hops              Multi-hop depth (references, 1-3, default: 1)
     --min-votes         Vote threshold (references, default: 3)
     --direction         out|in|both (references, default: out)
-    --bm25-weight       Weight on BM25 vs semantic in hybrid (default: 0.5)
+    --bm25-weight       Weight on BM25 vs semantic in hybrid (default: 0.1, see HANDOFF §8 #7)
     --solo-weight       Multiplier for solo (non-reciprocal) hits (default: 0.7)
 """
 
@@ -109,6 +109,10 @@ def main():
         from bible.quran import main as quran_main
         sys.argv = ["bible quran"] + rest
         quran_main()
+    elif command == "torah":
+        from bible.torah import main as torah_main
+        sys.argv = ["bible torah"] + rest
+        torah_main()
     elif command == "semantic":
         from bible.semantic import main as semantic_main
         sys.argv = ["bible semantic"] + rest

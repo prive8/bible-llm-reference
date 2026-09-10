@@ -34,6 +34,11 @@ from bible.semantic import (
     l2_normalize,
     save_vector_index,
 )
+try:
+    from bible.torah import load_torah_edition, _group_verses_by_chapter
+    _has_torah = True
+except ImportError:
+    _has_torah = False
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -91,6 +96,39 @@ def collect_corpus(include_bible: bool = True, include_quran: bool = True, limit
         except FileNotFoundError:
             print("  Warning: data/quran/saheeh-international.json not found, skipping Quran.")
 
+    # Torah (Phase 3.2) — use the Hebrew nikkud edition as the index source
+    # since it's structurally clean (no English translation in same file).
+    # If you want English-text indexing, also iterate hebrew-nikkud.json and
+    # swap text for jps1917-modernized.json.
+    if _has_torah:
+        torah_tried = False
+        for torah_key in ("hebrew-nikkud", "jps1917-modernized"):
+            try:
+                torah = load_torah_edition(torah_key)
+                for div in torah.get("divisions", []):
+                    book_name = div["name"]
+                    # Re-group verses by chapter boundary detection
+                    grouped = _group_verses_by_chapter(div)
+                    for ch_num in sorted(grouped.keys()):
+                        for v in grouped[ch_num]:
+                            entries.append({
+                                "id": curr_id,
+                                "tradition": "judaism",
+                                "translation": torah.get("translation", torah_key),
+                                "citation": f"{book_name} {ch_num}:{v['verse']}",
+                                "text": v["text"],
+                            })
+                            curr_id += 1
+                            if limit and curr_id >= limit:
+                                return entries
+                torah_tried = True
+                print(f"  Collected Torah ({torah_key})...")
+                break  # use first available edition
+            except FileNotFoundError:
+                continue
+        if not torah_tried:
+            print("  Warning: no Torah data files found, skipping Judaism.")
+
     return entries
 
 
@@ -103,6 +141,7 @@ def main():
     parser.add_argument("--limit", type=int, default=0, help="Optional max verses to index (for quick testing)")
     parser.add_argument("--no-bible", action="store_true", help="Exclude Bible from index")
     parser.add_argument("--no-quran", action="store_true", help="Exclude Quran from index")
+    parser.add_argument("--no-torah", action="store_true", help="Exclude Torah from index")
 
     args = parser.parse_args()
 

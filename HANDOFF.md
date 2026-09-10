@@ -309,6 +309,16 @@ domain) and surface it through the lookup API.
 - ✅ 10 new sister-script tests in `tests/run_all.py` (total suite at **48 passed, 0 failed**).
 - ✅ ADR-009 accepted in `docs/design-decisions.md`.
 
+### Phase 3.2 — Torah (Five Books of Moses) ✅ DONE (2026-09-10, v0.11.0)
+
+- ✅ Ingested 2 editions into `data/torah/` via `scripts/ingest_torah.py` from the Sefaria API: **Modernized JPS 1917** (English, CC-BY, attribution preserved in `data/torah/README.md`) and **תנ״ך עם ניקוד** (Hebrew with vowel points, Public Domain via tanach.us/Tanach.xml). 187 chapters, 5,852 verses total. Politeness: 1.05s between requests (Sefaria robots.txt), 3× exponential-backoff retry, HTML-markup stripping (footnote markers, cantillation spans, NBSP/THINSP).
+- ✅ `bible/torah.py` — adapter module mirroring `bible/quran.py` surface: `parse_torah_ref`, `list_torah_translations`, `load_torah_edition`, `get_torah_verses_scoped`, `run_torah`. Book alias resolution handles canonical English (`Genesis`), short Latin (`Gen`, `Dt`), transliteration (`Bereshit`), and Hebrew-with-nikkud (`בְּרֵאשִׁית`). Ranges accept hyphen / en-dash / em-dash. Bounds-checking against canonical verse totals.
+- ✅ CLI: `python -m bible torah "Genesis 1:1" [--translation jps1917-modernized,hebrew-nikkud]`.
+- ✅ 9 new sister-script tests in `tests/run_all.py` (total suite at **94 passed, 0 failed**).
+- ✅ Fixed silent `--tradition bible` substring bug in `bible/semantic.py` — `--tradition bible` (and `--tradition muslim`/`jewish`) now actually return results via explicit alias map. Regression test: `t_semantic_tradition_filter_aliases`.
+- ✅ `docs/phase3-scope-torah.md` — scope doc, license attribution, acceptance criteria, out-of-scope (full Tanakh, Targum, Talmud are Phase 3.3+).
+- ✅ `bible/semantic.py --tradition` choices expanded to include `judaism`.
+
 ### Daily note template
 
 ```
@@ -524,12 +534,13 @@ premise changed.
    semantic-only recall@10 (0.279) at the v0.8.0 default of `bm25_weight=0.5`.
    Root cause: BM25's recall (0.093) is so low that its 50% weight in the
    fused score suppresses the semantic-only hits. **Fix shipped:** default
-   `bm25_weight` lowered from 0.5 to 0.3 in `bible/hybrid.py`. Recomputed
-   hybrid recall@10 at the new default: 0.241 (+3.4% over 0.5). The
-   tuning rationale and full sweep are documented inline in
-   `bible/hybrid.py` (search for `Tuning history`). The sister-script
-   test `t_hybrid_default_weights` pins the new value so future changes
-   are loud. CI's `eval-regression` job enforces the threshold.
+   `bm25_weight` lowered from 0.5 to 0.1 in `bible/hybrid.py` (v0.10.0
+   sweep: bm25_weight=0.0 → 0.268 pure-semantic ceiling, 0.1 → 0.258
+   chosen, 0.5 → 0.233). The tuning rationale and full sweep are
+   documented inline in `bible/hybrid.py` (search for `Tuning history`).
+   The sister-script test `t_hybrid_default_weights` pins the new value
+   so future changes are loud. CI's `eval-regression` job enforces the
+   threshold.
 8. **Hybrid recall ceiling on the local model.** Even with the fix
    above, the local `all-MiniLM-L6-v2` model has hard limits on
    retrieval quality. NIM `nvidia/nv-embedqa-e5-v5` is expected to
@@ -540,8 +551,9 @@ premise changed.
 
 ## 9. Companion docs
 
-- (the runtime contract for any agent using this data is §11 of
-  this file — co-equal with the rest of the handoff)
+- (the runtime contract for any agent using this data lives in
+  [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) — co-equal with the
+  rest of the handoff; extracted from §11 of this file in v0.10.0)
 - `COUNCIL.md` — governance constitution (short stub).
 - `docs/governance/council-design.md` — long-form Council spec.
 - `docs/data-schema.md` — parallel-structure schema examples.

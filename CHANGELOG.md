@@ -4,6 +4,50 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-09-10
+
+### Added
+- **Phase 3.2 — Torah (Five Books of Moses) adapter.** New `bible/torah.py`
+  module with the same surface as `bible/quran.py`: `parse_torah_ref`,
+  `list_torah_translations`, `load_torah_edition`, `get_torah_verses_scoped`,
+  `run_torah`. Supports canonical names (`Genesis 1:1`), short Latin aliases
+  (`Gen 1:1`), transliterations (`Bereshit 1:1`), and Hebrew-with-nikkud
+  (`בְּרֵאשִׁית 1:1`). Ranges accept hyphen / en-dash / em-dash. CLI:
+  `python -m bible torah "Genesis 1:1"`.
+- **`scripts/ingest_torah.py`** — pulls Modernized JPS 1917 (English, CC-BY)
+  and תנ״ך עם ניקוד (Hebrew, Public Domain) from the Sefaria API, with
+  polite 1.05s delay between requests (Sefaria robots.txt asks for ≤ 1 req/sec),
+  3× exponential-backoff retry, and HTML-markup stripping (footnote markers,
+  `<big>`/`<small>`/`<span>` cantillation, NBSP/THINSP, paragraph markers).
+- **9 Torah sister-script tests** (`t_torah_resolve_book_aliases`,
+  `t_torah_parse_canonical_ref`, `t_torah_parse_alias_and_hebrew`,
+  `t_torah_parse_range`, `t_torah_parse_garbage_returns_none`,
+  `t_torah_data_files_present`, `t_torah_verses_chapter_scoped`,
+  `t_torah_cli_json`, `t_torah_cli_hebrew_alias`). Test suite now **94 tests**.
+- **`docs/phase3-scope-torah.md`** — scope doc covering source selection
+  rationale, license attribution, acceptance criteria, and out-of-scope
+  items (full Tanakh, Targum, Talmud are Phase 3.3+).
+
+### Fixed
+- **Semantic search tradition filter was a silent substring bug.**
+  v0.8.0–v0.10.0 used `if filter_tradition not in entry_trad`, which
+  silently returned 0 results for `--tradition bible` (because stored
+  entries use `tradition="christianity"`, not `"bible"`). Replaced with
+  an explicit alias map (`bible → christianity`, `muslim → islam`,
+  `jewish → judaism`) and exact-match comparison. The CLI is unchanged
+  (`--tradition bible` still works), but now actually returns results.
+  Regression test: `t_semantic_tradition_filter_aliases`.
+- **Semantic search `--tradition all` returned 0 entries** — the substring
+  filter matched `"all"` against entries' tradition field (never equal),
+  skipping everything. Fixed by explicitly treating `all` (and `None`)
+  as "no filter". Same regression test covers both cases.
+
+### Changed
+- `bible/semantic.py` `--tradition` choices expanded from
+  `all|bible|islam` to `all|bible|islam|judaism`.
+- `bible/__main__.py`: `bible torah` command wired; `--bm25-weight`
+  default-doc fixed (0.5 → 0.1) per HANDOFF §8 #7.
+
 ## [0.10.0] — 2026-09-10
 
 ### Added

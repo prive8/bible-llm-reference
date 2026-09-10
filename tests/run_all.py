@@ -63,6 +63,15 @@ from bible.quran import (  # noqa: E402
     parse_quran_ref,
     run_quran,
 )
+from bible.torah import (  # noqa: E402
+    BOOKS as TORAH_BOOKS,
+    get_torah_verses_scoped,
+    list_torah_translations,
+    load_torah_edition,
+    parse_torah_ref,
+    resolve_book,
+    run_torah,
+)
 import math
 import importlib.util as _ilu
 _harness_path = str(ROOT / "scripts" / "run_eval.py")
@@ -1297,6 +1306,139 @@ def t_quran_cli_json():
 
 
 # ---------------------------------------------------------------------------
+# Torah (Phase 3.2) tests
+# ---------------------------------------------------------------------------
+
+@_register("t_torah_resolve_book_aliases")
+def t_torah_resolve_book_aliases():
+    """resolve_book() must handle Latin, short, and Hebrew-with-nikkud forms."""
+    _assert(resolve_book("Genesis") == "Genesis", repr(resolve_book("Genesis")))
+    _assert(resolve_book("Gen") == "Genesis", repr(resolve_book("Gen")))
+    _assert(resolve_book("Bereshit") == "Genesis", repr(resolve_book("Bereshit")))
+    _assert(resolve_book("בְּרֵאשִׁית") == "Genesis", repr(resolve_book("בְּרֵאשִׁית")))
+    _assert(resolve_book("Exodus") == "Exodus", repr(resolve_book("Exodus")))
+    _assert(resolve_book("Lev") == "Leviticus", repr(resolve_book("Lev")))
+    _assert(resolve_book("Num") == "Numbers", repr(resolve_book("Num")))
+    _assert(resolve_book("Dt") == "Deuteronomy", repr(resolve_book("Dt")))
+    _assert(resolve_book("garbage") is None, "garbage must not resolve")
+
+
+@_register("t_torah_parse_canonical_ref")
+def t_torah_parse_canonical_ref():
+    """Canonical English refs parse to (book, chapter, verse)."""
+    parsed = parse_torah_ref("Genesis 1:1")
+    _assert(parsed == ("Genesis", 1, 1), repr(parsed))
+    parsed = parse_torah_ref("Deuteronomy 34:12")
+    _assert(parsed == ("Deuteronomy", 34, 12), repr(parsed))
+
+
+@_register("t_torah_parse_alias_and_hebrew")
+def t_torah_parse_alias_and_hebrew():
+    """Short Latin and Hebrew-with-nikkud aliases must resolve correctly."""
+    parsed = parse_torah_ref("Gen 1:1")
+    _assert(parsed is not None and parsed[0] == "Genesis", repr(parsed))
+    parsed = parse_torah_ref("Bereshit 1:1")
+    _assert(parsed is not None and parsed[0] == "Genesis", repr(parsed))
+    parsed = parse_torah_ref("בראשית 1:1")
+    _assert(parsed is not None and parsed[0] == "Genesis", repr(parsed))
+
+
+@_register("t_torah_parse_range")
+def t_torah_parse_range():
+    """Verse range parsing must accept hyphen, en-dash, em-dash."""
+    p1 = parse_torah_ref("Genesis 1:1-3")
+    _assert(p1 == ("Genesis", 1, (1, 3)), repr(p1))
+    p2 = parse_torah_ref("Genesis 1:1–3")  # en-dash
+    _assert(p2 == ("Genesis", 1, (1, 3)), repr(p2))
+    p3 = parse_torah_ref("Genesis 1:1—3")  # em-dash
+    _assert(p3 == ("Genesis", 1, (1, 3)), repr(p3))
+
+
+@_register("t_torah_parse_garbage_returns_none")
+def t_torah_parse_garbage_returns_none():
+    """Unparseable inputs must return None, not raise."""
+    _assert(parse_torah_ref("") is None)
+    _assert(parse_torah_ref("garbage") is None)
+    _assert(parse_torah_ref("Genesis") is None)
+    _assert(parse_torah_ref("Genesis 1") is None)
+    _assert(parse_torah_ref("Unknown 1:1") is None)
+    _assert(parse_torah_ref("Genesis 51:1") is None, "Genesis has only 50 chapters")
+
+
+@_register("t_torah_data_files_present")
+def t_torah_data_files_present():
+    """If Torah has been ingested, two editions must exist with sane verse counts."""
+    editions = list_torah_translations()
+    if not editions:
+        # Skip silently when ingest hasn't run yet (CI may run before ingest).
+        return
+    _assert("hebrew-nikkud" in editions, str(editions))
+    _assert("jps1917-modernized" in editions, str(editions))
+    for key in editions:
+        data = load_torah_edition(key)
+        _assert(data.get("tradition") == "judaism", str(key))
+        _assert(data.get("structure") == "book_chapter_verse", str(key))
+        divisions = data.get("divisions", [])
+        _assert(len(divisions) == 5, f"expected 5 books, got {len(divisions)}")
+        book_names = [d["name"] for d in divisions]
+        _assert(book_names == ["Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"], str(book_names))
+
+
+@_register("t_torah_verses_chapter_scoped")
+def t_torah_verses_chapter_scoped():
+    """get_torah_verses_scoped must return only verses from the requested chapter.
+
+    Without chapter scoping, a range like Genesis 1:30-32 could bleed into
+    Genesis 2 verses if the ingestor wrote verses flat with reset numbering.
+    """
+    editions = list_torah_translations()
+    if "jps1917-modernized" not in editions:
+        return  # skip when not ingested
+    verses = get_torah_verses_scoped("jps1917-modernized", "Genesis", 1, (1, 31))
+    _assert(len(verses) == 31, f"expected 31, got {len(verses)}")
+    _assert(verses[0]["book"] == "Genesis", str(verses[0]))
+    _assert(verses[0]["chapter"] == 1, str(verses[0]))
+    _assert(verses[0]["verse"] == 1, str(verses[0]))
+    _assert(verses[30]["verse"] == 31, str(verses[30]))
+    # Make sure no verse from chapter 2 leaked in
+    for v in verses:
+        _assert(v["chapter"] == 1, f"chapter bleed: {v}")
+
+
+@_register("t_torah_cli_json")
+def t_torah_cli_json():
+    """CLI run_torah with as_json=True must produce valid structured JSON."""
+    editions = list_torah_translations()
+    if "jps1917-modernized" not in editions:
+        return  # skip when not ingested
+    raw = _capture_run(run_torah, "Genesis 1:1", as_json=True)
+    parsed = json.loads(raw)
+    _assert(parsed["query"] == "Genesis 1:1")
+    _assert(parsed["book"]["name"] == "Genesis")
+    _assert(parsed["book"]["hebrew"] == "בראשית")
+    _assert(parsed["chapter"] == 1)
+    _assert(len(parsed["verses"]) == 1)
+    _assert(parsed["verses"][0]["verse"] == 1)
+    translations = parsed["verses"][0]["translations"]
+    _assert("jps1917-modernized" in translations, str(list(translations.keys())))
+    _assert("hebrew-nikkud" in translations, str(list(translations.keys())))
+
+
+@_register("t_torah_cli_hebrew_alias")
+def t_torah_cli_hebrew_alias():
+    """Hebrew alias (with nikkud) must resolve to a real verse."""
+    editions = list_torah_translations()
+    if "hebrew-nikkud" not in editions:
+        return
+    raw = _capture_run(run_torah, "בראשית 1:1", translations=["hebrew-nikkud"], as_json=True)
+    parsed = json.loads(raw)
+    _assert(parsed["book"]["name"] == "Genesis", str(parsed["book"]))
+    hebrew_text = parsed["verses"][0]["translations"]["hebrew-nikkud"]
+    _assert("ברא" in hebrew_text or "בְּרֵא" in hebrew_text,
+            f"expected Hebrew text containing ברא, got: {hebrew_text!r}")
+
+
+# ---------------------------------------------------------------------------
 # Semantic search (Milestone 3B) tests
 # ---------------------------------------------------------------------------
 
@@ -1355,6 +1497,53 @@ def t_semantic_custom_index_search():
     _assert(results[0]["citation"] == "John 3:16")
     _assert("score" in results[0])
     _assert(results[0]["score"] > 0.0)
+
+
+@_register("t_semantic_tradition_filter_aliases")
+def t_semantic_tradition_filter_aliases():
+    """search_semantic tradition filter must accept public aliases (bible/islam/judaism)
+    and match against canonical stored values (christianity/islam/judaism).
+
+    Regression test for a silent substring-match bug in v0.8.0–v0.10.0 where
+    `--tradition bible` returned 0 results because stored entries used
+    `tradition="christianity"`.
+    """
+    embedder = MockDeterministicEmbedder(dim=32)
+    entries = [
+        {"id": 0, "citation": "John 3:16", "text": "For God so loved the world", "tradition": "christianity"},
+        {"id": 1, "citation": "Quran 1:1", "text": "In the name of Allah", "tradition": "islam"},
+        {"id": 2, "citation": "Genesis 1:1", "text": "In the beginning", "tradition": "judaism"},
+    ]
+    vecs = embedder.embed_texts([e["text"] for e in entries])
+    custom_index = (entries, vecs, 32)
+
+    # 'bible' should map to 'christianity'
+    r_bible = search_semantic(query="loved", custom_index=custom_index, backend="mock",
+                              tradition="bible", top_k=5)
+    _assert(len(r_bible) == 1, f"expected 1 Christianity entry, got {len(r_bible)}")
+    _assert(r_bible[0]["tradition"] == "christianity", str(r_bible[0]))
+
+    # 'islam' should still work
+    r_islam = search_semantic(query="allah", custom_index=custom_index, backend="mock",
+                              tradition="islam", top_k=5)
+    _assert(len(r_islam) == 1, f"expected 1 Islam entry, got {len(r_islam)}")
+    _assert(r_islam[0]["tradition"] == "islam", str(r_islam[0]))
+
+    # 'judaism' should now work (Phase 3.2)
+    r_judaism = search_semantic(query="beginning", custom_index=custom_index, backend="mock",
+                                tradition="judaism", top_k=5)
+    _assert(len(r_judaism) == 1, f"expected 1 Judaism entry, got {len(r_judaism)}")
+    _assert(r_judaism[0]["tradition"] == "judaism", str(r_judaism[0]))
+
+    # 'all' returns everything
+    r_all = search_semantic(query="loved the world", custom_index=custom_index, backend="mock",
+                            tradition="all", top_k=5)
+    _assert(len(r_all) == 3, f"expected 3 entries with tradition=all, got {len(r_all)}")
+
+    # None means 'all'
+    r_none = search_semantic(query="loved the world", custom_index=custom_index, backend="mock",
+                             tradition=None, top_k=5)
+    _assert(len(r_none) == 3, f"expected 3 entries with tradition=None, got {len(r_none)}")
 
 
 @_register("t_semantic_cli_missing_index_graceful")

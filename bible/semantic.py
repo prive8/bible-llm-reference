@@ -471,10 +471,27 @@ def search_semantic(
     scored: list[tuple[float, dict]] = []
     filter_tradition = tradition.lower().strip() if tradition else None
 
+    # Tradition alias map: accept either the canonical stored value
+    # (e.g. "christianity", "islam") or the public CLI shorthand
+    # (e.g. "bible"). Substring matching is too brittle and was the
+    # source of a silent bug where `--tradition bible` returned 0 results.
+    TRADITION_ALIASES = {
+        "bible": "christianity",
+        "christianity": "christianity",
+        "islam": "islam",
+        "muslim": "islam",
+        "judaism": "judaism",
+        "jewish": "judaism",
+    }
+    if filter_tradition and filter_tradition != "all":
+        filter_target = TRADITION_ALIASES.get(filter_tradition, filter_tradition)
+    else:
+        filter_target = None
+
     for entry, doc_vec in zip(entries, vectors):
-        if filter_tradition and filter_tradition != "all":
+        if filter_target:
             entry_trad = entry.get("tradition", "").lower()
-            if filter_tradition not in entry_trad:
+            if entry_trad != filter_target:
                 continue
 
         sim = cosine_similarity(query_vec, doc_vec)
@@ -561,7 +578,7 @@ def main():
     parser.add_argument("query", help="Conceptual or thematic query (e.g. 'finding comfort in grief')")
     parser.add_argument("--index", default="default", help="Vector index name (default: 'default')")
     parser.add_argument("-n", "--top-k", type=int, default=10, help="Number of results (default: 10)")
-    parser.add_argument("--tradition", choices=["all", "bible", "islam"], default="all",
+    parser.add_argument("--tradition", choices=["all", "bible", "islam", "judaism"], default="all",
                         help="Filter tradition (default: all)")
     parser.add_argument("--backend", choices=["auto", "local", "mock", "nim"], default="auto",
                         help="Embedder backend (default: auto — local if available, else NIM if NVIDIA_API_KEY set, else mock)")

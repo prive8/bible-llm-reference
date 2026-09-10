@@ -38,6 +38,7 @@ Built for:
 - **Okapi BM25 keyword search** — multilingual (Latin, Hebrew, Greek, Cyrillic, CJK), diacritic-insensitive, translation-pluggable
 - **Cross-reference engine** — 605K+ edges from openbible.info (CC-BY 4.0), with outgoing, reciprocal, and 1–3 hop traversal
 - **Quran multi-tradition adapter (Phase 3.1)** — 6 editions in `data/quran/` (5 English + Uthmani Arabic), citation parsing, and parallel lookup
+- **Torah adapter (Phase 3.2)** — 2 editions in `data/torah/` (Modernized JPS 1917 English CC-BY + Hebrew-with-nikkud Public Domain), citation parsing, Hebrew-with-nikkud alias support, and parallel lookup
 - **JSON output** on every command for downstream pipelines
 - **100% local, zero new dependencies** — stdlib only (Python 3.9+)
 
@@ -195,6 +196,12 @@ bible-llm-reference/
 ├── strongs_data/                       # Hebrew + Greek lexicon (Open Scriptures)
 │
 ├── data/
+│   ├── quran/                          # Phase 3.1 — 6 editions (saheeh-international, yusuf-ali, pickthall, mufti-taqi-usmani, arberry, uthmani)
+│   │   ├── README.md
+│   │   └── *.json
+│   ├── torah/                          # Phase 3.2 — 2 editions (jps1917-modernized CC-BY, hebrew-nikkud Public Domain)
+│   │   ├── README.md
+│   │   └── *.json
 │   └── references/                     # openbible.info cross-references (CC-BY 4.0)
 │       ├── cross_references.txt        # raw 8 MB TSV snapshot
 │       ├── cross_references.json       # normalized 19 MB, keyed by canonical verse
@@ -267,6 +274,8 @@ A tool that takes a question and writes a response in the voice of the tradition
 Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. Each tradition gets parallel structure (same canonical schema, same citation format, same cross-reference API, tradition-specific lexicon). The Phase 1 data layer is designed so this is a **config change, not a code rebuild**.
 
 **Phase 3.1 pilot: Quran (shipped in v0.6.0).** 6 editions in `data/quran/` (Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, and Arabic Uthmani Hafs) via [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (Unlicense). Accessible via `python3 -m bible quran` with citation parsing and parallel view. See [`docs/phase3-scope-quran.md`](./docs/phase3-scope-quran.md) and ADR-009.
+
+**Phase 3.2: Torah / Five Books of Moses (shipped in v0.11.0).** 2 editions in `data/torah/` — Modernized Tanakh based on JPS 1917 (English, CC-BY, Adam Cohn) and תנ״ך עם ניקוד (Hebrew with vowel points, Public Domain via tanach.us) — sourced from the Sefaria API. 187 chapters, 5,852 verses. Accessible via `python3 -m bible torah "Genesis 1:1"` with citation parsing supporting canonical names, short Latin aliases, transliterations, and Hebrew-with-nikkud. See [`docs/phase3-scope-torah.md`](./docs/phase3-scope-torah.md).
 
 Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
 

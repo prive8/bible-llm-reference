@@ -63,6 +63,15 @@ from bible.quran import (  # noqa: E402
     parse_quran_ref,
     run_quran,
 )
+import math
+import importlib.util as _ilu
+_harness_path = str(ROOT / "scripts" / "run_eval.py")
+_spec = _ilu.spec_from_file_location("run_eval", _harness_path)  # type: ignore[arg-type]  # noqa
+_mod = _ilu.module_from_spec(_spec)  # type: ignore[arg-type]  # noqa
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]  # noqa
+_dcg = _mod._dcg
+_ndcg_at_k = _mod._ndcg_at_k
+_metrics_for_query = _mod._metrics_for_query
 from bible.semantic import (  # noqa: E402
     DEFAULT_NIM_BASE_URL,
     DEFAULT_NIM_MODEL,
@@ -692,6 +701,78 @@ def t_get_embedder_factory_routes_nim():
             _os.environ.pop("NVIDIA_API_KEY", None)
         else:
             _os.environ["NVIDIA_API_KEY"] = saved_key
+
+
+# ---------------------------------------------------------------------------
+# Evaluation harness (Milestone 3C+ baseline metrics)
+# ---------------------------------------------------------------------------
+# These tests exercise the harness's pure-logic functions. They use a
+# tiny in-memory fixture (no real index needed) so CI is self-contained.
+
+@_register("t_eval_dcg_basic")
+def t_eval_dcg_basic():
+    """DCG with log2(rank+2) discount — basic shape."""
+    # 2 docs, both relevance 3 → DCG = 3/log2(2) + 3/log2(3) = 3 + 1.89 = 4.89
+    dcg = _dcg([3, 3])
+    _assert(abs(dcg - (3.0 + 3.0 / math.log2(3))) < 0.01, f"dcg={dcg}")
+
+
+@_register("t_eval_dcg_empty")
+def t_eval_dcg_empty():
+    """DCG of empty list = 0."""
+    _assert(_dcg([]) == 0.0)
+
+
+@_register("t_eval_ndcg_perfect_ranking")
+def t_eval_ndcg_perfect_ranking():
+    """Perfect ranking: actual DCG = ideal DCG → nDCG = 1.0."""
+    expected = {"a": 3, "b": 2, "c": 1}
+    got = ["a", "b", "c"]
+    ndcg = _ndcg_at_k(expected, got, k=3)
+    _assert(abs(ndcg - 1.0) < 0.001, f"ndcg={ndcg}")
+
+
+@_register("t_eval_ndcg_random_is_zero_for_unrelated")
+def t_eval_ndcg_random_is_zero_for_unrelated():
+    """If retrieved verses aren't in expected, nDCG = 0."""
+    expected = {"a": 3}
+    got = ["x", "y", "z"]
+    ndcg = _ndcg_at_k(expected, got, k=3)
+    _assert(ndcg == 0.0, f"ndcg={ndcg}")
+
+
+@_register("t_eval_ndcg_zero_ideal")
+def t_eval_ndcg_zero_ideal():
+    """If expected is empty, nDCG = 0 (avoid divide-by-zero)."""
+    _assert(_ndcg_at_k({}, ["a", "b"], k=2) == 0.0)
+
+
+@_register("t_eval_metrics_for_query_primary_in_top1")
+def t_eval_metrics_for_query_primary_in_top1():
+    """Primary-in-top-1: True iff rank-1 retrieval is in expected with weight=3."""
+    expected = [("a", 3), ("b", 2)]
+    m = _metrics_for_query(expected, ["a", "x", "y"], top_k=3)
+    _assert(m["primary_in_top1"] is True)
+    _assert(m["recall_at_k"] == round(1/2, 4), m)
+    _assert(m["mrr"] == 1.0)
+
+
+@_register("t_eval_metrics_for_query_no_primary_hit")
+def t_eval_metrics_for_query_no_primary_hit():
+    """When no weight-3 verse is retrieved, MRR = 0 and primary-in-top-1 = False."""
+    expected = [("a", 3), ("b", 2)]
+    m = _metrics_for_query(expected, ["x", "y", "z"], top_k=3)
+    _assert(m["primary_in_top1"] is False)
+    _assert(m["mrr"] == 0.0)
+    _assert(m["recall_at_k"] == 0.0)
+
+
+@_register("t_eval_metrics_for_query_recall_partial")
+def t_eval_metrics_for_query_recall_partial():
+    """Recall is fraction of expected verses retrieved, not count."""
+    expected = [("a", 3), ("b", 3), ("c", 3), ("d", 2)]  # 4 expected
+    m = _metrics_for_query(expected, ["a", "b", "x", "y", "z"], top_k=5)
+    _assert(m["recall_at_k"] == 0.5, m)  # 2 of 4 expected found
 
 
 # ---------------------------------------------------------------------------

@@ -696,6 +696,29 @@ def t_nim_default_model_and_base_url():
     _assert(DEFAULT_NIM_BASE_URL.endswith("/v1"), DEFAULT_NIM_BASE_URL)
 
 
+@_register("t_nim_default_model_eol_documented_in_handoff")
+def t_nim_default_model_eol_documented_in_handoff():
+    """Regression test: when the default NIM model hits EOL, HANDOFF §8 #8
+    must reflect it so a future contributor doesn't re-discover the 410
+    the hard way.
+
+    Discovered 2026-09-10: the v0.7.0 default `nvidia/nv-embedqa-e5-v5`
+    returned HTTP 410 Gone (EOL 2026-08-25) on a live API call. The
+    replacement path requires user authorization of a paid NIM spend,
+    so this test locks in the documentation finding rather than the
+    implementation — the implementation will change when the user
+    authorizes spend.
+    """
+    handoff = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
+    # Find the §8 #8 line and check it mentions 410 / EOL / free-tier
+    needle_eol = "410" in handoff or "EOL" in handoff or "end of life" in handoff.lower()
+    needle_free_tier = "free-tier" in handoff.lower() or "free tier" in handoff.lower()
+    needle_decision = "#8" in handoff and "NIM" in handoff
+    _assert(needle_eol, "HANDOFF must mention the EOL/410 status of the default NIM model")
+    _assert(needle_free_tier, "HANDOFF must mention free-tier restrictions")
+    _assert(needle_decision, "HANDOFF must keep HANDOFF §8 #8 reference")
+
+
 @_register("t_get_embedder_factory_routes_nim")
 def t_get_embedder_factory_routes_nim():
     """get_embedder('nim') must return a NIMEmbedder instance."""

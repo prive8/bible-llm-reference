@@ -509,9 +509,12 @@ premise changed.
 1. **Embedding model for semantic search (Milestone 3B).** Architecture
    landed in v0.6.0 + v0.7.0 (ADR-010). NIM `NIMEmbedder` is implemented
    and tested. Operational choice (when to actually index the 31K Bible +
-   6K Quran corpus with NIM vs. local sentence-transformers) deferred —
-   user has not yet authorized spend on hosted inference. The architecture
-   supports both backends interchangeably; either path works.
+   6K Quran + 6K Torah corpus with NIM vs. local sentence-transformers)
+   deferred — user has not yet authorized spend on hosted inference, and
+   NIM embedding endpoints are gated behind a paid tier on the user's
+   account (free-tier NIM exposes zero embedding models as of 2026-09-10,
+   see decision #8). The architecture supports both backends
+   interchangeably; either path works.
    **Revisit when:** user signals willingness to spend on hosted inference
    (per memory, 2026-09-09 cost posture: free-tier endpoints only).
 2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something smaller.
@@ -544,8 +547,18 @@ premise changed.
 8. **Hybrid recall ceiling on the local model.** Even with the fix
    above, the local `all-MiniLM-L6-v2` model has hard limits on
    retrieval quality. NIM `nvidia/nv-embedqa-e5-v5` is expected to
-   be 10-20% better per the E5 model card. **Revisit when:** NIM
-   baseline is built (decision #1 above).
+   be 10-20% better per the E5 model card.
+   **Status (2026-09-10):** The NIM embedding endpoints are **gated
+   behind a paid tier** on the user's account. Every attempt returned
+   `Function not found for account` for all 7 listed embedding models
+   (`nvidia/llama-3.2-nv-embedqa-1b-v1`, `snowflake/arctic-embed-l`,
+   `nvidia/embed-qa-4`, `nvidia/nv-embedqa-mistral-7b-v2`, etc.). The
+   original default `nvidia/nv-embedqa-e5-v5` returned 410 Gone (EOL
+   2026-08-25). Free-tier NIM currently exposes ~80 chat models but
+   **zero embedding models**.
+   **Revisit when:** user authorizes a one-time NIM indexing spend
+   (~$1.20 for 1.12M-token corpus, ~7-10 min wall time; queries stay
+   free-tier). Until then, local model is the production path.
 
 ---
 

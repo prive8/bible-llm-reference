@@ -519,13 +519,17 @@ premise changed.
    of this file, and the Python integration example was removed
    (it was documentation noise, not a contract surface).
 6. (Resolved.) `bible-query.py` legacy CLI removed in v0.5.0 (ADR-004).
-7. **Hybrid fusion defaults (M3C, deferred from v0.8.0).** Evaluation
-   in `docs/evaluation.md` (v0.9.0-pre) shows hybrid recall@10 (0.233) is
-   *lower* than semantic-only recall@10 (0.279) — BM25 noise (recall
-   0.093) drags semantic down via the 50/50 weighted sum. Two fixes
-   available: lower `bm25_weight` default from 0.5 to ~0.3, or filter
-   BM25 results below a confidence threshold before fusion. **Revisit
-   when:** next model swap or weight-tuning session.
+7. **Hybrid fusion defaults (M3C, RESOLVED 2026-09-10, v0.10.0).** Evaluation
+   in `docs/evaluation.md` showed hybrid recall@10 (0.233) was *lower* than
+   semantic-only recall@10 (0.279) at the v0.8.0 default of `bm25_weight=0.5`.
+   Root cause: BM25's recall (0.093) is so low that its 50% weight in the
+   fused score suppresses the semantic-only hits. **Fix shipped:** default
+   `bm25_weight` lowered from 0.5 to 0.3 in `bible/hybrid.py`. Recomputed
+   hybrid recall@10 at the new default: 0.241 (+3.4% over 0.5). The
+   tuning rationale and full sweep are documented inline in
+   `bible/hybrid.py` (search for `Tuning history`). The sister-script
+   test `t_hybrid_default_weights` pins the new value so future changes
+   are loud. CI's `eval-regression` job enforces the threshold.
 8. **Hybrid recall ceiling on the local model.** Even with the fix
    above, the local `all-MiniLM-L6-v2` model has hard limits on
    retrieval quality. NIM `nvidia/nv-embedqa-e5-v5` is expected to
@@ -588,62 +592,19 @@ a separate repo. Don't conflate.
 
 ---
 
-## 11. Runtime contract for any agent using this data
+# 11. Runtime contract → [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md)
 
-> This section was previously a separate `agents.md` file. It is
-> absorbed here as the runtime contract that binds any agent
-> (whether or not the Council has formed; whether the user is the
-> project owner or a downstream consumer). The contract is the
-> floor; the Council's role is to evolve the contract over time.
-> The file `agents.md` no longer exists; the contract is canonical
-> here.
->
-> **Audience:** any agent that uses this data, including the
-> `bible/` CLI, future Council-routed agents, and downstream
-> applications that consume the dataset.
+The runtime contract (the five rules binding any agent that uses this
+data) was previously §11 of this file. In v0.10.0 it was extracted
+into its own file:
 
-### 11.1 Council agents served by this repo (Abrahamic / Christian slice)
+> **→ [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) — the five rules,
+> Council agent mapping, downstream consumer pointer, evolution process.**
 
-| Council Agent          | How this repo is used                                      |
-|------------------------|------------------------------------------------------------|
-| abrahamic_guardian     | Primary retrieval source for all Protestant / Catholic / Orthodox queries |
-| historian_archivist    | Exact verse + Strong's provenance                          |
-| comparative_scholar    | Parallel passage lookup across versions                    |
-| ethicist_mediator      | Hard texts kept in full context (no soft-pedaling)         |
+Consumers of this repo who want the runtime contract should read
+`RUNTIME_CONTRACT.md` directly. It stands alone conceptually — it's a
+contract for downstream agents, not project archaeology.
 
-The full 10-agent roster (when the Council forms) is in
-`docs/governance/council-design.md` §2. This repo serves the four
-agents above; the other six are out of scope until Phase 3 adds
-non-Abrahamic corpora.
-
-### 11.2 Runtime contract (the five rules)
-
-1. **Always cite exact reference + translation.** Every claim
-   grounded in a text must carry the citation (book/chapter/verse
-   or equivalent) and the translation source. No floating claims.
-2. **When Strong's is available, surface lemma + short gloss.**
-   For Hebrew and Greek words, include the lemma (original word)
-   and a brief gloss in line with the claim. Don't make the user
-   look it up separately.
-3. **Never invent verses or claim personal revelation.** Cite
-   only verses that exist in the source corpus. Never speak as
-   if reporting a personal spiritual experience or revelation.
-4. **Present internal diversity when relevant.** A tradition is
-   internally diverse. When the question touches a contested or
-   denomination-specific point, surface that diversity (Catholic vs.
-   Protestant readings, manuscript traditions, etc.) rather than
-   collapsing to one position.
-5. **Output is always "structured reference text", never "I am
-   speaking as Scripture".** The system outputs facts about the
-   text, formatted for the user. It does not impersonate the text,
-   a religious figure, or a spiritual authority.
-
-### 11.3 Pointer for downstream consumers
-
-If you fork this repo for the upstream Religion & Spirituality AI
-project, link it under the Abrahamic section of your `COUNCIL.md`:
-
-```markdown
-Data source: https://github.com/prive8/bible-llm-reference
-Use `python -m bible parallel|strongs|search|references` (the bible/ package CLI).
-```
+The original §11 content is preserved verbatim in `RUNTIME_CONTRACT.md`
+with the addition of the "Evolution" section (proposal process). This
+section remains in `HANDOFF.md` purely as a pointer.

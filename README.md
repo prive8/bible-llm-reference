@@ -96,7 +96,41 @@ python3 convert_strongs_to_json.py
 
 # Run the sister-script test suite (83 tests, stdlib-only)
 python3 tests/run_all.py
+
+# Evaluate retrieval quality against the 33-query benchmark
+python3 scripts/run_eval.py            # ~3 min on CPU with local index; full report
+python3 scripts/run_eval.py --csv /tmp/eval.csv  # per-query CSV for analysis
 ```
+
+### How good is the search?
+
+Baseline numbers from the v0.10.0 eval harness (33 queries, 179 expected
+verses across Bible + Quran Saheeh International):
+
+| Path | Recall@10 | MRR | nDCG@10 |
+|------|----------|-----|---------|
+| BM25 | 0.093 | 0.030 | 0.068 |
+| Semantic | **0.279** | **0.165** | **0.222** |
+| **Hybrid** (default 0.1/0.7) | **0.258** | 0.162 | **0.219** |
+
+**Methodological note:** The v0.9.0 Semantic recall@10 (0.279) is a *benchmark
+expansion* result, not a model improvement over v0.8.0. The first version of
+the benchmark had 105 unique citations; the second has 165. The v0.8.0
+model run against the v0.9.0 benchmark would score ~0.081 (the same number
+v0.8.0 logged, just against a stricter yardstick). **Always compare
+like-for-like benchmarks across versions.** Full methodology and follow-on
+tasks in [`docs/evaluation.md`](./docs/evaluation.md).
+
+---
+
+## Runtime contract
+
+If you're building an agent that consumes this dataset, read
+[`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) — five rules (always cite,
+surface Strong's lemma + gloss, never invent verses, surface internal
+diversity, never impersonate Scripture) that bind any consumer of this
+data. Extracted from `HANDOFF.md` §11 in v0.10.0 so consumers don't
+have to scroll past project archaeology to find the rules.
 
 ### As a Python module
 

@@ -64,6 +64,9 @@ python3 -m bible search "ברא" -t WLCa --limit 3 # Hebrew unpointed
 python3 -m bible semantic "finding peace in suffering" --backend nim  # needs NVIDIA_API_KEY
 python3 -m bible semantic "verses about mercy" --tradition all --json
 
+# Hybrid search — BM25 + semantic fusion (Milestone 3C; requires local index)
+python3 -m bible hybrid "comfort in grief" --bm25-weight 0.5 --top-k 10
+
 # Cross-references (openbible.info, CC-BY 4.0)
 python3 -m bible references "John 3:16"                  # outgoing edges
 python3 -m bible references "John 3:16" --direction in   # reciprocal
@@ -85,7 +88,7 @@ python3 make_flat_training.py              # Output: kjv_training.jsonl
 # Convert Strong's .js files to clean JSON (faster startup)
 python3 convert_strongs_to_json.py
 
-# Run the sister-script test suite (62 tests, stdlib-only)
+# Run the sister-script test suite (75 tests, stdlib-only)
 python3 tests/run_all.py
 ```
 

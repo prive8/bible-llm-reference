@@ -256,9 +256,12 @@ shippable (the next day doesn't require the previous to be complete).
   - CLI: `python -m bible semantic "finding peace in suffering" [-n 10] [--tradition all|bible|islam] [--backend auto|local|mock|nim] [--json]`.
   - Offline indexer: `scripts/index_embeddings.py` ready to generate production embeddings for Bible + Quran (now supports `--backend nim`).
   - 9 NIM-specific sister-script tests in `tests/run_all.py` (total suite at **62 passed, 0 failed**).
-- ⏸ **Milestone 3C — Hybrid fusion:** Score fusion between BM25 and vector
-  search. **Defer to Phase 3.5** (after a non-Christian tradition is in
-  the corpus — cross-tradition queries become meaningful at that point).
+- ⏸ **Milestone 3C — Hybrid fusion:** ✅ **Shipped 2026-09-09 (v0.8.0, ADR-011).**
+  - `bible/hybrid.py` — citation-keyed join of BM25 results + semantic results.
+  - Min-max normalization per source (BM25 raw unbounded, cosine [-1, 1]) then weighted-sum.
+  - Reciprocal hits (verse in BOTH sources) naturally outrank solos.
+  - CLI: `python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--solo-weight 0.7] [--top-k 10] [--json] [--translation KJV]`.
+  - 12 new sister-script tests (suite now at **74 passed, 0 failed**).
 
 ### Milestone 4 — cross-reference engine (Days 9–12)
 
@@ -282,7 +285,7 @@ domain) and surface it through the lookup API.
 
 ### Milestone 5 — packaging + sister-script tests + docs (~99% shipped as of 2026-09-09, v0.5.0)
 
-- ✅ Sister-script tests in `tests/run_all.py` — **62 tests, all passing.**
+- ✅ Sister-script tests in `tests/run_all.py` — **74 tests, all passing.**
   No pytest dependency (ADR-001, ADR-005). Unicode/Windows console-safe.
   Run via `python3 tests/run_all.py`.
 - ✅ `docs/design-decisions.md` — nine ADRs capturing architectural

@@ -167,6 +167,29 @@
 
 ---
 
+## ADR-011 — Milestone 3C Hybrid BM25 + Semantic Fusion
+
+**Status:** Accepted (2026-09-09).
+
+**Context:** With Milestone 3B (semantic search) shipped in v0.6.0 and v0.7.0, the project had two complementary retrieval paths but no way to combine them. BM25 (M3A) is exact-keyword-strong; semantic (M3B) is meaning-strong. Neither alone answers "verses about comfort in grief" with both keyword matches (e.g. "comfort") and thematic matches (e.g. "blessed are those who mourn") in one ranked list.
+
+**Decision:**
+1. **`bible/hybrid.py` — citation-keyed join.** Take the top-K candidates from BM25 (`bible.search`) and top-K from semantic (`bible.semantic`), join on citation string (e.g. "John 3:16"), and produce a single fused ranking.
+2. **Per-source min-max normalization.** BM25 raw scores are unbounded and query-length-dependent; cosine similarities are in [-1, 1]. Without normalization, BM25 always dominates. Min-max each source's results to [0, 1] within a single query, then compute `combined = α * bm25_norm + (1-α) * sem_norm`.
+3. **Reciprocal hits outrank solos via weighted-sum structure.** A verse appearing in both BM25 and semantic gets the full weighted sum; a verse in only one source gets its single score multiplied by `solo_weight` (default 0.7). This naturally elevates consensus without filtering any source.
+4. **CLI integration.** `python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--solo-weight 0.7] [--top-k 10] [--json]`. Wired into `bible/__main__.py`.
+5. **Defaults.** `DEFAULT_BM25_WEIGHT = 0.5` (equal weight), `DEFAULT_SOLO_WEIGHT = 0.7` (solos get 70% of their normalized score). Both are public API constants; if they change silently every downstream user gets different rankings.
+
+**Consequences:**
+- Pure stdlib (`math`, no numpy needed for fusion — min-max is trivial Python).
+- Cross-tradition capable: BM25 leg is Bible-only; semantic leg includes Quran. Hybrid results naturally include both.
+- 12 new sister-script tests covering: normalization (basic, constant, empty), reciprocal vs solo ranking, extreme weight values (0.0 and 1.0), empty input sets, default constants sanity, top_k limiting, CLI dispatcher wiring.
+- Test suite now at **75 passed, 0 failed**.
+- The hybrid fusion closes the Milestone 3B/C loop: M3A (BM25) + M3B (semantic) + M3C (fusion) all landed. With a real local index in `data/embeddings/` (43,483 vectors across Bible + Quran Saheeh International), all three retrieval paths now produce useful results on natural-language queries.
+
+---
+
 ## Pending ADRs (to be drafted when the decision is made)
 
-- **ADR-011** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.
+- **ADR-011 — RESOLVED 2026-09-09** → Hybrid BM25 + semantic fusion engine shipped in v0.8.0 (this ADR). Replaces the previous placeholder.
+- **ADR-012** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.

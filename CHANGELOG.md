@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-09-09
+
+### Added
+- **First real semantic vector index of the Bible + Quran corpus.**
+  43,483 passages embedded locally with `sentence-transformers/all-MiniLM-L6-v2`
+  (384-dim, CPU). Index files committed to `data/embeddings/`:
+  - `default_meta.json` (12 MB)
+  - `default_vectors.bin` (67 MB, float32 binary)
+  - Generated in 198s on CPU (~220 vec/s). Cost: $0.
+- `bible/hybrid.py` — **Milestone 3C hybrid fusion engine (ADR-011).**
+  Citation-keyed join of BM25 results + semantic results with per-source
+  min-max normalization. Reciprocal hits (verse in BOTH sources) naturally
+  outrank solos. CLI: `python -m bible hybrid "comfort in grief"
+  [--bm25-weight 0.5] [--solo-weight 0.7] [--top-k 10] [--json]`.
+- Real-index integration test: `t_semantic_real_index_loads_and_returns_results`
+  loads the on-disk index and runs a real query end-to-end. Skipped
+  automatically when the index doesn't exist (CI path).
+- 13 new sister-script tests (12 hybrid fusion + 1 real-index). Suite
+  now at **75 passed, 0 failed**.
+
+### Changed
+- `bible/__main__.py` — `hybrid` subcommand wired into the CLI dispatcher.
+- HANDOFF §5 M3C — marked ✅ (was "defer to Phase 3.5"). With the real
+  index in hand, hybrid fusion is no longer blocked.
+- HANDOFF §5 M3B — index workflow now concrete: `pip install sentence-transformers numpy`
+  → `python scripts/index_embeddings.py --backend local --name default`.
+
 ## [0.7.0] — 2026-09-09
 
 ### Added

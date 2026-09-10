@@ -389,17 +389,22 @@ def get_embedder(backend: str = "auto") -> BaseEmbedder:
       1. If ``sentence_transformers`` importable → ``LocalSentenceTransformerEmbedder``
       2. Else if ``NVIDIA_API_KEY`` in env → ``NIMEmbedder`` (network call)
       3. Else → ``MockDeterministicEmbedder`` (offline / CI fallback)
+
+    Local embedder instances are cached per-process via an LRU wrapper.
+    Without caching, every search_semantic() call would re-load the
+    ~80 MB model (~3s on warm disk, ~10s on cold). The cache means a
+    single process can serve thousands of queries at one model-load cost.
     """
     if backend == "mock":
         return MockDeterministicEmbedder()
     elif backend == "local":
-        return LocalSentenceTransformerEmbedder()
+        return _get_cached_local_embedder()
     elif backend == "nim":
         return NIMEmbedder()
     elif backend == "auto":
         try:
             import sentence_transformers  # noqa: F401
-            return LocalSentenceTransformerEmbedder()
+            return _get_cached_local_embedder()
         except ImportError:
             pass
         if os.environ.get("NVIDIA_API_KEY"):
@@ -411,6 +416,16 @@ def get_embedder(backend: str = "auto") -> BaseEmbedder:
         return MockDeterministicEmbedder()
     else:
         raise ValueError(f"Unknown embedder backend: {backend!r}")
+
+
+_LOCAL_EMBEDDER_CACHE: list = []  # one-element list to allow closure mutation
+
+
+def _get_cached_local_embedder() -> "LocalSentenceTransformerEmbedder":
+    """Process-local singleton — load the model once, reuse forever."""
+    if not _LOCAL_EMBEDDER_CACHE:
+        _LOCAL_EMBEDDER_CACHE.append(LocalSentenceTransformerEmbedder())
+    return _LOCAL_EMBEDDER_CACHE[0]
 
 
 # ---------------------------------------------------------------------------

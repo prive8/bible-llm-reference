@@ -491,19 +491,26 @@ make this concrete.
 
 ## 8. Pending decisions (do not act without dad)
 
+**Revisit cadence:** When evaluating a deferred item below, check whether
+the underlying premise has changed (new data, new user signal, new
+dependency). The decision itself should not be re-litigated unless the
+premise changed.
+
 1. **Embedding model for semantic search (Milestone 3B).** Architecture
    landed in v0.6.0 + v0.7.0 (ADR-010). NIM `NIMEmbedder` is implemented
    and tested. Operational choice (when to actually index the 31K Bible +
    6K Quran corpus with NIM vs. local sentence-transformers) deferred —
    user has not yet authorized spend on hosted inference. The architecture
    supports both backends interchangeably; either path works.
+   **Revisit when:** user signals willingness to spend on hosted inference
+   (per memory, 2026-09-09 cost posture: free-tier endpoints only).
 2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something smaller.
-   Defer to Phase 2.
-3. **README refresh.** The current README frames the project as the
-   "Abrahamic / Christian slice of the Religion & Spirituality AI"
-   (per the Grok upgrade). The broader vision is in `COUNCIL.md`.
-   A README rewrite is not urgent; do it after Milestone 1 so the
-   new framing is grounded in shipped code.
+   Defer to Phase 2. **Revisit when:** Phase 2 work actually starts
+   (no specific signal as of 2026-09-09; HANDOFF §1 defers by design).
+3. **README refresh.** ~~Was pending since v0.1.0 per Grok upgrade~~.
+   **RESOLVED 2026-09-09 (v0.5.0):** full structural rewrite at v0.5.0,
+   then v0.7.0 (NIM backend) and v0.8.0 (real local index) refreshes.
+   Current README is in sync with shipped code.
 4. (Resolved.) Cross-reference dataset source: openbible.info via
    scrollmapper mirror, CC-BY 4.0 (ADR-008, 2026-09-09). See
    `docs/data-schema.md` and `data/references/README.md`.
@@ -511,6 +518,19 @@ make this concrete.
    in the quick-integration example. That file was absorbed into §11
    of this file, and the Python integration example was removed
    (it was documentation noise, not a contract surface).
+6. (Resolved.) `bible-query.py` legacy CLI removed in v0.5.0 (ADR-004).
+7. **Hybrid fusion defaults (M3C, deferred from v0.8.0).** Evaluation
+   in `docs/evaluation.md` (v0.9.0-pre) shows hybrid recall@10 (0.233) is
+   *lower* than semantic-only recall@10 (0.279) — BM25 noise (recall
+   0.093) drags semantic down via the 50/50 weighted sum. Two fixes
+   available: lower `bm25_weight` default from 0.5 to ~0.3, or filter
+   BM25 results below a confidence threshold before fusion. **Revisit
+   when:** next model swap or weight-tuning session.
+8. **Hybrid recall ceiling on the local model.** Even with the fix
+   above, the local `all-MiniLM-L6-v2` model has hard limits on
+   retrieval quality. NIM `nvidia/nv-embedqa-e5-v5` is expected to
+   be 10-20% better per the E5 model card. **Revisit when:** NIM
+   baseline is built (decision #1 above).
 
 ---
 

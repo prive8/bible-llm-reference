@@ -4,6 +4,47 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-09-09
+
+### Added
+- **`scripts/run_eval.py` — retrieval evaluation harness.** Runs the
+  hand-curated benchmark against BM25, semantic, and hybrid retrieval
+  paths; reports recall@10, MRR, primary-in-top-1, and nDCG@10.
+  Outputs a markdown report. Supports `--paths`, `--top-k`, `--csv`
+  for per-query analysis.
+- **`tests/benchmark.py` — 33-query retrieval benchmark.** 179 expected
+  verses across Bible + Quran Saheeh with graded relevance weights
+  (1=related, 2=strong, 3=primary). Covers emotional / theological /
+  doctrinal / adversarial / cross-tradition themes.
+- **`docs/evaluation.md` — real numbers + baseline + future work.**
+  Documents the v0.9.0-pre baseline (Semantic 3× better than BM25 on
+  recall@10), identifies that hybrid is currently *worse* than
+  semantic alone due to BM25 noise, and lists 5 follow-on evaluation
+  tasks.
+- **Process-local embedder caching.** `get_embedder("local")` now caches
+  the `LocalSentenceTransformerEmbedder` instance per process — first
+  call pays the model-load cost (~3s on warm disk), subsequent calls
+  are free. Reduces the eval harness's 33-query semantic run from
+  ~5min to ~100s.
+- 8 sister-script tests for the harness's pure-logic functions (DCG,
+  nDCG, per-query metrics). Suite now at **83 passed, 0 failed**.
+- **CI badge** in README header.
+
+### Found (and documented) — important
+
+- **Hybrid fusion is currently *worse* than semantic-only** at the
+  default 50/50 weight. BM25's recall is so low (0.093) that its
+  noise gets 50% of the weight in the hybrid score, suppressing
+  semantic-only hits. Documented as decision #7 in HANDOFF §8.
+
+### Changed
+- `get_embedder("local")` is now process-local cached; first call is
+  slow, subsequent calls are O(microseconds).
+- HANDOFF §8 — added explicit "Revisit when" guidance for each
+  pending decision; resolved items #3 (README refresh) and #6
+  (bible-query.py removal) explicitly closed.
+- README — added CI badge + retrieval evaluation quickstart lines.
+
 ## [0.8.0] — 2026-09-09
 
 ### Added

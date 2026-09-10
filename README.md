@@ -1,5 +1,7 @@
 # Bible LLM Reference
 
+[![CI](https://github.com/prive8/bible-llm-reference/actions/workflows/ci.yml/badge.svg)](https://github.com/prive8/bible-llm-reference/actions)
+
 A public-domain Bible dataset and reference tool for LLM training, retrieval, and research. This repository is the **canonical data + retrieval substrate** for the Abrahamic / Christian slice of the larger Religion & Spirituality AI project.
 
 > **Read first:** if you're an AI agent or new contributor, start with
@@ -67,6 +69,10 @@ python3 -m bible semantic "verses about mercy" --tradition all --json
 # Hybrid search — BM25 + semantic fusion (Milestone 3C; requires local index)
 python3 -m bible hybrid "comfort in grief" --bm25-weight 0.5 --top-k 10
 
+# Retrieval evaluation (Milestone 3C+ baseline; ~3 min on CPU)
+python3 scripts/run_eval.py          # report
+python3 scripts/run_eval.py --csv /tmp/eval.csv  # per-query CSV
+
 # Cross-references (openbible.info, CC-BY 4.0)
 python3 -m bible references "John 3:16"                  # outgoing edges
 python3 -m bible references "John 3:16" --direction in   # reciprocal
@@ -88,7 +94,7 @@ python3 make_flat_training.py              # Output: kjv_training.jsonl
 # Convert Strong's .js files to clean JSON (faster startup)
 python3 convert_strongs_to_json.py
 
-# Run the sister-script test suite (75 tests, stdlib-only)
+# Run the sister-script test suite (83 tests, stdlib-only)
 python3 tests/run_all.py
 ```
 

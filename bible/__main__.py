@@ -6,6 +6,7 @@ Usage:
     python -m bible strongs "Genesis 1:1"
     python -m bible search "faith without works" [-t WEB] [-n 10] [--strongs] [--json]
     python -m bible references "John 3:16" [--hops N] [--min-votes V] [--direction out|in|both]
+    python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--top-k 10]
 """
 
 import sys
@@ -61,6 +62,9 @@ Usage:
     python -m bible semantic "finding peace in suffering"
         Search scripture using dense vector embeddings (Milestone 3B).
 
+    python -m bible hybrid "comfort in grief"
+        Hybrid BM25 + semantic search (Milestone 3C).
+
 Flags:
     --strongs, -s       Include Strong's enrichment
     --json              JSON output
@@ -72,6 +76,8 @@ Flags:
     --hops              Multi-hop depth (references, 1-3, default: 1)
     --min-votes         Vote threshold (references, default: 3)
     --direction         out|in|both (references, default: out)
+    --bm25-weight       Weight on BM25 vs semantic in hybrid (default: 0.5)
+    --solo-weight       Multiplier for solo (non-reciprocal) hits (default: 0.7)
 """
 
 
@@ -107,6 +113,10 @@ def main():
         from bible.semantic import main as semantic_main
         sys.argv = ["bible semantic"] + rest
         semantic_main()
+    elif command == "hybrid":
+        from bible.hybrid import main as hybrid_main
+        sys.argv = ["bible hybrid"] + rest
+        hybrid_main()
     else:
         print(f"Unknown command: {command!r}")
         print(USAGE)

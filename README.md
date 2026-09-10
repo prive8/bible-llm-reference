@@ -7,8 +7,9 @@ A public-domain Bible dataset and reference tool for LLM training, retrieval, an
 > **Read first:** if you're an AI agent or new contributor, start with
 > [`HANDOFF.md`](./HANDOFF.md). It captures the project's vision,
 > current state, conventions, and the milestone roadmap.
-> [`COUNCIL.md`](./COUNCIL.md) is the dormant governance constitution —
-> see the Governance section below for what that means today.
+> [`COUNCIL.md`](./COUNCIL.md) is the constituted governance
+> constitution (v0.4 — active single-contributor body, project owner
+> as acting chair).
 > [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) is the contract any
 > downstream agent must follow.
 
@@ -168,7 +169,7 @@ for edge in get_references("John 3:16", min_votes=50)[:5]:
 ```
 bible-llm-reference/
 ├── HANDOFF.md                          # engineering handoff (vision, milestones, conventions)
-├── COUNCIL.md                          # governance constitution (dormant until Phase 2 / 2nd contributor)
+├── COUNCIL.md                          # governance constitution (v0.4, constituted single-contributor body)
 ├── RUNTIME_CONTRACT.md                 # 5 rules binding any consumer agent (v0.10.0)
 ├── README.md                           # this file
 ├── LICENSE                             # MIT (code)
@@ -283,16 +284,28 @@ Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
 
 ## Governance
 
-The project has a **dormant** constitution ([`COUNCIL.md`](./COUNCIL.md))
-that activates when either (a) a second contributor joins, or
-(b) the project enters Phase 2 (generative voice fine-tune). Until
-then, the project is run as a single-contributor body (the project
-owner, "father") operating under the seven principles in `COUNCIL.md` §2.
+The project has a **constituted governance body** ([`COUNCIL.md`](./COUNCIL.md),
+v0.4 since 2026-09-10). The constitution is in force and binds all
+project decisions, including the seven principles in §2 (neutral
+across traditions, primary-source-first, no impersonation, etc.) and
+the runtime contract in [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md).
 
-The detailed Council design — agent roster, decision protocol,
-evolution rules — lives in [`docs/governance/council-design.md`](./docs/governance/council-design.md)
-as the *target architecture* for when the Council forms. It is not
-running today.
+**Current form:** single-contributor body (the project owner,
+"father", acting chair). The acting chair makes all decisions subject
+to the principles and the runtime contract, and has no authority to
+override either. Decisions are recorded in daily notes
+(`notes/YYYY-MM-DD.md`).
+
+**Target form:** full multi-agent Council with the agent roster in
+[`docs/governance/council-design.md`](./docs/governance/council-design.md).
+That convenes when either (a) a second contributor joins, or (b) the
+project enters Phase 2 (generative voice fine-tune). The expansion to
+multi-member form is a *chamber expansion*, not a re-ratification —
+the constitution, the runtime contract, and all prior decisions
+transfer to the full Council without re-approval.
+
+If you're a new contributor, read `COUNCIL.md` first (it's the
+shortest), then `HANDOFF.md`. They are co-equal.
 
 The runtime contract that any agent consuming this data must follow
 lives in [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) (extracted

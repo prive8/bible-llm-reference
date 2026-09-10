@@ -2,14 +2,18 @@
 
 > **Long-form design document.** The principles, agent roster, decision
 > protocol, scoping guardrails, runtime behavior, and evolution rules
-> for the Bible LLM Reference Council. The Council itself is a
-> **target architecture** — it is not yet implemented. The project
-> runs as a single-contributor body under the principles in
-> [`COUNCIL.md`](../../COUNCIL.md) §2 until the Council forms (see
-> `COUNCIL.md` §3 for the trigger conditions).
+> for the Bible LLM Reference Council.
 >
-> **Last updated:** 2026-07-31 (v0.3-stub — split out of `COUNCIL.md`
-> for legibility, per the daily-2026-07-31 review)
+> **Status (2026-09-10):** The Council **is constituted as a
+> single-contributor body** with the project owner as acting chair
+> (see [`COUNCIL.md`](../../COUNCIL.md) §3.1 + §6.1). The multi-agent
+> roster in this document is the *target architecture* — that arrives
+> when either a second contributor joins or Phase 2 begins (per
+> [`COUNCIL.md`](../../COUNCIL.md) §3). Until then, the project runs
+> under the seven principles in [`COUNCIL.md`](../../COUNCIL.md) §2.
+>
+> **Last updated:** 2026-09-10 (header updated to reflect Council
+> convening; design content unchanged from v0.3-stub of 2026-07-31.)
 > **Source of truth:** this document, until v1.0 lands.
 > **Read alongside:** [`COUNCIL.md`](../../COUNCIL.md) (the constitution),
 > [`HANDOFF.md`](../../HANDOFF.md) (engineering context — and §11

@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-09-10
+
+### Changed
+- **`COUNCIL.md` formally convened as single-contributor body** (v0.3-stub → v0.4).
+  Removed the "STUB" disclaimer from the header. Added §3.1 "Current
+  constitution status" (binds since 2026-09-10 with the project owner
+  as acting chair) and §6.1 "Acting chair" (authority, succession,
+  removal, decision-recording policy). §5 versioning updated to
+  reflect that v0.4 is a real binding constitution, not a placeholder.
+  Spirit unchanged — the seven principles in §2 carry over verbatim
+  from v0.3, and the full multi-agent Council remains the target
+  architecture for when §3 trigger conditions fire (second contributor
+  OR Phase 2 begin).
+- **`docs/governance/council-design.md` header updated** to reflect
+  Council convening (still target architecture; design content
+  unchanged from v0.3-stub of 2026-07-31).
+- **README Governance section rewritten** — no longer describes the
+  constitution as "dormant"; now describes it as constituted and
+  active, with clear framing of current form (single-contributor body
+  with acting chair) vs. target form (full multi-agent Council).
+  Read-first block + project structure tree updated to match.
+- **HANDOFF §8 #9 added** — closes the Council convening decision.
+
 ## [0.11.0] — 2026-09-10
 
 ### Added

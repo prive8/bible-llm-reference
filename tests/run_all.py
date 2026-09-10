@@ -719,6 +719,35 @@ def t_nim_default_model_eol_documented_in_handoff():
     _assert(needle_decision, "HANDOFF must keep HANDOFF §8 #8 reference")
 
 
+@_register("t_council_convened_per_doc")
+def t_council_convened_per_doc():
+    """COUNCIL.md must reflect v0.4 convening (active single-contributor body).
+
+    Regression test for the convening on 2026-09-10 (v0.12.0). If a
+    future contributor reverts the doc back to "stub/dormant" without
+    a recorded decision, this test fails — forcing a conversation.
+    """
+    import re
+    council = (ROOT / "COUNCIL.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
+
+    # COUNCIL.md must be at v0.4 and have §3.1 + §6.1
+    _assert("v0.4" in council, "COUNCIL.md must declare v0.4 (constituted)")
+    _assert("§3.1" in council or "3.1" in council, "COUNCIL.md must have §3.1 current-status section")
+    _assert("§6.1" in council or "6.1" in council, "COUNCIL.md must have §6.1 acting-chair section")
+    _assert("acting chair" in council.lower() or "Acting chair" in council,
+            "COUNCIL.md must reference the acting chair")
+    # README must reflect active status (not "dormant")
+    _assert("dormant" not in readme.lower(),
+            "README must not describe the constitution as dormant (it was convened 2026-09-10)")
+    _assert("constituted" in readme.lower() or "active single-contributor body" in readme.lower(),
+            "README must describe the constitution as active/constituted")
+    # HANDOFF must have §8 #9 closing the convening decision
+    _assert(re.search(r"^9\.\s+\*\*Council convening", handoff, re.MULTILINE) is not None,
+            "HANDOFF §8 must have item #9 for the Council convening decision")
+
+
 @_register("t_get_embedder_factory_routes_nim")
 def t_get_embedder_factory_routes_nim():
     """get_embedder('nim') must return a NIMEmbedder instance."""

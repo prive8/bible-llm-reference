@@ -559,6 +559,21 @@ premise changed.
    **Revisit when:** user authorizes a one-time NIM indexing spend
    (~$1.20 for 1.12M-token corpus, ~7-10 min wall time; queries stay
    free-tier). Until then, local model is the production path.
+9. **Council convening (RESOLVED 2026-09-10, v0.12.0).** The
+   `COUNCIL.md` constitution was previously labeled "STUB" and
+   deferred until a second contributor or Phase 2. On 2026-09-10 the
+   constitution was formally **convened as a single-contributor body**
+   with the project owner as acting chair. This closes the
+   "dormant vs. active" ambiguity in the README pointer, gives the
+   project a real governance binding (the seven principles are now
+   formally in force, not aspirational), and clarifies that the full
+   multi-agent Council is still the *target architecture* for when
+   §3 trigger conditions fire. **Changes:** `COUNCIL.md` v0.3 → v0.4
+   (added §3.1 current status + §6.1 acting chair, updated §5
+   versioning); `docs/governance/council-design.md` header updated
+   to reflect convening; README Governance section now says "active
+   single-contributor body" instead of "dormant." Principles in
+   `COUNCIL.md` §2 unchanged.
 
 ---
 

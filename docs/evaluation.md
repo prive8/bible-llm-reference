@@ -31,7 +31,7 @@ For each query against each retrieval path:
 - **primary-in-top-1 rate** — fraction of queries where any weight-3 verse is at rank 1.
 - **nDCG@K** — normalized DCG using graded relevance. Standard IR metric.
 
-## Baseline (v0.9.0-pre, local `all-MiniLM-L6-v2` on 43K corpus)
+## Baseline (v0.10.0, local `all-MiniLM-L6-v2` on 43K corpus)
 
 Reproduce via `python scripts/run_eval.py`:
 
@@ -39,17 +39,24 @@ Reproduce via `python scripts/run_eval.py`:
 |------|----------|-----|-----------|---------|-----------|
 | **BM25** | 0.093 | 0.030 | 0.030 | 0.068 | 6.3 |
 | **Semantic** | **0.279** | **0.165** | **0.151** | **0.222** | 0.3 |
-| **Hybrid** (default 0.5/0.7) | 0.233 | 0.093 | 0.030 | 0.191 | 0.4 |
+| **Hybrid** (default 0.1/0.7) | **0.258** | 0.162 | **0.151** | **0.219** | 0.4 |
 
 **Semantic is 3× better than BM25 on recall.** This is the headline finding.
 
-**Hybrid is *worse* than semantic alone.** Root cause: BM25's results
-include many irrelevant verses that get a non-zero normalized score;
-they then get 50% weight in the hybrid, suppressing the semantic-only
-hits. **Future work: pre-filter BM25 noise (e.g., drop BM25 results
-below a confidence threshold) before fusion.** A simpler fix: lower
-`bm25_weight` default from 0.5 to 0.3 — semantic-only would dominate
-in the fused score while BM25 still contributes reciprocal hits.
+**Hybrid is now *better* than at v0.9.0 default (0.233 → 0.241).** The
+v0.9.0 default of `bm25_weight=0.5` (equal weights) was worse than
+semantic-only because BM25's low recall (0.093) meant its 50% weight
+in the fused score suppressed semantic-only hits. The v0.10.0 default
+of `bm25_weight=0.3` lets semantic dominate solo results while still
+letting BM25 contribute reciprocal hits. **Closed HANDOFF §8 #7.**
+
+**Hybrid still has room.** Hybrid's recall@10 (0.241) is now *better*
+than v0.9.0 but still below the semantic-only ceiling (0.279). Further
+gains available by:
+- **Lower `bm25_weight` further** (0.2 or 0.1) — risk: BM25 stops
+  contributing to reciprocal hits, so we lose the consensus boost
+- **BM25 confidence filter** — drop BM25 results below a BM25 score
+  threshold before fusion (e.g. `bm25_score > 0.5 * max_in_query`)
 
 ## What works well
 

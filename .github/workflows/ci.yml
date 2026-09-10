@@ -26,3 +26,103 @@ jobs:
 
       - name: Run sister-script test suite
         run: python tests/run_all.py
+
+  eval-regression:
+    # Runs the retrieval evaluation harness with a recall@10 threshold
+    # gate. Only fires on push to main (not on PRs — PR contributors
+    # don't ship a stable index, and the matrix would multiply the
+    # ~3-min index build by 8). If recall@10 drops below the baseline
+    # minus a small tolerance, the job fails.
+    #
+    # Baseline (v0.9.0): semantic=0.279, hybrid=0.233.
+    # Threshold: 0.25 (semantic), 0.20 (hybrid). Set deliberately below
+    # the baseline so we catch regressions, not natural variance.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache sentence-transformers model
+        # The 80 MB model download dominates the build time. Cache by
+        # the model's content hash so subsequent runs reuse it.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/torch/sentence_transformers
+          key: ${{ runner.os }}-sentence-transformers-all-MiniLM-L6-v2
+          restore-keys: |
+            ${{ runner.os }}-sentence-transformers-
+
+      - name: Install sentence-transformers + numpy
+        run: |
+          python -m pip install --upgrade pip
+          pip install "sentence-transformers>=2.2.0" "numpy>=1.20.0"
+
+      - name: Build the local semantic index (~3 min on CPU)
+        run: python scripts/index_embeddings.py --backend local --name default --batch-size 128
+
+      - name: Run sister-script test suite (CI also runs the 83-test gate here)
+        run: python tests/run_all.py
+
+      - name: Run retrieval evaluation with threshold gate
+        # We use a small inline Python check rather than shell arithmetic
+        # because shell float handling is finicky and we want clean
+        # failure messages in the CI log.
+        #
+        # Thresholds reflect the v0.10.0 baseline (after the bm25_weight
+        # default tuning sweep). Lower the threshold a bit so we catch
+        # regressions, not natural variance.
+        run: |
+          python scripts/run_eval.py --paths bm25,semantic,hybrid > /tmp/eval_report.txt
+          python <<'PYEOF'
+          import re
+          import sys
+
+          with open("/tmp/eval_report.txt") as f:
+              report = f.read()
+
+          # Thresholds: v0.10.0 baseline (hybrid tuned to bm25_weight=0.1
+          # in v0.10.0 hybrid-fusion sweep; baseline 0.258). Lower the
+          # threshold a bit so we catch regressions, not natural variance.
+          THRESHOLDS = {
+              "bm25":     {"recall_at_k": 0.06},   # baseline 0.093
+              "semantic": {"recall_at_k": 0.25},   # baseline 0.279
+              "hybrid":   {"recall_at_k": 0.22},   # baseline 0.258 (was 0.233 at v0.9.0 0.5 weight)
+          }
+
+          failed = []
+          for path_name, thresholds in THRESHOLDS.items():
+              # The harness emits lines like "| semantic | 0.279 | 0.165 | 0.151 | 0.222 |"
+              # Find the row in the summary table.
+              pattern = rf"\|\s*{path_name}\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|"
+              m = re.search(pattern, report)
+              if not m:
+                  failed.append(f"{path_name}: no row found in eval report")
+                  continue
+              recall = float(m.group(1))
+              threshold = thresholds["recall_at_k"]
+              if recall < threshold:
+                  failed.append(f"{path_name}: recall@10={recall:.3f} < threshold {threshold:.3f}")
+
+          if failed:
+              print("❌ RETRIEVAL REGRESSION DETECTED")
+              for line in failed:
+                  print(f"  {line}")
+              sys.exit(1)
+          print(f"✅ All retrieval thresholds met (semantic ≥ 0.25, hybrid ≥ 0.22, bm25 ≥ 0.06)")
+          PYEOF
+
+      - name: Upload eval report as CI artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: /tmp/eval_report.txt
+          retention-days: 14

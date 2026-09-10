@@ -748,6 +748,35 @@ def t_council_convened_per_doc():
             "HANDOFF §8 must have item #9 for the Council convening decision")
 
 
+@_register("t_adr012_phase2_base_model_resolved")
+def t_adr012_phase2_base_model_resolved():
+    """ADR-012 must exist with the Phase 2 base model family pick, and HANDOFF
+    §8 #2 must be marked RESOLVED.
+
+    Regression test for the ADR-012 resolution on 2026-09-10 (v0.12.0).
+    If a future contributor removes ADR-012 or reverts §8 #2 back to
+    deferred, this test fails — forcing a conversation.
+    """
+    import re
+    adr_doc = (ROOT / "docs" / "design-decisions.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
+
+    # ADR-012 must exist and be marked RESOLVED
+    _assert("ADR-012" in adr_doc, "ADR-012 must exist in docs/design-decisions.md")
+    _assert(re.search(r"^## ADR-012", adr_doc, re.MULTILINE) is not None,
+            "ADR-012 must have its own section header")
+    # The family pick must be specific (Llama-3.1-8B-Instruct or successor)
+    _assert("Llama-3.1-8B-Instruct" in adr_doc or "Llama-3.1" in adr_doc,
+            "ADR-012 must declare the Llama-3.1-8B-Instruct family pick")
+    # The pick must include the rejected alternatives (so the next ADR
+    # author doesn't re-litigate from scratch)
+    _assert("Phi-3-mini" in adr_doc and "Mistral-7B" in adr_doc and "Qwen2.5-7B" in adr_doc,
+            "ADR-012 must document rejected alternatives")
+    # HANDOFF §8 #2 must be marked RESOLVED 2026-09-10
+    _assert(re.search(r"^2\.\s+\*\*Phase 2 base model \(RESOLVED 2026-09-10", handoff, re.MULTILINE) is not None,
+            "HANDOFF §8 #2 must be marked RESOLVED 2026-09-10")
+
+
 @_register("t_get_embedder_factory_routes_nim")
 def t_get_embedder_factory_routes_nim():
     """get_embedder('nim') must return a NIMEmbedder instance."""

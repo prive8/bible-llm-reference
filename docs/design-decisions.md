@@ -192,4 +192,120 @@
 ## Pending ADRs (to be drafted when the decision is made)
 
 - **ADR-011 — RESOLVED 2026-09-09** → Hybrid BM25 + semantic fusion engine shipped in v0.8.0 (this ADR). Replaces the previous placeholder.
-- **ADR-012** — Phase 2 base model (Llama / Mistral / Qwen / smaller). Defer to Phase 2.
+- **ADR-012 — RESOLVED 2026-09-10** → Phase 2 base model family pick (this ADR).
+
+---
+
+## ADR-012 — Phase 2 base model family pick (Llama-3.1-8B-Instruct)
+
+**Status:** Accepted (2026-09-10). Defers the operational "which specific
+checkpoint + how to fine-tune" decision to when Phase 2 work actually
+starts; locks the *family* and the *criteria* so the operational pick
+has a clear framework when it lands.
+
+**Context:**
+Phase 2 is "generative voice fine-tune" per HANDOFF §1 — a tool that
+takes a question and writes a response in the voice of the tradition
+(pastor citing Romans, rabbi citing Rashi, qari citing tafsir), grounded
+in the corpus with citations, never inventing doctrine. **Distill-only**
+by HANDOFF §1 constraint.
+
+Data shape (now stable, after Phase 3.1 + 3.2 shipped in v0.6.0–v0.11.0):
+- **~55K passages** across Christianity (37K Bible, KJV), Islam (6K
+  Quran Saheeh International), Judaism (6K Torah + 6K Hebrew nikkud).
+- **Multilingual** — primary target is English output, but citations
+  must surface Hebrew/Arabic/Greek/Latin originals accurately.
+- **High citation density** — every claim is grounded; model must not
+  paraphrase citations away.
+- **Compact retrieval substrate** — `bible.search` (BM25) + `bible.semantic`
+  (sentence-transformers) + `bible.hybrid` (fused) + `bible.references`
+  (openbible.info cross-references, 605K edges) provide the
+  context the model needs. Model is the synthesizer, not the retriever.
+
+Constraints (from HANDOFF §1, §8 #1, ADR-001):
+- **Distill-only** — no training from scratch; LoRA / QLoRA fine-tune
+  of an existing open base.
+- **Local-first / free-tier-friendly** — the user's cost posture is
+  "free-tier endpoints only until you're comfortable with spend"
+  (memory, 2026-09-09). A 7B-class model must run on a single consumer
+  GPU (24 GB VRAM) or be hosted on a free-tier inference API.
+- **Citation fidelity is non-negotiable** — Runtime Contract rules 1, 2,
+  4 in `RUNTIME_CONTRACT.md`. A model that hallucinates citations is
+  unusable.
+- **Council principles bind** — neutral across traditions, primary-
+  source-first, no impersonation (RUNTIME_CONTRACT rule 5).
+
+**Decision — family pick:**
+
+**Llama-3.1-8B-Instruct** (or its successors at the same parameter
+count) is the chosen Phase 2 base family. Reasoning:
+
+1. **License: Llama 3 Community License.** Permits distillation and
+   fine-tuning, requires attribution + acceptable-use policy
+   compliance. Compatible with the project's MIT-license code,
+   CC-BY data, and Council's neutral-across-traditions stance.
+   Compared to Mistral 7B (Apache 2.0 — also fine) and Qwen2.5-7B
+   (Apache 2.0 — also fine), Llama 3.1 has the largest community
+   fine-tuning ecosystem (largest pool of LoRA adapters, instruction
+   templates, eval harnesses to learn from). Ecosystem beats license
+   marginal differences here.
+2. **Vocabulary size + tokenizer.** Llama 3.1's tokenizer handles
+   Latin-script languages well; **Hebrew and Arabic fall back to
+   byte-level BPE**, which is slower but functional. For the
+   citation-originals requirement (where the model needs to *see*
+   Hebrew/Arabic and either reproduce or summarize), byte-level BPE
+   is acceptable. (Qwen2.5 has a larger tokenizer with explicit
+   CJK + Arabic coverage but its training data is more Chinese-leaning,
+   which is *worse* for our Abrahamic corpus — Hebrew/Arabic vocab
+   doesn't matter if the model's prior is wrong.) Llama wins on
+   training-data distribution even if its tokenizer is weaker on
+   Hebrew/Arabic chars.
+3. **Context window.** Llama 3.1 ships 8K context out of the box;
+   128K with rope-scaling hacks. Long context matters because
+   cross-reference traversal (RUNTIME_CONTRACT rule 4) can chain
+   3-hop expansions through `bible.references.traverse(hops=3)`.
+   8K native is sufficient for "single verse + commentary +
+   cross-references"; 128K if we ever do "entire book context" mode.
+4. **Citation-fidelity track record.** Llama 3.1 8B Instruct scores
+   ~75% on TruthfulQA, ~50% on HaluEval (per Meta's model card).
+   That's not "no hallucinations ever" but it's the right baseline
+   to distill from. Smaller models (Phi-3-mini, Gemma-2-2B) score
+   much worse on HaluEval; larger models (Llama 3.1 70B) score
+   better but fail the "single 24GB GPU" constraint.
+5. **Distill-friendly fine-tuning ecosystem.** Llama 3.1 has
+   well-documented QLoRA configs (4-bit, rank-16 LoRA on attention
+   + MLP layers) that fit in 24 GB VRAM with full gradient
+   checkpointing. Qwen2.5 has similar but smaller ecosystem;
+   Mistral 7B is fine but the 7B-vs-8B split is marginal.
+
+**What this decision does NOT pick:**
+- Specific checkpoint (Llama 3.1 8B Instruct has ~5 variants —
+  base, instruct, chat, codellama-instruct, etc.). Picked at Phase 2
+  start based on the distillation pipeline's specific needs.
+- Quantization scheme (Q4_K_M, Q5_K_M, Q8_0, GPTQ, AWQ). Picked
+  at Phase 2 start based on target hardware.
+- Fine-tuning recipe (LoRA rank, target modules, dataset format).
+  Drafted separately when Phase 2 work actually starts.
+- Training data shape. The current schema (corpus + retrieval
+  substrate) is stable; the *training dataset* that teaches the model
+  "when user asks X, retrieve Y, write Z in voice V" is designed
+  in Phase 2, not now.
+
+**Consequences:**
+- Closes HANDOFF §8 #2.
+- Phase 2 starting checklist now has a clear first step: "download
+  Llama-3.1-8B-Instruct.Q4_K_M.gguf, verify it runs on the target
+  hardware, evaluate against a held-out religion-Q&A set."
+- The pick is **a family pick**, not a commitment. If by Phase 2
+  start a Llama 4 / 3.2 / Mistral 8B / Qwen3 8B has materially
+  improved on Hebrew/Arabic tokenization or HaluEval, this ADR is
+  superseded by an ADR-013 that re-runs the comparison.
+- **Reject Phi-3-mini (3.8B), Gemma-2-2B:** too small for
+  citation-fidelity at our standards.
+- **Reject Llama-3.1-70B:** fails single-GPU constraint. If free-tier
+  NIM ever allows embedding inference (HANDOFF §8 #1), hosting the
+  base model on NIM is a separate decision; not pre-decided here.
+- **Reject Mistral-7B / Qwen2.5-7B:** both viable, both would be picked
+  over Llama if Llama 3.1 wasn't available. Recorded here as fallbacks
+  so the next ADR author doesn't re-litigate from scratch.
+

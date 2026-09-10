@@ -517,9 +517,17 @@ premise changed.
    interchangeably; either path works.
    **Revisit when:** user signals willingness to spend on hosted inference
    (per memory, 2026-09-09 cost posture: free-tier endpoints only).
-2. **Phase 2 base model.** Llama 3 / Mistral / Qwen / something smaller.
-   Defer to Phase 2. **Revisit when:** Phase 2 work actually starts
-   (no specific signal as of 2026-09-09; HANDOFF §1 defers by design).
+2. **Phase 2 base model (RESOLVED 2026-09-10, v0.12.0).** Family
+   pick: **Llama-3.1-8B-Instruct** (or successor at same parameter
+   count). Reasoning in ADR-012. The pick is a *family* not a
+   commitment — specific checkpoint, quantization scheme, and
+   fine-tuning recipe are deferred to when Phase 2 work actually
+   starts (the family pick gives the operational pick a clear
+   framework). Rejected alternatives (Phi-3-mini, Gemma-2-2B,
+   Llama-3.1-70B, Mistral-7B, Qwen2.5-7B) and why are documented in
+   ADR-012 so the next ADR author doesn't re-litigate from scratch.
+   **Revisit when:** Phase 2 work actually starts (no specific signal
+   as of 2026-09-10; HANDOFF §1 defers by design).
 3. **README refresh.** ~~Was pending since v0.1.0 per Grok upgrade~~.
    **RESOLVED 2026-09-09 (v0.5.0):** full structural rewrite at v0.5.0,
    then v0.7.0 (NIM backend) and v0.8.0 (real local index) refreshes.

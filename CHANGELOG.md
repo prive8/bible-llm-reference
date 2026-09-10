@@ -27,6 +27,16 @@ All notable changes to this project are documented here. The format is based on 
   Read-first block + project structure tree updated to match.
 - **HANDOFF §8 #9 added** — closes the Council convening decision.
 
+### Added
+- **ADR-012 — Phase 2 base model family pick: Llama-3.1-8B-Instruct.**
+  Locks the family (and the criteria for choosing it) so the
+  operational Phase 2 pick has a clear framework. Reasoning covers
+  license, tokenizer, context window, citation-fidelity track record,
+  and fine-tuning ecosystem. Rejected alternatives (Phi-3-mini,
+  Gemma-2-2B, Llama-3.1-70B, Mistral-7B, Qwen2.5-7B) documented inline
+  with the reason for rejection, so the next ADR author doesn't
+  re-litigate from scratch. Closes HANDOFF §8 #2.
+
 ## [0.11.0] — 2026-09-10
 
 ### Added

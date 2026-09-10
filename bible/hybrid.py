@@ -43,8 +43,42 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
-# Default weight on BM25 vs semantic. 0.5 = equal. Tune per use case.
-DEFAULT_BM25_WEIGHT = 0.5
+# Default weight on BM25 vs semantic.
+#
+# The v0.8.0 default of 0.5 (equal) was chosen before we had a real
+# benchmark. The v0.9.0 eval showed that at 0.5 the hybrid (recall 0.233)
+# was WORSE than semantic-only (recall 0.279) — because BM25's recall
+# is so low (0.093) that its 50% weight in the fused score suppresses
+# the semantic-only hits.
+#
+# The v0.10.0 tuning sweep measured hybrid recall@10 across
+# bm25_weight ∈ {0.0, 0.1, 0.2, 0.3, 0.5}:
+#
+#   0.0 (pure semantic) → 0.268
+#   0.1                 → 0.258  (Δ from semantic: −1.0%)
+#   0.2                 → 0.241  (Δ from semantic: −2.7%)
+#   0.3                 → 0.241
+#   0.5                 → 0.233  (Δ from semantic: −3.5%)
+#
+# The data shows BM25's low recall means every increment of BM25 weight
+# strictly *reduces* hybrid recall vs. semantic-only. The "reciprocal hit
+# boost" doesn't compensate for BM25's noise floor on this corpus.
+#
+# Picked 0.1 as the default because:
+#   - It's the smallest weight where hybrid still *does something*
+#     (a tiny reciprocal-hit boost), so the hybrid command isn't
+#     trivially equivalent to semantic.
+#   - The cost vs. semantic-only is small (−1.0% recall) and stays
+#     above all the other BM25 weights tested.
+#   - When the corpus grows (more translations, more traditions) and
+#     BM25 recall improves, this default won't need to change — the
+#     hybrid command can be retuned with --bm25-weight on the CLI.
+#
+# To re-tune: run scripts/run_eval.py --paths hybrid --bm25-weight X
+# for various X in [0.0, 1.0] and pick the value that maximizes
+# hybrid recall@10 without dropping semantic's primary-in-top-1 rate
+# below 0.15.
+DEFAULT_BM25_WEIGHT = 0.1
 # When a verse appears in only ONE source, scale that source's score by
 # this factor. < 1.0 so reciprocal hits naturally outrank solos. 0.7 is
 # a common default; tune if needed.

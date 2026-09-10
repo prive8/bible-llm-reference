@@ -775,6 +775,32 @@ def t_eval_metrics_for_query_recall_partial():
     _assert(m["recall_at_k"] == 0.5, m)  # 2 of 4 expected found
 
 
+@_register("t_eval_threshold_gate_parses_real_report")
+def t_eval_threshold_gate_parses_real_report():
+    """Verify the regex used by CI's threshold gate parses a realistic report.
+
+    This is the same regex embedded in `.github/workflows/ci.yml`. If the
+    harness output format changes, both this test AND CI will need updates.
+    The test catches the change before CI does.
+    """
+    sample_report = """## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.093 | 0.030 | 0.030 | 0.068 | 6.3 |
+| semantic | 0.279 | 0.165 | 0.151 | 0.222 | 0.3 |
+| hybrid | 0.233 | 0.093 | 0.030 | 0.191 | 0.4 |
+"""
+    import re
+    # Exact pattern from .github/workflows/ci.yml — keep in sync
+    for path_name in ["bm25", "semantic", "hybrid"]:
+        pattern = rf"\|\s*{path_name}\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|"
+        m = re.search(pattern, sample_report)
+        _assert(m is not None, f"CI regex doesn't match path {path_name!r}")
+        recall = float(m.group(1))
+        _assert(0.0 <= recall <= 1.0, f"recall out of range: {recall}")
+
+
 # ---------------------------------------------------------------------------
 # Hybrid BM25 + semantic fusion (Milestone 3C)
 # ---------------------------------------------------------------------------
@@ -982,8 +1008,14 @@ def t_hybrid_default_weights():
     These are public API constants — if they change silently, every
     downstream user of hybrid_search gets different results.
     """
-    _assert(0.0 <= DEFAULT_BM25_WEIGHT <= 1.0, DEFAULT_BM25_WEIGHT)
-    _assert(0.0 <= DEFAULT_SOLO_WEIGHT <= 1.0, DEFAULT_SOLO_WEIGHT)
+    _assert(0.0 <= DEFAULT_BM25_WEIGHT <= 1.0, str(DEFAULT_BM25_WEIGHT))
+    _assert(0.0 <= DEFAULT_SOLO_WEIGHT <= 1.0, str(DEFAULT_SOLO_WEIGHT))
+    # Pin the tuned defaults so a regression in v0.10.0+ is loud.
+    # These values were set by the v0.10.0 hybrid-fusion tuning sweep
+    # (see notes/2026-09-10-hybrid-tuning.md); changing them requires
+    # updating this test AND the v0.10.0+ entry in docs/evaluation.md.
+    _assert(DEFAULT_BM25_WEIGHT == 0.1, str(DEFAULT_BM25_WEIGHT))
+    _assert(DEFAULT_SOLO_WEIGHT == 0.7, str(DEFAULT_SOLO_WEIGHT))
 
 
 @_register("t_hybrid_top_k_limits_results")

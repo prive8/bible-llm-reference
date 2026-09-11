@@ -14,6 +14,17 @@ All notable changes to this project are documented here. The format is based on 
   bugs from v0.11.0 that the implementation must NOT repeat:
   (a) Hebrew/English key-swap in ingest script,
   (b) NFC nikkud combining-mark ordering in test assertions.
+- **`scripts/prepare_phase2_dataset.py`** — Phase 2 fine-tune dataset
+  prep (per ADR-012). Defines the JSONL schema for QLoRA consumption:
+  OpenAI chat-format messages (system/user/assistant) + metadata
+  block (tradition, voice, citations, source). Three modes:
+  `stats` (counts), `sample` (3 hand-curated examples demonstrating
+  the format), `seed` (cross-reference triples → "How does X
+  relate to Y?" examples with placeholder answers for Phase 2 to
+  replace). Voice taxonomy covers all three shipped traditions
+  (christianity/islam/judaism) with primary + academic_neutral
+  voices for each. Output dir `data/phase2/` is gitignored (derived
+  per ADR-003-style discipline). 4 new sister-script tests.
 
 ## [0.13.0] — 2026-09-10
 

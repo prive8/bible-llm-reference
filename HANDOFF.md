@@ -610,6 +610,16 @@ premise changed.
     embedder at the cheap tier and should outperform
     `all-MiniLM-L6-v2` by 5-15% on recall@10. If the gap is < 5%, the
     local model stays the production path; if it's > 10%, swap.
+11. **Phase 2 fine-tune dataset prep (RESOLVED, schema defined).**
+    `scripts/prepare_phase2_dataset.py` ships in [Unreleased]. Defines
+    the JSONL schema (OpenAI chat-format messages + metadata), voice
+    taxonomy (14 voices across 3 traditions), and three CLI modes
+    (`stats` / `sample` / `seed`). The seed examples are placeholders
+    for Phase 2 work to replace with self-distilled answers; the
+    *shape* of the data is now locked in. Sister-script tests verify
+    the schema + voice taxonomy + seed JSONL is valid. ADR-012 family
+    pick (Llama-3.1-8B-Instruct) sets the model; this script sets the
+    data. Actual fine-tuning is Phase 2 work, not in scope here.
 
 ---
 

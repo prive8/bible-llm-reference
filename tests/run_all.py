@@ -1108,6 +1108,107 @@ def t_get_embedder_auto_prefers_openrouter_over_nim_when_both_keys_set():
 
 
 # ---------------------------------------------------------------------------
+# Phase 2 fine-tune dataset prep (ADR-012)
+# ---------------------------------------------------------------------------
+
+def _import_phase2():
+    """Import the prepare_phase2_dataset script (sits outside the package)."""
+    import importlib.util as _ilu2
+    spec = _ilu2.spec_from_file_location(
+        "prepare_phase2_dataset",
+        str(ROOT / "scripts" / "prepare_phase2_dataset.py"),
+    )
+    mod = _ilu2.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@_register("t_phase2_dataset_script_runs_stats_mode")
+def t_phase2_dataset_script_runs_stats_mode():
+    """prepare_phase2_dataset.py --mode stats must run without error and
+    report voice taxonomy + sample counts."""
+    mod = _import_phase2()
+    # Capture stdout
+    import io as _io
+    import contextlib as _cl
+    buf = _io.StringIO()
+    try:
+        with _cl.redirect_stdout(buf):
+            mod.mode_stats()
+    except SystemExit as e:
+        _assert(False, f"mode_stats raised SystemExit: {e}")
+    output = buf.getvalue()
+    _assert("voice taxonomy" in output, f"stats output missing 'voice taxonomy': {output}")
+    _assert("sample examples" in output, f"stats output missing 'sample examples': {output}")
+    _assert("christianity" in output, f"stats must list traditions: {output}")
+    _assert("judaism" in output, f"stats must list traditions: {output}")
+    _assert("islam" in output, f"stats must list traditions: {output}")
+
+
+@_register("t_phase2_voice_taxonomy_covers_all_three_traditions")
+def t_phase2_voice_taxonomy_covers_all_three_traditions():
+    """The voice taxonomy must include all three traditions shipped so far
+    (christianity / islam / judaism) — otherwise Phase 2 fine-tuning would
+    be unable to teach voice for a tradition that's in the corpus."""
+    mod = _import_phase2()
+    _assert("christianity" in mod.VOICE_TAXONOMY, "VOICE_TAXONOMY missing christianity")
+    _assert("islam" in mod.VOICE_TAXONOMY, "VOICE_TAXONOMY missing islam")
+    _assert("judaism" in mod.VOICE_TAXONOMY, "VOICE_TAXONOMY missing judaism")
+    # Each tradition needs at least 2 voices (e.g. primary + academic_neutral)
+    for trad, voices in mod.VOICE_TAXONOMY.items():
+        _assert(len(voices) >= 2, f"{trad} has only {len(voices)} voices, expected >=2")
+
+
+@_register("t_phase2_sample_examples_validate_schema")
+def t_phase2_sample_examples_validate_schema():
+    """SAMPLE_EXAMPLES must be valid OpenAI chat-format JSONL:
+    each example has messages[system,user,assistant] + metadata dict with
+    tradition / voice / primary_citation / source."""
+    mod = _import_phase2()
+    _assert(len(mod.SAMPLE_EXAMPLES) >= 3,
+            f"expected ≥3 sample examples, got {len(mod.SAMPLE_EXAMPLES)}")
+    for i, ex in enumerate(mod.SAMPLE_EXAMPLES):
+        _assert("messages" in ex, f"sample {i} missing messages")
+        _assert("metadata" in ex, f"sample {i} missing metadata")
+        msgs = ex["messages"]
+        _assert(len(msgs) == 3, f"sample {i} messages length {len(msgs)}, expected 3")
+        roles = [m["role"] for m in msgs]
+        _assert(roles == ["system", "user", "assistant"],
+                f"sample {i} roles {roles}, expected [system, user, assistant]")
+        meta = ex["metadata"]
+        _assert(meta.get("tradition") in {"christianity", "islam", "judaism"},
+                f"sample {i} bad tradition: {meta}")
+        _assert(meta.get("voice"), f"sample {i} missing voice")
+        _assert(meta.get("primary_citation"), f"sample {i} missing primary_citation")
+        _assert(meta.get("source"), f"sample {i} missing source")
+
+
+@_register("t_phase2_seed_mode_writes_valid_jsonl")
+def t_phase2_seed_mode_writes_valid_jsonl(tmp_path: str = "/tmp"):
+    """prepare_phase2_dataset.py --mode seed must write a JSONL file where
+    every line is a parseable JSON object with messages + metadata."""
+    mod = _import_phase2()
+    output_path = Path(tmp_path) / "phase2_seed_test.jsonl"
+    try:
+        mod.mode_seed(output_path, min_votes=50, limit=10)
+        if not output_path.exists():
+            return  # skip if cross-references file missing
+        with open(output_path, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip()]
+        _assert(len(lines) > 0, f"expected >0 seed examples, got {len(lines)}")
+        for i, line in enumerate(lines):
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as e:
+                _assert(False, f"line {i} not parseable JSON: {e}: {line[:100]}")
+            _assert("messages" in obj and "metadata" in obj,
+                    f"line {i} missing required keys")
+    finally:
+        if output_path.exists():
+            output_path.unlink()
+
+
+# ---------------------------------------------------------------------------
 # Evaluation harness (Milestone 3C+ baseline metrics)
 # ---------------------------------------------------------------------------
 # These tests exercise the harness's pure-logic functions. They use a

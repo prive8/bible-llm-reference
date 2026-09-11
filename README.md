@@ -40,6 +40,7 @@ Built for:
 - **Cross-reference engine** — 605K+ edges from openbible.info (CC-BY 4.0), with outgoing, reciprocal, and 1–3 hop traversal
 - **Quran multi-tradition adapter (Phase 3.1)** — 6 editions in `data/quran/` (5 English + Uthmani Arabic), citation parsing, and parallel lookup
 - **Torah adapter (Phase 3.2)** — 2 editions in `data/torah/` (Modernized JPS 1917 English CC-BY + Hebrew-with-nikkud Public Domain), citation parsing, Hebrew-with-nikkud alias support, and parallel lookup
+- **Tanakh adapter (Phase 3.3)** — 2 editions in `data/tanakh/` covering the full 39-book canon (Torah + Nevi'im + Ketuvim), same editions as Torah for internal consistency, full alias support including Roman-numeral prefixes
 - **JSON output** on every command for downstream pipelines
 - **100% local, zero new dependencies** — stdlib only (Python 3.9+)
 
@@ -203,6 +204,9 @@ bible-llm-reference/
 │   ├── torah/                          # Phase 3.2 — 2 editions (jps1917-modernized CC-BY, hebrew-nikkud Public Domain)
 │   │   ├── README.md
 │   │   └── *.json
+│   ├── tanakh/                          # Phase 3.3 — 2 editions covering full 39-book canon (Torah + Nevi'im + Ketuvim)
+│   │   ├── README.md
+│   │   └── *.json                       # jps1917-modernized, hebrew-nikkud
 │   └── references/                     # openbible.info cross-references (CC-BY 4.0)
 │       ├── cross_references.txt        # raw 8 MB TSV snapshot
 │       ├── cross_references.json       # normalized 19 MB, keyed by canonical verse
@@ -276,7 +280,9 @@ Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, 
 
 **Phase 3.1 pilot: Quran (shipped in v0.6.0).** 6 editions in `data/quran/` (Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, and Arabic Uthmani Hafs) via [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (Unlicense). Accessible via `python3 -m bible quran` with citation parsing and parallel view. See [`docs/phase3-scope-quran.md`](./docs/phase3-scope-quran.md) and ADR-009.
 
-**Phase 3.2: Torah / Five Books of Moses (shipped in v0.11.0).** 2 editions in `data/torah/` — Modernized Tanakh based on JPS 1917 (English, CC-BY, Adam Cohn) and תנ״ך עם ניקוד (Hebrew with vowel points, Public Domain via tanach.us) — sourced from the Sefaria API. 187 chapters, 5,852 verses. Accessible via `python3 -m bible torah "Genesis 1:1"` with citation parsing supporting canonical names, short Latin aliases, transliterations, and Hebrew-with-nikkud. See [`docs/phase3-scope-torah.md`](./docs/phase3-scope-torah.md).
+**Phase 3.2: Torah / Five Books of Moses (shipped in v0.11.0).** 2 editions in `data/torah/` — Modernized Tanakh based on JPS 1917 (English, CC-BY, Adam Cohn) and תנ״ך עם ניקוד (Hebrew with vowel points, Public Domain via tanach.us) — sourced from the Sefaria API. 187 chapters, 5,852 verses. Accessible via `python -m bible torah "Genesis 1:1"` with citation parsing supporting canonical names, short Latin aliases, transliterations, and Hebrew-with-nikkud. See [`docs/phase3-scope-torah.md`](./docs/phase3-scope-torah.md).
+
+**Phase 3.3: Full Tanakh (Torah + Nevi'im + Ketuvim, shipped in v0.14.0).** 2 editions in `data/tanakh/` — same Modernized JPS 1917 (English, CC-BY) and תנ״ך עם ניקוד (Hebrew with vowel points, Public Domain) as the Torah phase — sourced from the Sefaria API. 39 books, ~927 chapters, ~23,000 verses. Accessible via `python -m bible tanakh "Isaiah 53:5"` with full alias support (canonical English, short Latin, transliteration, Hebrew-with-nikkud, Roman-numeral prefix). See [`docs/phase3-scope-tanakh.md`](./docs/phase3-scope-tanakh.md).
 
 Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
 

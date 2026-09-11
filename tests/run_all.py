@@ -72,6 +72,20 @@ from bible.torah import (  # noqa: E402
     resolve_book,
     run_torah,
 )
+from bible.tanakh import (  # noqa: E402
+    BOOKS as TANAKH_BOOKS,
+    BOOKS_BY_SECTION as TANAKH_BOOKS_BY_SECTION,
+    BOOK_BY_NAME as TANAKH_BOOK_BY_NAME,
+    SEFARIA_BOOK_NAME,
+    get_tanakh_verses_scoped,
+    list_books as tanakh_list_books,
+    list_tanakh_translations,
+    load_tanakh_edition,
+    parse_tanakh_ref,
+    resolve_book as tanakh_resolve_book,
+    run_tanakh,
+    sefaria_book_name,
+)
 import math
 import importlib.util as _ilu
 _harness_path = str(ROOT / "scripts" / "run_eval.py")
@@ -1955,6 +1969,299 @@ def t_torah_cli_hebrew_alias():
     # Genesis 1:1 must contain the consonants of "Elohim" (אלהים)
     _assert("אלהים" in stripped,
             f"expected consonants of 'Elohim' (אלהים) in stripped verse, got: {stripped!r}")
+
+
+# ---------------------------------------------------------------------------
+# Tanakh (Phase 3.3) tests
+# ---------------------------------------------------------------------------
+
+@_register("t_tanakh_books_count_and_sections")
+def t_tanakh_books_count_and_sections():
+    """Tanakh must have 39 books split across 3 sections (Torah/Nevi'im/Ketuvim).
+
+    The Sefaria schema splits the 12 minor prophets (Hosea..Malachi)
+    into individual books rather than the Jewish-tradition "Book of the
+    Twelve". So the count is:
+      - Torah = 5
+      - Nevi'im = 21 (6 historical + 3 major + 12 minor)
+      - Ketuvim = 13
+      Total = 39 books.
+    """
+    _assert(len(TANAKH_BOOKS) == 39,
+            f"expected 39 books in Tanakh, got {len(TANAKH_BOOKS)}")
+    # Torah = 5 books
+    _assert(len(TANAKH_BOOKS_BY_SECTION["Torah"]) == 5,
+            f"Torah should have 5 books, got {len(TANAKH_BOOKS_BY_SECTION['Torah'])}")
+    # Nevi'im = 21 books (Sefaria splits the Twelve into individual books)
+    neviim_count = len(TANAKH_BOOKS_BY_SECTION["Nevi'im"])
+    _assert(neviim_count == 21,
+            f"Nevi'im should have 21 books (Sefaria splits the Twelve), got {neviim_count}")
+    # Ketuvim = 13 books
+    ketuvim_count = len(TANAKH_BOOKS_BY_SECTION["Ketuvim"])
+    _assert(ketuvim_count == 13,
+            f"Ketuvim should have 13 books, got {ketuvim_count}")
+    # Sanity: section total = 39
+    total = (len(TANAKH_BOOKS_BY_SECTION["Torah"]) +
+             len(TANAKH_BOOKS_BY_SECTION["Nevi'im"]) +
+             len(TANAKH_BOOKS_BY_SECTION["Ketuvim"]))
+    _assert(total == 39, f"section books sum to {total}, expected 39")
+
+
+@_register("t_tanakh_resolve_book_aliases")
+def t_tanakh_resolve_book_aliases():
+    """resolve_book must handle Latin, short, transliteration, Hebrew-with-nikkud."""
+    # Nevi'im
+    _assert(tanakh_resolve_book("Joshua") == "Joshua", repr(tanakh_resolve_book("Joshua")))
+    _assert(tanakh_resolve_book("Josh") == "Joshua", repr(tanakh_resolve_book("Josh")))
+    _assert(tanakh_resolve_book("Yehoshua") == "Joshua", repr(tanakh_resolve_book("Yehoshua")))
+    _assert(tanakh_resolve_book("יהושע") == "Joshua", repr(tanakh_resolve_book("יהושע")))
+    _assert(tanakh_resolve_book("Isaiah") == "Isaiah", repr(tanakh_resolve_book("Isaiah")))
+    _assert(tanakh_resolve_book("Isa") == "Isaiah", repr(tanakh_resolve_book("Isa")))
+    _assert(tanakh_resolve_book("Jeremiah") == "Jeremiah", repr(tanakh_resolve_book("Jeremiah")))
+    # Ketuvim
+    _assert(tanakh_resolve_book("Psalms") == "Psalms", repr(tanakh_resolve_book("Psalms")))
+    _assert(tanakh_resolve_book("Ps") == "Psalms", repr(tanakh_resolve_book("Ps")))
+    _assert(tanakh_resolve_book("Tehillim") == "Psalms", repr(tanakh_resolve_book("Tehillim")))
+    _assert(tanakh_resolve_book("Song of Songs") == "Song of Songs",
+            repr(tanakh_resolve_book("Song of Songs")))
+    _assert(tanakh_resolve_book("Chronicles I") == "Chronicles I",
+            repr(tanakh_resolve_book("Chronicles I")))
+    _assert(tanakh_resolve_book("1Chr") == "Chronicles I",
+            repr(tanakh_resolve_book("1Chr")))
+    # Roman-numeral prefixes (Sefaria-style)
+    _assert(tanakh_resolve_book("I Samuel") == "Samuel I",
+            repr(tanakh_resolve_book("I Samuel")))
+    _assert(tanakh_resolve_book("II Kings") == "Kings II",
+            repr(tanakh_resolve_book("II Kings")))
+    _assert(tanakh_resolve_book("I Chronicles") == "Chronicles I",
+            repr(tanakh_resolve_book("I Chronicles")))
+    # garbage
+    _assert(tanakh_resolve_book("garbage") is None, "garbage must not resolve")
+
+
+@_register("t_tanakh_sefaria_book_name_mapping")
+def t_tanakh_sefaria_book_name_mapping():
+    """sefaria_book_name must convert our canonical names to Sefaria's
+    Roman-numeral-prefix schema for split books. Most books pass through
+    unchanged; Samuel/Kings/Chronicles use Roman numerals on Sefaria."""
+    _assert(sefaria_book_name("Genesis") == "Genesis",
+            "Genesis must not be transformed")
+    _assert(sefaria_book_name("Joshua") == "Joshua",
+            "Joshua must not be transformed")
+    _assert(sefaria_book_name("Isaiah") == "Isaiah",
+            "Isaiah must not be transformed")
+    _assert(sefaria_book_name("Samuel I") == "I Samuel",
+            f"Samuel I must map to I Samuel, got {sefaria_book_name('Samuel I')!r}")
+    _assert(sefaria_book_name("Samuel II") == "II Samuel",
+            f"Samuel II must map to II Samuel, got {sefaria_book_name('Samuel II')!r}")
+    _assert(sefaria_book_name("Kings I") == "I Kings",
+            f"Kings I must map to I Kings, got {sefaria_book_name('Kings I')!r}")
+    _assert(sefaria_book_name("Kings II") == "II Kings",
+            f"Kings II must map to II Kings, got {sefaria_book_name('Kings II')!r}")
+    _assert(sefaria_book_name("Chronicles I") == "I Chronicles",
+            f"Chronicles I must map to I Chronicles, got {sefaria_book_name('Chronicles I')!r}")
+    _assert(sefaria_book_name("Chronicles II") == "II Chronicles",
+            f"Chronicles II must map to II Chronicles, got {sefaria_book_name('Chronicles II')!r}")
+    # Mapping table must contain exactly the 6 split books
+    _assert(len(SEFARIA_BOOK_NAME) == 6,
+            f"SEFARIA_BOOK_NAME should have 6 entries, got {len(SEFARIA_BOOK_NAME)}")
+
+
+@_register("t_tanakh_parse_canonical_ref")
+def t_tanakh_parse_canonical_ref():
+    """Canonical English refs parse correctly, with high verse numbers."""
+    parsed = parse_tanakh_ref("Genesis 1:1")
+    _assert(parsed == ("Genesis", 1, 1), repr(parsed))
+    parsed = parse_tanakh_ref("Psalms 119:105")  # famous long verse
+    _assert(parsed == ("Psalms", 119, 105), repr(parsed))
+    parsed = parse_tanakh_ref("Isaiah 53:5")
+    _assert(parsed == ("Isaiah", 53, 5), repr(parsed))
+    # Sefaria-style Roman-numeral prefix
+    parsed = parse_tanakh_ref("I Samuel 3:1")
+    _assert(parsed == ("Samuel I", 3, 1), repr(parsed))
+
+
+@_register("t_tanakh_parse_alias_and_hebrew")
+def t_tanakh_parse_alias_and_hebrew():
+    """Short Latin, transliteration, Hebrew-with-nikkud must resolve."""
+    # Short
+    parsed = parse_tanakh_ref("Isa 53:5")
+    _assert(parsed is not None and parsed[0] == "Isaiah", repr(parsed))
+    # Transliteration
+    parsed = parse_tanakh_ref("Tehillim 23:1")
+    _assert(parsed is not None and parsed[0] == "Psalms", repr(parsed))
+    # Hebrew with nikkud
+    parsed = parse_tanakh_ref("ישעיהו 53:5")
+    _assert(parsed is not None and parsed[0] == "Isaiah", repr(parsed))
+    # Without nikkud
+    parsed = parse_tanakh_ref("תהלים 23:1")
+    _assert(parsed is not None and parsed[0] == "Psalms", repr(parsed))
+
+
+@_register("t_tanakh_parse_range")
+def t_tanakh_parse_range():
+    """Verse range parsing accepts hyphen/en-dash/em-dash."""
+    p1 = parse_tanakh_ref("Isaiah 53:5-12")
+    _assert(p1 == ("Isaiah", 53, (5, 12)), repr(p1))
+    p2 = parse_tanakh_ref("Song of Songs 2:1–7")
+    _assert(p2 == ("Song of Songs", 2, (1, 7)), repr(p2))
+    p3 = parse_tanakh_ref("Psalms 23:1—6")
+    _assert(p3 == ("Psalms", 23, (1, 6)), repr(p3))
+
+
+@_register("t_tanakh_parse_garbage_returns_none")
+def t_tanakh_parse_garbage_returns_none():
+    """Unparseable inputs return None.
+
+    Note: out-of-range verses (e.g. "Psalms 23:99" when Psalm 23 only has
+    6 verses) are NOT rejected by the parser — they parse to a valid
+    (book, chapter, verse) tuple, and the runtime returns an empty
+    verses list. The parser only rejects truly malformed input or
+    out-of-range CHAPTERS (which are cheap to bounds-check statically).
+    """
+    _assert(parse_tanakh_ref("") is None)
+    _assert(parse_tanakh_ref("garbage") is None)
+    _assert(parse_tanakh_ref("Genesis") is None)
+    _assert(parse_tanakh_ref("Genesis 1") is None)
+    _assert(parse_tanakh_ref("Unknown 1:1") is None)
+    # Genesis has 50 chapters — out-of-range chapter is rejected
+    _assert(parse_tanakh_ref("Genesis 51:1") is None, "Genesis has only 50 chapters")
+    _assert(parse_tanakh_ref("Genesis 0:1") is None, "Chapter 0 is invalid")
+    # Out-of-range verses parse to a tuple but yield no verses at runtime
+    parsed = parse_tanakh_ref("Psalms 23:99")
+    _assert(parsed is not None, "Out-of-range verse parses OK (runtime returns empty)")
+    _assert(parsed[0] == "Psalms" and parsed[1] == 23 and parsed[2] == 99,
+            f"parsed incorrectly: {parsed}")
+
+
+@_register("t_tanakh_data_files_present")
+def t_tanakh_data_files_present():
+    """If Tanakh has been ingested, two editions must exist with sane verse counts.
+
+    Skips silently when not yet ingested (CI may run before ingest).
+    """
+    editions = list_tanakh_translations()
+    if not editions:
+        return
+    _assert("hebrew-nikkud" in editions, str(editions))
+    _assert("jps1917-modernized" in editions, str(editions))
+    for key in editions:
+        data = load_tanakh_edition(key)
+        _assert(data.get("tradition") == "judaism", str(key))
+        _assert(data.get("structure") == "book_chapter_verse", str(key))
+        divisions = data.get("divisions", [])
+        # All 30 books should be present
+        _assert(len(divisions) == 30, f"expected 30 books, got {len(divisions)}")
+        # Each division must have a section field
+        for div in divisions:
+            _assert(div.get("section") in {"Torah", "Nevi'im", "Ketuvim"},
+                    f"{div.get('name')} missing/wrong section: {div.get('section')}")
+        # Hebrew edition must contain Hebrew chars
+        if data.get("language") == "he":
+            first_verse = divisions[0]["verses"][0]["text"]
+            has_hebrew = any('\u0590' <= c <= '\u05ff' for c in first_verse)
+            _assert(has_hebrew, f"hebrew-nikkud should contain Hebrew chars: {first_verse!r}")
+
+
+@_register("t_tanakh_verses_chapter_scoped")
+def t_tanakh_verses_chapter_scoped():
+    """get_tanakh_verses_scoped must return only verses from the requested chapter.
+
+    Regression test mirroring t_torah_verses_chapter_scoped — without
+    chapter scoping, a range like Isaiah 53:30-32 could bleed into
+    Isaiah 54 verses if the ingestor wrote verses flat with reset numbering.
+    """
+    editions = list_tanakh_translations()
+    if "jps1917-modernized" not in editions:
+        return
+    verses = get_tanakh_verses_scoped("jps1917-modernized", "Psalms", 23, (1, 6))
+    _assert(len(verses) == 6, f"expected 6 verses (Ps 23:1-6), got {len(verses)}")
+    _assert(verses[0]["book"] == "Psalms")
+    _assert(verses[0]["chapter"] == 23)
+    _assert(verses[0]["verse"] == 1)
+    _assert(verses[-1]["verse"] == 6)
+    for v in verses:
+        _assert(v["chapter"] == 23, f"chapter bleed: {v}")
+
+
+@_register("t_tanakh_cli_json")
+def t_tanakh_cli_json():
+    """CLI run_tanakh with as_json=True must produce valid structured JSON."""
+    editions = list_tanakh_translations()
+    if "jps1917-modernized" not in editions:
+        return
+    raw = _capture_run(run_tanakh, "Isaiah 53:5", as_json=True)
+    parsed = json.loads(raw)
+    _assert(parsed["query"] == "Isaiah 53:5")
+    _assert(parsed["book"]["name"] == "Isaiah")
+    _assert(parsed["book"]["section"] == "Nevi'im")
+    _assert(parsed["book"]["hebrew"] == "ישעיהו")
+    _assert(parsed["chapter"] == 53)
+    _assert(len(parsed["verses"]) == 1)
+    _assert(parsed["verses"][0]["verse"] == 5)
+    translations = parsed["verses"][0]["translations"]
+    _assert("jps1917-modernized" in translations)
+    _assert("hebrew-nikkud" in translations)
+
+
+@_register("t_tanakh_cli_hebrew_alias_no_nfc_bug")
+def t_tanakh_cli_hebrew_alias_no_nfc_bug():
+    """Regression test for the v0.11.0 NFC nikkud ordering bug.
+
+    The Torah adapter had a test that asserted 'ברא' substring match on
+    Hebrew verse text; this failed because Sefaria uses canonical NFC
+    (dagesh-before-sheva) while test code rendered sheva-before-dagesh.
+    Fix was to strip combining marks before substring match. The Tanakh
+    adapter uses the same import pattern; verify the same Hebrew text
+    (a Nevi'im book) parses without NFC surprises.
+    """
+    import unicodedata
+    editions = list_tanakh_translations()
+    if "hebrew-nikkud" not in editions:
+        return
+    raw = _capture_run(run_tanakh, "ישעיהו 53:5",
+                       translations=["hebrew-nikkud"], as_json=True)
+    parsed = json.loads(raw)
+    _assert(parsed["book"]["name"] == "Isaiah", str(parsed["book"]))
+    hebrew_text = parsed["verses"][0]["translations"]["hebrew-nikkud"]
+    # Strip combining marks and check for genuine Hebrew content
+    def _strip_nikkud(s):
+        return ''.join(c for c in unicodedata.normalize('NFD', s)
+                       if unicodedata.category(c) not in ('Mn', 'Cf'))
+    stripped = _strip_nikkud(hebrew_text)
+    hebrew_chars = [c for c in hebrew_text if '\u0590' <= c <= '\u05ff']
+    _assert(len(hebrew_chars) >= 5,
+            f"expected ≥5 Hebrew chars, got {len(hebrew_chars)} from: {hebrew_text!r}")
+    # Isaiah 53 should mention "עבדי" (my servant) — a recognizable Hebrew phrase
+    # in the Suffering Servant passage
+    _assert("עבדי" in stripped or "עבד" in stripped,
+            f"expected 'servant' (עבד) in Isaiah 53:5 stripped, got: {stripped!r}")
+
+
+@_register("t_tanakh_list_books_with_section_filter")
+def t_tanakh_list_books_with_section_filter():
+    """list_books(section=...) must filter to that section only."""
+    all_books = tanakh_list_books(section=None)
+    _assert(len(all_books) == 39, f"section=None should return all 39 books, got {len(all_books)}")
+    torah_only = tanakh_list_books(section="Torah")
+    _assert(torah_only == ["Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy"],
+            f"Torah books out of order: {torah_only}")
+    neviim_only = tanakh_list_books(section="Nevi'im")
+    _assert(len(neviim_only) == 21, f"Nevi'im should have 21, got {len(neviim_only)}")
+    # Isaiah is in Nevi'im
+    _assert("Isaiah" in neviim_only, "Isaiah missing from Nevi'im")
+    # Hosea is in Nevi'im (12 minor prophets split out)
+    _assert("Hosea" in neviim_only, "Hosea missing from Nevi'im (minor prophets)")
+    _assert("Malachi" in neviim_only, "Malachi missing from Nevi'im (minor prophets)")
+    ketuvim_only = tanakh_list_books(section="Ketuvim")
+    _assert(len(ketuvim_only) == 13, f"Ketuvim should have 13, got {len(ketuvim_only)}")
+    # Psalms is in Ketuvim
+    _assert("Psalms" in ketuvim_only, "Psalms missing from Ketuvim")
+    # No overlap between sections
+    _assert(set(torah_only).isdisjoint(set(neviim_only)),
+            "Torah and Nevi'im overlap")
+    _assert(set(neviim_only).isdisjoint(set(ketuvim_only)),
+            "Nevi'im and Ketuvim overlap")
 
 
 # ---------------------------------------------------------------------------

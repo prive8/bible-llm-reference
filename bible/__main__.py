@@ -113,6 +113,10 @@ def main():
         from bible.torah import main as torah_main
         sys.argv = ["bible torah"] + rest
         torah_main()
+    elif command == "tanakh":
+        from bible.tanakh import main as tanakh_main
+        sys.argv = ["bible tanakh"] + rest
+        tanakh_main()
     elif command == "semantic":
         from bible.semantic import main as semantic_main
         sys.argv = ["bible semantic"] + rest

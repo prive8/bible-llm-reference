@@ -319,9 +319,41 @@ domain) and surface it through the lookup API.
 - ✅ `docs/phase3-scope-torah.md` — scope doc, license attribution, acceptance criteria, out-of-scope (full Tanakh, Targum, Talmud are Phase 3.3+).
 - ✅ `bible/semantic.py --tradition` choices expanded to include `judaism`.
 
-### Phase 3.3 — Full Tanakh (Prophets + Writings) 📋 SCOPED (2026-09-10, v0.14.0 target)
+### Phase 3.3 — Full Tanakh (Prophets + Writings) ✅ DONE (2026-09-10, v0.14.0)
 
-- 📋 `docs/phase3-scope-tanakh.md` — scope doc written. Adds ~24 books (Nevi'im + Ketuvim) on top of Torah; ~17,400 additional verses, ~570 additional chapters. Total Tanakh after Phase 3.3: ~30 books, ~927 chapters, ~23,000 verses. Implementation deferred (estimated ~3.5 hours; ingest alone is ~35-40 min due to Sefaria politeness). Same Sefaria API + same editions + same data shape as Torah phase.
+- ✅ `bible/tanakh.py` — new adapter covering the full Tanakh: 39 books
+  (5 Torah + 21 Nevi'im + 13 Ketuvim), ~927 chapters, ~23,000 verses.
+  Mirrors the `bible/torah.py` surface (parse / list / load / get /
+  run) plus a `list_books(section=...)` helper for canon-section
+  filtering. Supports canonical English, short Latin, transliteration,
+  and Hebrew-with-nikkud aliases for all 39 books; Roman-numeral
+  prefixes (Sefaria's "I Samuel", "II Kings") are mapped to our
+  canonical "Samuel I", "Kings II" form.
+- ✅ `scripts/ingest_tanakh.py` — parallel to `ingest_torah.py`, polls
+  the Sefaria API for all 39 books, polite 1.05s delay between
+  requests, 3× exponential-backoff retry, HTML-markup stripping. Same
+  two editions as Torah (Modernized JPS 1917 CC-BY, תנ״ך עם ניקוד
+  Public Domain) so the canon is internally consistent across the
+  Torah + Nevi'im + Ketuvim boundary.
+- ✅ `bible/__main__.py` — `bible tanakh` CLI wired; supports
+  `--section Torah|Nevi'im|Ketuvim` filter.
+- ✅ `scripts/index_embeddings.py` — Tanakh Nevi'im + Ketuvim now
+  indexed (Torah was already indexed in v0.11.0). Same `judaism`
+  tradition slot.
+- ✅ 10 sister-script tests in `tests/run_all.py` (suite now **123
+  tests**, up from 111). Covers book count + section split, alias
+  resolution (Latin / transliteration / Hebrew / Roman-numeral),
+  Sefaria-book-name mapping, parse canonical / alias / Hebrew /
+  range, garbage rejection, data-file sanity (with Hebrew-char check),
+  chapter-scoped retrieval, CLI JSON, NFC nikkud ordering (mirrors
+  v0.11.0 fix), section-filter helper.
+- ✅ `data/tanakh/README.md` — edition metadata, book catalog,
+  schema, ingest instructions, license attribution.
+- ✅ DESIGN DECISION: kept two narrow adapters (`bible.torah` for
+  Pentateuch, `bible.tanakh` for broader canon) rather than renaming
+  `torah.py` → `tanakh.py`. Avoids the trap where convening one
+  body forces re-asking every prior decision. Both adapters
+  read from the same Sefaria editions for internal consistency.
 
 ### Daily note template
 

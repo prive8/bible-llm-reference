@@ -39,6 +39,11 @@ try:
     _has_torah = True
 except ImportError:
     _has_torah = False
+try:
+    from bible.tanakh import BOOKS_BY_SECTION, BOOK_BY_NAME as TANAKH_BOOK_BY_NAME, list_tanakh_translations, load_tanakh_edition, _group_verses_by_chapter as _group_tanakh_verses
+    _has_tanakh = True
+except ImportError:
+    _has_tanakh = False
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -127,7 +132,43 @@ def collect_corpus(include_bible: bool = True, include_quran: bool = True, limit
             except FileNotFoundError:
                 continue
         if not torah_tried:
-            print("  Warning: no Torah data files found, skipping Judaism.")
+            print("  Warning: no Torah data files found, skipping Judaism (Pentateuch).")
+
+    # Tanakh (Phase 3.3) — Nevi'im + Ketuvim (Pentateuch already covered above).
+    # Uses the same Sefaria editions as Torah for internal consistency.
+    if _has_tanakh:
+        tanakh_tried = False
+        for tanakh_key in ("hebrew-nikkud", "jps1917-modernized"):
+            try:
+                tanakh = load_tanakh_edition(tanakh_key)
+                # Only ingest Nevi'im + Ketuvim here; Torah was ingested above.
+                neviim_ketuvim_books = (
+                    BOOKS_BY_SECTION["Nevi'im"] + BOOKS_BY_SECTION["Ketuvim"]
+                )
+                for div in tanakh.get("divisions", []):
+                    if div["name"] not in neviim_ketuvim_books:
+                        continue  # skip Torah books here
+                    book_name = div["name"]
+                    grouped = _group_tanakh_verses(div)
+                    for ch_num in sorted(grouped.keys()):
+                        for v in grouped[ch_num]:
+                            entries.append({
+                                "id": curr_id,
+                                "tradition": "judaism",
+                                "translation": tanakh.get("translation", tanakh_key),
+                                "citation": f"{book_name} {ch_num}:{v['verse']}",
+                                "text": v["text"],
+                            })
+                            curr_id += 1
+                            if limit and curr_id >= limit:
+                                return entries
+                tanakh_tried = True
+                print(f"  Collected Tanakh Nevi'im + Ketuvim ({tanakh_key})...")
+                break
+            except FileNotFoundError:
+                continue
+        if not tanakh_tried:
+            print("  Warning: no Tanakh data files found, skipping Judaism (Nevi'im + Ketuvim).")
 
     return entries
 

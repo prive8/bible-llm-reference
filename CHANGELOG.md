@@ -4,27 +4,37 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-09-10
+
 ### Added
-- **`docs/phase3-scope-tanakh.md`** — scope doc for Phase 3.3 full Tanakh
-  (Nevi'im + Ketuvim, ~24 books, ~570 chapters, ~17,400 verses on top
-  of Torah). Adapter design recommends two narrow surfaces
-  (`bible/torah.py` for Pentateuch, `bible/tanakh.py` for the broader
-  canon) rather than a rename. Estimated ~3.5 hours implementation
-  time, mostly waiting on Sefaria ingest (~35-40 min). Inherits two
-  bugs from v0.11.0 that the implementation must NOT repeat:
-  (a) Hebrew/English key-swap in ingest script,
-  (b) NFC nikkud combining-mark ordering in test assertions.
-- **`scripts/prepare_phase2_dataset.py`** — Phase 2 fine-tune dataset
-  prep (per ADR-012). Defines the JSONL schema for QLoRA consumption:
-  OpenAI chat-format messages (system/user/assistant) + metadata
-  block (tradition, voice, citations, source). Three modes:
-  `stats` (counts), `sample` (3 hand-curated examples demonstrating
-  the format), `seed` (cross-reference triples → "How does X
-  relate to Y?" examples with placeholder answers for Phase 2 to
-  replace). Voice taxonomy covers all three shipped traditions
-  (christianity/islam/judaism) with primary + academic_neutral
-  voices for each. Output dir `data/phase2/` is gitignored (derived
-  per ADR-003-style discipline). 4 new sister-script tests.
+- **`bible/tanakh.py`** — full-Tanakh adapter (Phase 3.3). 39 books
+  across 3 sections (Torah / Nevi'im / Ketuvim), ~927 chapters,
+  ~23,000 verses. Mirrors `bible/torah.py` surface plus a
+  `list_books(section=...)` helper for canon-section filtering.
+  Supports canonical English, short Latin, transliteration,
+  Hebrew-with-nikkud, and Sefaria-style Roman-numeral prefixes
+  (I Samuel → Samuel I, etc.). 10 new sister-script tests.
+- **`scripts/ingest_tanakh.py`** — Sefaria ingester for the full
+  Tanakh. Same editions + politeness + retry + HTML-strip pattern
+  as `ingest_torah.py`. Options `--only-book` (single-book debug)
+  and `--skip-existing` (resume after partial failure).
+- **`bible/__main__.py` `bible tanakh` CLI** — supports
+  `--section Torah|Nevi'im|Ketuvim` filter alongside the
+  `--translation` / `--json` flags.
+- **`scripts/index_embeddings.py` Tanakh indexing** — Nevi'im +
+  Ketuvim now indexed alongside Torah. Same `judaism` tradition slot.
+- **`data/tanakh/README.md`** — edition metadata, book catalog,
+  schema, ingest instructions, license attribution.
+- **`docs/phase3-scope-tanakh.md`** — scope doc (was SCOPED, now DONE).
+  Updated the "39 books" count (not "~30" — Sefaria splits the Twelve
+  Minor Prophets into individual books).
+
+### Design decision
+- **Two narrow adapters, not a rename.** `bible.torah` (Pentateuch
+  only) and `bible.tanakh` (full canon) coexist intentionally. Both
+  read from the same Sefaria editions; the split is for adapter
+  narrowness, not data duplication. Mirrors the Council convening
+  pattern: prefer additive growth over breaking renames.
 
 ## [0.13.0] — 2026-09-10
 

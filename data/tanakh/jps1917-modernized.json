@@ -1,0 +1,2652 @@
+{
+  "tradition": "judaism",
+  "translation": "Modernized Tanakh based on JPS 1917 (Adam Cohn, 2013)",
+  "key": "jps1917-modernized",
+  "language": "en",
+  "structure": "book_chapter_verse",
+  "license": "CC-BY (Adam Cohn / modernizedtanakh.blogspot.com)",
+  "source": "Sefaria API (www.sefaria.org)",
+  "divisions": [
+    {
+      "name": "Joshua",
+      "name_hebrew": "יהושע",
+      "name_transliteration": "Yehoshua",
+      "section": "Nevi'im",
+      "chapters_count": 24,
+      "verses": [
+        {
+          "verse": 1,
+          "text": "After the death of Moses the servant of G OD , G OD said to Joshua son of Nun, Moses’ attendant:"
+        },
+        {
+          "verse": 2,
+          "text": "“My servant Moses is dead. Prepare to cross the Jordan, together with all this people, into the land that I am giving to the Israelites."
+        },
+        {
+          "verse": 3,
+          "text": "Every spot on which your foot treads I give to you, as I promised Moses."
+        },
+        {
+          "verse": 4,
+          "text": "Your territory shall extend from the wilderness and the Lebanon to the Great River, the River Euphrates [on the east]—the whole Hittite country—and up to the Mediterranean Sea on the west."
+        },
+        {
+          "verse": 5,
+          "text": "No one shall be able to resist you as long as you live. As I was with Moses, so I will be with you; I will not fail you or forsake you."
+        },
+        {
+          "verse": 6,
+          "text": "“Be strong and resolute, for you shall apportion to this people the land that I swore to their fathers to assign to them."
+        },
+        {
+          "verse": 7,
+          "text": "But you must be very strong and resolute to observe faithfully all the Teaching that My servant Moses enjoined upon you. Do not deviate from it to the right or to the left, that you may be successful wherever you go."
+        },
+        {
+          "verse": 8,
+          "text": "Let not this Book of the Teaching cease from your lips, but recite it day and night, so that you may observe faithfully all that is written in it. Only then will you prosper in your undertakings and only then will you be successful."
+        },
+        {
+          "verse": 9,
+          "text": "“I charge you: Be strong and resolute; do not be terrified or dismayed, for the E TERNAL your God is with you wherever you go.”"
+        },
+        {
+          "verse": 10,
+          "text": "Joshua thereupon gave orders to the officials of the people:"
+        },
+        {
+          "verse": 11,
+          "text": "“Go through the camp and charge the people thus: Get provisions ready, for in three days’ time you are to cross the Jordan, in order to enter and possess the land that the E TERNAL your God is giving you as a possession.”"
+        },
+        {
+          "verse": 12,
+          "text": "Then Joshua said to the Reubenites, the Gadites, and the half-tribe of Manasseh,"
+        },
+        {
+          "verse": 13,
+          "text": "“Remember what Moses the servant of G OD enjoined upon you, when he said, ‘The E TERNAL your God is granting you a haven and assigning this territory to you’:"
+        },
+        {
+          "verse": 14,
+          "text": "Let your wives, children, and livestock remain in the land that Moses assigned to you on this side of the Jordan; but every one of your fighting men shall go across armed in the van of your kindred. And you shall assist them"
+        },
+        {
+          "verse": 15,
+          "text": "until G OD has given your kindred a haven, such as you have, and they too have gained possession of the land that the E TERNAL your God has assigned to them. Then you may return to the land on the east side of the Jordan, which Moses the servant of G OD assigned to you as your possession, and you may possess it.”"
+        },
+        {
+          "verse": 16,
+          "text": "They answered Joshua, “We will do everything you have commanded us and we will go wherever you send us."
+        },
+        {
+          "verse": 17,
+          "text": "We will obey you just as we obeyed Moses; let but the E TERNAL your God be with you as with Moses!"
+        },
+        {
+          "verse": 18,
+          "text": "Anyone who flouts your commands and does not obey every order you give him shall be put to death. Only be strong and resolute!”"
+        },
+        {
+          "verse": 1,
+          "text": "Joshua son of Nun secretly sent two men from Shittim as spies, saying, “Go, reconnoiter the region of Jericho.” So they set out, and they came to the house of a certain prostitute named Rahab and lodged there."
+        },
+        {
+          "verse": 2,
+          "text": "The king of Jericho was told, “Some men have come here tonight, Israelites, to spy out the country.”"
+        },
+        {
+          "verse": 3,
+          "text": "The king of Jericho thereupon sent orders to Rahab: “Produce the men who came to you and entered your house, for they have come to spy out the whole country.”"
+        },
+        {
+          "verse": 4,
+          "text": "The woman, however, had taken the two men and hidden them. “It is true,” she said, “the men did come to me, but I didn’t know where they were from."
+        },
+        {
+          "verse": 5,
+          "text": "And at dark, when the gate was about to be closed, the men left; and I don’t know where the men went. Quick, go after them, for you can overtake them.”—"
+        },
+        {
+          "verse": 6,
+          "text": "Now she had taken them up to the roof and hidden them under some stalks of flax that she had lying on the roof.—"
+        },
+        {
+          "verse": 7,
+          "text": "So the men pursued them in the direction of the Jordan down to the fords; and no sooner had the pursuers gone out than the gate was shut behind them."
+        },
+        {
+          "verse": 8,
+          "text": "The spies had not yet gone to sleep when she came up to them on the roof."
+        },
+        {
+          "verse": 9,
+          "text": "She said to the men, “I know that G OD has given the country to you, because dread of you has fallen upon us, and all the inhabitants of the land are quaking before you."
+        },
+        {
+          "verse": 10,
+          "text": "For we have heard how G OD dried up the waters of the Sea of Reeds for you when you left Egypt, and what you did to Sihon and Og, the two Amorite kings across the Jordan, whom you doomed., which meant the annihilation of the inhabitants. Cf. Deut. 2.34ff.</i>"
+        },
+        {
+          "verse": 11,
+          "text": "When we heard about it, we lost heart, and no one had any more spirit left because of you; for the E TERNAL your God is the only God in heaven above and on earth below."
+        },
+        {
+          "verse": 12,
+          "text": "Now, since I have shown loyalty to you, swear to me by G OD that you in turn will show loyalty to my family. Provide me with a reliable sign"
+        },
+        {
+          "verse": 13,
+          "text": "that you will spare the lives of my father and mother, my brothers and sisters, and all who belong to them, and save us from death.”"
+        },
+        {
+          "verse": 14,
+          "text": "The men answered her, “Our lives are pledged for yours, even to death! If you do not disclose this mission of ours, we will show you true loyalty when G OD gives us the land.”"
+        },
+        {
+          "verse": 15,
+          "text": "She let them down by a rope through the window—for her dwelling was at the outer side of the city wall and she lived in the actual wall."
+        },
+        {
+          "verse": 16,
+          "text": "She said to them, “Make for the hills, so that the pursuers may not come upon you. Stay there in hiding three days, until the pursuers return; then go your way.”"
+        },
+        {
+          "verse": 17,
+          "text": "But the men warned her, “We will be released from this oath that you have made us take"
+        },
+        {
+          "verse": 18,
+          "text": "[unless,] when we invade the country, you tie this length of crimson cord to the window through which you let us down. Bring your father, your mother, your brothers, and all your family together in your house;"
+        },
+        {
+          "verse": 19,
+          "text": "and if anyone ventures outside the doors of your house, their blood will be on their head, and we shall be clear. But if a hand is laid on anyone who remains in the house with you, their blood shall be on our heads."
+        },
+        {
+          "verse": 20,
+          "text": "And if you disclose this mission of ours, we shall likewise be released from the oath that you made us take.”"
+        },
+        {
+          "verse": 21,
+          "text": "She replied, “Let it be as you say.” She sent them on their way, and they left; and she tied the crimson cord to the window."
+        },
+        {
+          "verse": 22,
+          "text": "They went straight to the hills and stayed there three days, until the pursuers turned back. And so the pursuers, searching all along the road, did not find them."
+        },
+        {
+          "verse": 23,
+          "text": "Then the two men came down again from the hills and crossed over. They came to Joshua son of Nun and reported to him all that had happened to them."
+        },
+        {
+          "verse": 24,
+          "text": "They said to Joshua, “G OD has delivered the whole land into our power; in fact, all the inhabitants of the land are quaking before us.”"
+        },
+        {
+          "verse": 1,
+          "text": "Early next morning, Joshua and all the Israelites set out from Shittim and marched to the Jordan. They did not cross immediately, but spent the night there."
+        },
+        {
+          "verse": 2,
+          "text": "Three days later, the officials went through the camp"
+        },
+        {
+          "verse": 3,
+          "text": "and charged the people as follows: “When you see the Ark of the Covenant of the E TERNAL your God being borne by the levitical priests, you shall move forward. Follow it—"
+        },
+        {
+          "verse": 4,
+          "text": "but keep a distance of some two thousand cubits from it, never coming any closer to it—so that you may know by what route to march, since it is a road you have not traveled before.”"
+        },
+        {
+          "verse": 5,
+          "text": "And Joshua said to the people, “Purify yourselves, for tomorrow G OD will perform wonders in your midst.”"
+        },
+        {
+          "verse": 6,
+          "text": "Then Joshua ordered the priests, “Take up the Ark of the Covenant and advance to the head of the people.” And they took up the Ark of the Covenant and marched at the head of the people."
+        },
+        {
+          "verse": 7,
+          "text": "G OD said to Joshua, “This day, for the first time, I will exalt you in the sight of all Israel, so that they shall know that I will be with you as I was with Moses."
+        },
+        {
+          "verse": 8,
+          "text": "For your part, command the priests who carry the Ark of the Covenant as follows: When you reach the edge of the waters of the Jordan, make a halt in the Jordan.”"
+        },
+        {
+          "verse": 9,
+          "text": "And Joshua said to the Israelites, “Come closer and listen to the words of the E TERNAL your God."
+        },
+        {
+          "verse": 10,
+          "text": "By this,” Joshua continued, “you shall know that a living God is among you, and that [God] will dispossess for you the Canaanites, Hittites, Hivites, Perizzites, Girgashites, Amorites, and Jebusites:"
+        },
+        {
+          "verse": 11,
+          "text": "the Ark of the Covenant of the Sovereign of all the earth is advancing before you into the Jordan."
+        },
+        {
+          "verse": 12,
+          "text": "Now select twelve individuals from the tribes of Israel, one from each tribe."
+        },
+        {
+          "verse": 13,
+          "text": "When the feet of the priests bearing the Ark of G OD , the Sovereign of all the earth, come to rest in the waters of the Jordan, the waters of the Jordan—the water coming from upstream—will be cut off and will stand in a single heap.”"
+        },
+        {
+          "verse": 14,
+          "text": "When the people set out from their encampment to cross the Jordan, the priests bearing the Ark of the Covenant were at the head of the people."
+        },
+        {
+          "verse": 15,
+          "text": "Now the Jordan keeps flowing over its entire bed throughout the harvest season. But as soon as the bearers of the Ark reached the Jordan, and the feet of the priests bearing the Ark dipped into the water at its edge,"
+        },
+        {
+          "verse": 16,
+          "text": "the waters coming down from upstream piled up in a single heap a great way off, at; “from.”</i> Adam, the town next to Zarethan; and those flowing away downstream to the Sea of the Arabah (the Dead Sea) ran out completely. So the people crossed near Jericho."
+        },
+        {
+          "verse": 17,
+          "text": "The priests who bore the Ark of G OD ’s Covenant stood on dry land exactly in the middle of the Jordan, while all Israel crossed over on dry land, until the entire nation had finished crossing the Jordan."
+        },
+        {
+          "verse": 1,
+          "text": "When the entire nation had finished crossing the Jordan, G OD said to Joshua,"
+        },
+        {
+          "verse": 2,
+          "text": "“Select twelve individuals from among the people, one from each tribe,"
+        },
+        {
+          "verse": 3,
+          "text": "and instruct them as follows: Pick up twelve stones from the spot exactly in the middle of the Jordan, where the priests’ feet are standing; take them along with you and deposit them in the place where you will spend the night.”"
+        },
+        {
+          "verse": 4,
+          "text": "Joshua summoned the twelve men whom he had designated among the Israelites, one from each tribe;"
+        },
+        {
+          "verse": 5,
+          "text": "and Joshua said to them, “Walk up to the Ark of the E TERNAL your God, in the middle of the Jordan, and each of you lift a stone onto his shoulder—corresponding to the number of the tribes of Israel."
+        },
+        {
+          "verse": 6,
+          "text": "This shall serve as a symbol among you: in time to come, when your children ask, ‘What is the meaning of these stones for you?’"
+        },
+        {
+          "verse": 7,
+          "text": "you shall tell them, ‘The waters of the Jordan were cut off because of the Ark of G OD ’s Covenant; when it passed through the Jordan, the waters of the Jordan were cut off.’ And so these stones shall serve the people of Israel as a memorial for all time.”"
+        },
+        {
+          "verse": 8,
+          "text": "The Israelites did as Joshua ordered. They picked up twelve stones, corresponding to the number of the tribes of Israel, from the middle of the Jordan—as G OD had charged Joshua—and they took them along with them to their night encampment and deposited them there."
+        },
+        {
+          "verse": 9,
+          "text": "Joshua also set up twelve stones in the middle of the Jordan, at the spot where the feet of the priests bearing the Ark of the Covenant had stood; and they have remained there to this day."
+        },
+        {
+          "verse": 10,
+          "text": "The priests who bore the Ark remained standing in the middle of the Jordan until all the instructions that G OD had ordered Joshua to convey to the people had been carried out. And so the people speedily crossed over, just as Moses had assured Joshua in his charge to him."
+        },
+        {
+          "verse": 11,
+          "text": "And when all the people finished crossing, the Ark of G OD and the priests advanced to the head of the people."
+        },
+        {
+          "verse": 12,
+          "text": "The Reubenites, the Gadites, and the half-tribe of Manasseh went across armed in the van of the Israelites, as Moses had charged them."
+        },
+        {
+          "verse": 13,
+          "text": "About forty thousand shock troops went across, at G OD ’s behest, to the steppes of Jericho for battle."
+        },
+        {
+          "verse": 14,
+          "text": "On that day G OD exalted Joshua in the sight of all Israel, so that they revered him all his days as they had revered Moses."
+        },
+        {
+          "verse": 15,
+          "text": "G OD said to Joshua,"
+        },
+        {
+          "verse": 16,
+          "text": "“Command the priests who bear the Ark of the Pact to come up out of the Jordan.”"
+        },
+        {
+          "verse": 17,
+          "text": "So Joshua commanded the priests, “Come up out of the Jordan.”"
+        },
+        {
+          "verse": 18,
+          "text": "As soon as the priests who bore the Ark of G OD ’s Covenant came up out of the Jordan, and the feet of the priests stepped onto the dry ground, the waters of the Jordan resumed their course, flowing over its entire bed as before."
+        },
+        {
+          "verse": 19,
+          "text": "The people came up from the Jordan on the tenth day of the first month, and encamped at Gilgal on the eastern border of Jericho."
+        },
+        {
+          "verse": 20,
+          "text": "And Joshua set up in Gilgal the twelve stones they had taken from the Jordan."
+        },
+        {
+          "verse": 21,
+          "text": "He charged the Israelites as follows: “In time to come, when your children ask their parents, ‘What is the meaning of those stones?’"
+        },
+        {
+          "verse": 22,
+          "text": "tell your children: ‘Here the Israelites crossed the Jordan on dry land.’"
+        },
+        {
+          "verse": 23,
+          "text": "For the E TERNAL your God dried up the waters of the Jordan before you until you crossed, just as the E TERNAL your God did to the Sea of Reeds, which dried up before us until we crossed."
+        },
+        {
+          "verse": 24,
+          "text": "Thus all the peoples of the earth shall know how mighty is G OD ’s hand, and you shall fear the E TERNAL your God always.”"
+        },
+        {
+          "verse": 1,
+          "text": "When all the kings of the Amorites on the western side of the Jordan, and all the kings of the Canaanites near the Sea, heard how G OD had dried up the waters of the Jordan for the sake of the Israelites until they crossed over, they lost heart, and no spirit was left in them because of the Israelites."
+        },
+        {
+          "verse": 2,
+          "text": "At that time G OD said to Joshua, “Make flint knives and proceed with a second circumcision of the Israelites.”"
+        },
+        {
+          "verse": 3,
+          "text": "So Joshua had flint knives made, and the Israelites were circumcised at Gibeath-haaraloth."
+        },
+        {
+          "verse": 4,
+          "text": "This is the reason why Joshua had the circumcision performed: All the people who had come out of Egypt, all the males of military age, had died during the desert wanderings after leaving Egypt."
+        },
+        {
+          "verse": 5,
+          "text": "Now, whereas all such people who came out of Egypt had been circumcised, none of those born after the exodus, during the desert wanderings, had been circumcised."
+        },
+        {
+          "verse": 6,
+          "text": "For the Israelites had traveled in the wilderness forty years, until the entire nation—the men of military age who had left Egypt—had perished; because they had not obeyed G OD , and G OD had sworn never to let them see the land that G OD had sworn to their fathers to assign to us, a land flowing with milk and honey."
+        },
+        {
+          "verse": 7,
+          "text": "But [God] had raised up their sons in their stead; and it was these that Joshua circumcised, for they were uncircumcised, not having been circumcised on the way."
+        },
+        {
+          "verse": 8,
+          "text": "After the circumcising of the whole nation was completed, they remained where they were, in the camp, until they recovered."
+        },
+        {
+          "verse": 9,
+          "text": "And G OD said to Joshua, “Today I have rolled away from you the disgrace of Egypt.” So that place was called Gilgal, as it still is."
+        },
+        {
+          "verse": 10,
+          "text": "Encamped at Gilgal, in the steppes of Jericho, the Israelites offered the passover sacrifice on the fourteenth day of the month, toward evening."
+        },
+        {
+          "verse": 11,
+          "text": "On the day after the passover offering, on that very day, they ate of the produce of the country, unleavened bread and parched grain."
+        },
+        {
+          "verse": 12,
+          "text": "On that same day, when they ate of the produce of the land, the manna ceased. The Israelites got no more manna; that year they ate of the yield of the land of Canaan."
+        },
+        {
+          "verse": 13,
+          "text": "Once, when Joshua was near Jericho, he looked up and saw a figure standing before him, drawn sword in hand. Joshua went up to him and asked him, “Are you one of us or of our enemies?”"
+        },
+        {
+          "verse": 14,
+          "text": "He replied, “No, I am captain of G OD ’s host. Now I have come!” Joshua threw himself face down to the ground and, prostrating himself, said to him, “What does my lord command his servant?”"
+        },
+        {
+          "verse": 15,
+          "text": "The captain of G OD ’s host answered Joshua, “Remove your sandals from your feet, for the place where you stand is holy.” And Joshua did so."
+        },
+        {
+          "verse": 1,
+          "text": "(Now Jericho was shut up tight because of the Israelites; no one could leave or enter.)"
+        },
+        {
+          "verse": 2,
+          "text": "G OD said to Joshua, “See, I will deliver Jericho into your hands—its king and warriors."
+        },
+        {
+          "verse": 3,
+          "text": "Let all your troops march around the city and complete one circuit of the city. Do this six days,"
+        },
+        {
+          "verse": 4,
+          "text": "with seven priests carrying seven ram’s horns preceding the Ark. On the seventh day, march around the city seven times, with the priests blowing the horns."
+        },
+        {
+          "verse": 5,
+          "text": "And when a long blast is sounded on the horn—as soon as you hear that sound of the horn—all the troops shall give a mighty shout. Thereupon the city wall will collapse, and the troops shall advance, every man straight ahead.”"
+        },
+        {
+          "verse": 6,
+          "text": "Joshua son of Nun summoned the priests and said to them, “Take up the Ark of the Covenant, and let seven priests carrying seven ram’s horns precede the Ark of G OD .”"
+        },
+        {
+          "verse": 7,
+          "text": "And he instructed the troops, “Go forward, march around the city, with the vanguard marching in front of the Ark of G OD .”"
+        },
+        {
+          "verse": 8,
+          "text": "When Joshua had instructed the troops, the seven priests carrying seven ram’s horns advanced before G OD , blowing their horns; and the Ark of G OD ’s Covenant followed them."
+        },
+        {
+          "verse": 9,
+          "text": "The vanguard marched in front of the priests who were blowing the horns, and the rear guard marched behind the Ark, with the horns sounding all the time."
+        },
+        {
+          "verse": 10,
+          "text": "But Joshua’s orders to the rest of the troops were, “Do not shout, do not let your voices be heard, and do not let a sound issue from your lips until the moment that I command you, ‘Shout!’ Then you shall shout.”"
+        },
+        {
+          "verse": 11,
+          "text": "So he had the Ark of G OD go around the city and complete one circuit; then they returned to camp and spent the night in camp."
+        },
+        {
+          "verse": 12,
+          "text": "Joshua rose early the next day; and the priests took up the Ark of G OD ,"
+        },
+        {
+          "verse": 13,
+          "text": "while the seven priests bearing the seven ram’s horns marched in front of the Ark of G OD , blowing the horns as they marched. The vanguard marched in front of them, and the rear guard marched behind the Ark of G OD , with the horns sounding all the time."
+        },
+        {
+          "verse": 14,
+          "text": "And so they marched around the city once on the second day and returned to the camp. They did this six days."
+        },
+        {
+          "verse": 15,
+          "text": "On the seventh day, they rose at daybreak and marched around the city, in the same manner, seven times; that was the only day that they marched around the city seven times."
+        },
+        {
+          "verse": 16,
+          "text": "On the seventh round, as the priests blew the horns, Joshua commanded the troops, “Shout! For G OD has given you the city."
+        },
+        {
+          "verse": 17,
+          "text": "The city and everything in it are to be proscribed for G OD ; only Rahab the prostitute is to be spared, and all who are with her in the house, because she hid the messengers we sent."
+        },
+        {
+          "verse": 18,
+          "text": "But you must beware of that which is proscribed, or else you will be proscribed: if you take anything from that which is proscribed, you will cause the camp of Israel to be proscribed; you will bring calamity upon it."
+        },
+        {
+          "verse": 19,
+          "text": "All the silver and gold and objects of copper and iron are consecrated to G OD ; they must go into the treasury of G OD .”"
+        },
+        {
+          "verse": 20,
+          "text": "So the troops shouted when the horns were sounded. When the troops heard the sound of the horns, they raised a mighty shout and the wall collapsed. The troops rushed into the city, every man straight in front of him, and they captured the city."
+        },
+        {
+          "verse": 21,
+          "text": "They exterminated everything in the city with the sword: man and woman, young and old, ox and sheep and donkey."
+        },
+        {
+          "verse": 22,
+          "text": "But Joshua bade the two men who had spied out the land, “Go into that prostitute’s house and bring out the woman and all that belong to her, as you swore to her.”"
+        },
+        {
+          "verse": 23,
+          "text": "So the young spies went in and brought out Rahab, her father and her mother, her brothers and all that belonged to her—they brought out her whole family and left them outside the camp of Israel."
+        },
+        {
+          "verse": 24,
+          "text": "They burned down the city and everything in it. But the silver and gold and the objects of copper and iron were deposited in the treasury of the House of G OD ."
+        },
+        {
+          "verse": 25,
+          "text": "Only Rahab the prostitute and her family were spared by Joshua, along with all that belonged to her, and she dwelt among the Israelites—as is still the case. For she had hidden the messengers that Joshua sent to spy out Jericho."
+        },
+        {
+          "verse": 26,
+          "text": "At that time Joshua pronounced this oath: “Anyone who undertakes to fortify this city of Jericho is hereby under G OD ’s curse: its foundations shall be laid at the cost of their first-born, and its gates set up at the cost of their youngest.”"
+        },
+        {
+          "verse": 27,
+          "text": "G OD was with Joshua, and his fame spread throughout the land."
+        },
+        {
+          "verse": 1,
+          "text": "The Israelites, however, violated the proscription: Achan son of Carmi son of Zabdi son of Zerah, of the tribe of Judah, took of that which was proscribed, and G OD was incensed with the Israelites."
+        },
+        {
+          "verse": 2,
+          "text": "Joshua sent some men from Jericho to Ai, which lies close to Beth-aven—east of Bethel—with orders to go up and spy out the country. So the men went up and spied out Ai."
+        },
+        {
+          "verse": 3,
+          "text": "They returned to Joshua and reported to him, “Not all the troops need go up. Let two or three thousand men go and attack Ai; do not trouble all the troops to go up there, for [the people] there are few.”"
+        },
+        {
+          "verse": 4,
+          "text": "So about three thousand of the troops marched up there; but they were routed by the men of Ai."
+        },
+        {
+          "verse": 5,
+          "text": "The men of Ai killed about thirty-six of them, pursuing them outside the gate as far as Shebarim, and cutting them down along the descent. And the heart of the troops sank in utter dismay."
+        },
+        {
+          "verse": 6,
+          "text": "Joshua thereupon rent his clothes. He and the elders of Israel lay until evening with their faces to the ground in front of the Ark of G OD ; and they strewed earth on their heads."
+        },
+        {
+          "verse": 7,
+          "text": "“Ah, my Sovereign G OD !” cried Joshua. “Why did You lead this people across the Jordan only to deliver us into the hands of the Amorites, to be destroyed by them? If only we had been content to remain on the other side of the Jordan!"
+        },
+        {
+          "verse": 8,
+          "text": "O my Sovereign, what can I say after Israel has turned tail before its enemies?"
+        },
+        {
+          "verse": 9,
+          "text": "When the Canaanites and all the inhabitants of the land hear of this, they will turn upon us and wipe out our very name from the earth. And what will You do about Your great name?”"
+        },
+        {
+          "verse": 10,
+          "text": "But G OD answered Joshua: “Arise! Why do you lie prostrate?"
+        },
+        {
+          "verse": 11,
+          "text": "Israel has sinned! They have broken the covenant by which I bound them. They have taken of the proscribed and put it in their vessels; they have stolen; they have broken faith!"
+        },
+        {
+          "verse": 12,
+          "text": "Therefore, the Israelites will not be able to hold their ground against their enemies; they will have to turn tail before their enemies, for they have become proscribed. I will not be with you anymore unless you root out from among you what is proscribed."
+        },
+        {
+          "verse": 13,
+          "text": "Go and purify the people. Order them: Purify yourselves for tomorrow. For thus says the E TERNAL , the God of Israel: Something proscribed is in your midst, O Israel, and you will not be able to stand up to your enemies until you have purged the proscribed from among you."
+        },
+        {
+          "verse": 14,
+          "text": "Tomorrow morning you shall present yourselves by tribes. Whichever tribe G OD indicates shall come forward by clans; the clan that G OD indicates shall come forward by ancestral houses, and the ancestral house that G OD indicates shall come forward man by man."
+        },
+        {
+          "verse": 15,
+          "text": "Then he who is indicated for proscription, and all that is his, shall be put to the fire, because he broke the Covenant of G OD and because he committed an outrage in Israel.”"
+        },
+        {
+          "verse": 16,
+          "text": "Early next morning, Joshua had Israel come forward by tribes; and the tribe of Judah was indicated."
+        },
+        {
+          "verse": 17,
+          "text": "He then had the clans of Judah come forward, and the clan of Zerah was indicated. Then he had the clan of Zerah come forward by ancestral houses, and Zabdi was indicated."
+        },
+        {
+          "verse": 18,
+          "text": "Finally he had his ancestral house come forward man by man, and Achan son of Carmi, son of Zabdi, son of Zerah, of the tribe of Judah, was indicated."
+        },
+        {
+          "verse": 19,
+          "text": "Then Joshua said to Achan, “My son, pay honor to the E TERNAL , the God of Israel, by making confession. Tell me what you have done; do not hold anything back from me.”"
+        },
+        {
+          "verse": 20,
+          "text": "Achan answered Joshua, “It is true, I have sinned against the E TERNAL , the God of Israel. This is what I did:"
+        },
+        {
+          "verse": 21,
+          "text": "I saw among the spoil a fine Shinar mantle, two hundred shekels of silver, and a wedge of gold weighing fifty shekels, and I coveted them and took them. They are buried in the ground in my tent, with the silver under the mantle.”"
+        },
+        {
+          "verse": 22,
+          "text": "Joshua sent messengers, who hurried to the tent; and there was the mantle, buried in his tent, with the silver underneath."
+        },
+        {
+          "verse": 23,
+          "text": "They took them from the tent and brought them to Joshua and all the Israelites, and displayed them before G OD ."
+        },
+        {
+          "verse": 24,
+          "text": "Then Joshua, and all Israel with him, took Achan son of Zerah—and the silver, the mantle, and the wedge of gold—his sons and daughters, and his ox, his donkey, and his flock, and his tent, and all his belongings, and brought them up to the Valley of Achor."
+        },
+        {
+          "verse": 25,
+          "text": "And Joshua said, “What calamity you have brought upon us! G OD will bring calamity upon you this day.” And all Israel pelted him with stones. They put them to the fire and stoned them."
+        },
+        {
+          "verse": 26,
+          "text": "They raised a huge mound of stones over him, which is still there. Then G OD ’s anger subsided. That is why that place was named the Valley of Achor “to bring calamity upon”; cf. v. 25.</i>—as is still the case."
+        },
+        {
+          "verse": 1,
+          "text": "G OD said to Joshua, “Do not be frightened or dismayed. Take all the combat troops with you, go and march against Ai. See, I will deliver the king of Ai, his people, his city, and his land into your hands."
+        },
+        {
+          "verse": 2,
+          "text": "You shall treat Ai and its king as you treated Jericho and its king; however, you may take the spoil and the cattle as booty for yourselves. Now set an ambush against the city behind it.”"
+        },
+        {
+          "verse": 3,
+          "text": "So Joshua and all the combat troops prepared for the march on Ai. Joshua chose thirty thousand men, valiant warriors, and sent them ahead by night."
+        },
+        {
+          "verse": 4,
+          "text": "He instructed them as follows: “Mind, you are to lie in ambush behind the city; don’t stay too far from the city, and all of you be on the alert."
+        },
+        {
+          "verse": 5,
+          "text": "I and all the troops with me will approach the city; and when they come out against us, as they did the first time, we will flee from them."
+        },
+        {
+          "verse": 6,
+          "text": "They will come rushing after us until we have drawn them away from the city. They will think, ‘They are fleeing from us the same as last time’; but while we are fleeing before them,"
+        },
+        {
+          "verse": 7,
+          "text": "you will dash out from your ambush and seize the city, and the E TERNAL your God will deliver it into your hands."
+        },
+        {
+          "verse": 8,
+          "text": "And when you take the city, set it on fire. Do as G OD has commanded. Mind, I have given you your orders.”"
+        },
+        {
+          "verse": 9,
+          "text": "Joshua then sent them off, and they proceeded to the ambush; they took up a position between Ai and Bethel—west of Ai—while Joshua spent the night with the rest of the troops."
+        },
+        {
+          "verse": 10,
+          "text": "Early in the morning, Joshua mustered the troops; then he and the elders of Israel marched upon Ai at the head of the troops."
+        },
+        {
+          "verse": 11,
+          "text": "All the combat troops that were with him advanced near the city and encamped to the north of Ai, with a hollow between them and Ai.—"
+        },
+        {
+          "verse": 12,
+          "text": "He selected about five thousand men and stationed them as an ambush between Bethel and Ai, west of the city."
+        },
+        {
+          "verse": 13,
+          "text": "Thus the main body of the army was disposed on the north of the city, but the far end of it was on the west. (This was after Joshua had spent the night in the valley.)—"
+        },
+        {
+          "verse": 14,
+          "text": "When the king of Ai saw them, he and all his troops, the townsmen, rushed out in the early morning to the meeting place, facing the Arabah, to engage the Israelites in battle; for he was unaware that a force was lying in ambush behind the city."
+        },
+        {
+          "verse": 15,
+          "text": "Joshua and all Israel fled in the direction of the wilderness, as though routed by them."
+        },
+        {
+          "verse": 16,
+          "text": "All the troops in the city gathered to pursue them; pursuing Joshua, they were drawn out of the city."
+        },
+        {
+          "verse": 17,
+          "text": "Not a man was left in Ai or in Bethel who did not go out after Israel; they left the city open while they pursued Israel."
+        },
+        {
+          "verse": 18,
+          "text": "G OD then said to Joshua, “Hold out the javelin in your hand toward Ai, for I will deliver it into your hands.” So Joshua held out the javelin in his hand toward the city."
+        },
+        {
+          "verse": 19,
+          "text": "As soon as he held out his hand, the ambush came rushing out of their station. They entered the city and captured it; and they swiftly set fire to the city."
+        },
+        {
+          "verse": 20,
+          "text": "The men of Ai looked back and saw the smoke of the city rising to the sky; they had no room for flight in any direction. The people who had been fleeing to the wilderness now became the pursuers."
+        },
+        {
+          "verse": 21,
+          "text": "For when Joshua and all Israel saw that the ambush had captured the city, and that smoke was rising from the city, they turned around and attacked the men of Ai."
+        },
+        {
+          "verse": 22,
+          "text": "Now the other [Israelites] were coming out of the city against them, so that they were between two bodies of Israelites, one on each side of them. They were slaughtered, so that no one escaped or got away."
+        },
+        {
+          "verse": 23,
+          "text": "The king of Ai was taken alive and brought to Joshua."
+        },
+        {
+          "verse": 24,
+          "text": "When Israel had killed all the inhabitants of Ai who had pursued them into the open wilderness, and all of them, to the last man, had fallen by the sword, all the Israelites turned back to Ai and put it to the sword."
+        },
+        {
+          "verse": 25,
+          "text": "The total of those who fell that day, men and women, the entire population of Ai, came to twelve thousand."
+        },
+        {
+          "verse": 26,
+          "text": "Joshua did not draw back the hand with which he held out his javelin until all the inhabitants of Ai had been exterminated."
+        },
+        {
+          "verse": 27,
+          "text": "However, the Israelites took the cattle and the spoil of the city as their booty, in accordance with the instructions that G OD had given to Joshua."
+        },
+        {
+          "verse": 28,
+          "text": "Then Joshua burned down Ai, and turned it into a mound of ruins for all time, a desolation to this day."
+        },
+        {
+          "verse": 29,
+          "text": "And the king of Ai was impaled on a stake until the evening. At sunset, Joshua had the corpse taken down from the stake and it was left lying at the entrance to the city gate. They raised a great heap of stones over it, which is there to this day."
+        },
+        {
+          "verse": 30,
+          "text": "At that time Joshua built an altar to the E TERNAL , the God of Israel, on Mount Ebal,"
+        },
+        {
+          "verse": 31,
+          "text": "as Moses, the servant of G OD , had commanded the Israelites—as is written in the Book of the Teaching of Moses—an altar of unhewn stone upon which no iron had been wielded. They offered on it burnt offerings to G OD , and brought sacrifices of well-being."
+        },
+        {
+          "verse": 32,
+          "text": "And there, on the stones, he inscribed a copy of the Teaching that Moses had written for the Israelites."
+        },
+        {
+          "verse": 33,
+          "text": "All Israel—stranger and citizen alike—with their elders, officials, and magistrates, stood on either side of the Ark, facing the levitical priests who carried the Ark of G OD ’s Covenant. Half of them faced Mount Gerizim and half of them faced Mount Ebal, as Moses the servant of G OD had commanded them of old, in order to bless the people of Israel."
+        },
+        {
+          "verse": 34,
+          "text": "After that, he read all the words of the Teaching, the blessing and the curse, just as is written in the Book of the Teaching."
+        },
+        {
+          "verse": 35,
+          "text": "There was not a word of all that Moses had commanded that Joshua failed to read in the presence of the whole congregation of Israel, including the women and children and the strangers who accompanied them."
+        },
+        {
+          "verse": 1,
+          "text": "When all the kings west of the Jordan—in the hill country, in the Shephelah, and along the entire coast of the Mediterranean Sea up to the vicinity of Lebanon, the [land of the] Hittites, Amorites, Canaanites, Perizzites, Hivites, and Jebusites—learned of this,"
+        },
+        {
+          "verse": 2,
+          "text": "they gathered with one accord to fight against Joshua and Israel."
+        },
+        {
+          "verse": 3,
+          "text": "But when the inhabitants of Gibeon learned how Joshua had treated Jericho and Ai,"
+        },
+        {
+          "verse": 4,
+          "text": "they for their part resorted to cunning. They set out in disguise: they took worn-out sacks for their donkeys, and worn-out waterskins that were cracked and patched;"
+        },
+        {
+          "verse": 5,
+          "text": "they had worn-out, patched sandals on their feet, and threadbare clothes on their bodies; and all the bread they took as provision was dry and crumbly."
+        },
+        {
+          "verse": 6,
+          "text": "And so they went to Joshua in the camp at Gilgal and [in a parley] said to him and to the rest of Israel’s side, “We come from a distant land; we propose that you make a pact with us.”"
+        },
+        {
+          "verse": 7,
+          "text": "Israel’s side replied to the Hivites, “But perhaps you live among us; how then can we make a pact with you?”"
+        },
+        {
+          "verse": 8,
+          "text": "They said to Joshua, “We will be your subjects.” But Joshua asked them, “Who are you and where do you come from?”"
+        },
+        {
+          "verse": 9,
+          "text": "They replied, “Your servants have come from a very distant country, because of the fame of the E TERNAL your God. For we heard the report of all that [your God] did in Egypt,"
+        },
+        {
+          "verse": 10,
+          "text": "and of all that [your God] did to the two Amorite kings on the other side of the Jordan, King Sihon of Heshbon and King Og of Bashan who lived in Ashtaroth."
+        },
+        {
+          "verse": 11,
+          "text": "So our elders and all the inhabitants of our country instructed us as follows, ‘Take along provisions for a trip, and go to them and say: We will be your subjects; come make a pact with us.’"
+        },
+        {
+          "verse": 12,
+          "text": "This bread of ours, which we took from our houses as provision, was still hot when we set out to come to you; and see how dry and crumbly it has become."
+        },
+        {
+          "verse": 13,
+          "text": "These wineskins were new when we filled them, and see how they have cracked. These clothes and sandals of ours are worn out from the very long journey.”"
+        },
+        {
+          "verse": 14,
+          "text": "Those involved took [their word for it] because of their provisions, and did not inquire of G OD ."
+        },
+        {
+          "verse": 15,
+          "text": "Joshua established friendship with them; he made a pact with them to spare their lives, and the chieftains of the community gave them their oath."
+        },
+        {
+          "verse": 16,
+          "text": "But when three days had passed after they made this pact with them, they learned that they were neighbors, living among them."
+        },
+        {
+          "verse": 17,
+          "text": "So the Israelites set out, and on the third day they came to their towns; these towns were Gibeon, Chephirah, Beeroth, and Kiriath-jearim."
+        },
+        {
+          "verse": 18,
+          "text": "But the Israelites did not attack them, since the chieftains of the community had sworn to them by the E TERNAL , the God of Israel. The whole community muttered against the chieftains,"
+        },
+        {
+          "verse": 19,
+          "text": "but all the chieftains answered the whole community, “We swore to them by the E TERNAL , the God of Israel; therefore we cannot touch them."
+        },
+        {
+          "verse": 20,
+          "text": "This is what we will do to them: We will spare their lives, so that there may be no wrath against us because of the oath that we swore to them.”"
+        },
+        {
+          "verse": 21,
+          "text": "And the chieftains declared concerning them, “They shall live!” And they became hewers of wood and drawers of water for the whole community, as the chieftains had decreed concerning them."
+        },
+        {
+          "verse": 22,
+          "text": "Joshua summoned them and spoke to them thus: “Why did you deceive us and tell us you lived very far from us, when in fact you live among us?"
+        },
+        {
+          "verse": 23,
+          "text": "Therefore, be accursed! Never shall your descendants cease to be slaves: hewers of wood and drawers of water for the House of my God.”"
+        },
+        {
+          "verse": 24,
+          "text": "But they replied to Joshua, “You see, your servants had heard that the E TERNAL your God had promised Moses—[God’s] servant—to give you the whole land and to wipe out all the inhabitants of the country on your account; so we were in great fear for our lives on your account. That is why we did this thing."
+        },
+        {
+          "verse": 25,
+          "text": "And now we are at your mercy; do with us what you consider right and proper.”"
+        },
+        {
+          "verse": 26,
+          "text": "And he did so; he saved them from being killed by the Israelites."
+        },
+        {
+          "verse": 27,
+          "text": "That day Joshua made them hewers of wood and drawers of water—as they still are—for the community and for G OD ’s altar, in the place that [God] would choose."
+        },
+        {
+          "verse": 1,
+          "text": "When King Adoni-zedek of Jerusalem learned that Joshua had captured Ai and proscribed it, treating Ai and its king as he had treated Jericho and its king, and that, moreover, the inhabitants of Gibeon had come to terms with Israel and remained among them,"
+        },
+        {
+          "verse": 2,
+          "text": "he was very frightened. For Gibeon was a large city, like one of the royal cities—in fact, larger than Ai—and all its men were warriors."
+        },
+        {
+          "verse": 3,
+          "text": "So King Adoni-zedek of Jerusalem sent this message to King Hoham of Hebron, King Piram of Jarmuth, King Japhia of Lachish, and King Debir of Eglon:"
+        },
+        {
+          "verse": 4,
+          "text": "“Come up and help me defeat Gibeon; for it has come to terms with Joshua and the Israelites.”"
+        },
+        {
+          "verse": 5,
+          "text": "The five Amorite kings—the king of Jerusalem, the king of Hebron, the king of Jarmuth, the king of Lachish, and the king of Eglon, with all their armies—joined forces and marched on Gibeon, and encamped against it and attacked it."
+        },
+        {
+          "verse": 6,
+          "text": "The people of Gibeon thereupon sent this message to Joshua in the camp at Gilgal: “Do not fail your servants; come up quickly and aid us and deliver us, for all the Amorite kings of the hill country have gathered against us.”"
+        },
+        {
+          "verse": 7,
+          "text": "So Joshua marched up from Gilgal with all his combat troops—all the trained warriors."
+        },
+        {
+          "verse": 8,
+          "text": "G OD said to Joshua, “Do not be afraid of them, for I will deliver them into your hands; not one of them shall withstand you.”"
+        },
+        {
+          "verse": 9,
+          "text": "Joshua took them by surprise, marching all night from Gilgal."
+        },
+        {
+          "verse": 10,
+          "text": "G OD threw them into a panic before Israel: [Joshua] inflicted a crushing defeat on them at Gibeon, pursued them in the direction of the Beth-horon ascent, and harried them all the way to Azekah and Makkedah."
+        },
+        {
+          "verse": 11,
+          "text": "While they were fleeing before Israel down the descent from Beth-horon, G OD hurled huge stones on them from the sky, all the way to Azekah, and they perished; more perished from the hailstones than were killed by the Israelite weapons."
+        },
+        {
+          "verse": 12,
+          "text": "On that occasion, when G OD routed the Amorites before the Israelites, Joshua addressed G OD ; he said in the presence of the Israelites: “Stand still, O sun, at Gibeon, O moon, in the Valley of Aijalon!”"
+        },
+        {
+          "verse": 13,
+          "text": "And the sun stood still And the moon halted, While a nation wreaked judgment on its foes —as is written in the Book of Jashar. Thus the sun halted in midheaven, and did not press on to set, for a whole day;"
+        },
+        {
+          "verse": 14,
+          "text": "for G OD fought for Israel. Neither before nor since has there ever been such a day, when G OD acted on words spoken by someone else."
+        },
+        {
+          "verse": 15,
+          "text": "Then Joshua together with all Israel returned to the camp at Gilgal."
+        },
+        {
+          "verse": 16,
+          "text": "Meanwhile, those five kings fled and hid in a cave at Makkedah."
+        },
+        {
+          "verse": 17,
+          "text": "When it was reported to Joshua that the five kings had been found hiding in a cave at Makkedah,"
+        },
+        {
+          "verse": 18,
+          "text": "Joshua ordered, “Roll large stones up against the mouth of the cave, and post some men over it to keep guard over them."
+        },
+        {
+          "verse": 19,
+          "text": "But as for the rest of you, don’t stop, but press on the heels of your enemies and harass them from the rear. Don’t let them reach their towns, for the E TERNAL your God has delivered them into your hands.”"
+        },
+        {
+          "verse": 20,
+          "text": "When Joshua and the Israelites had finished dealing them a deadly blow, they were wiped out, except for some fugitives who escaped into the fortified towns."
+        },
+        {
+          "verse": 21,
+          "text": "The whole army returned in safety to Joshua in the camp at Makkedah; no one so much as snarled at the Israelites."
+        },
+        {
+          "verse": 22,
+          "text": "And now Joshua ordered, “Open the mouth of the cave, and bring those five kings out of the cave to me.”"
+        },
+        {
+          "verse": 23,
+          "text": "This was done. Those five kings—the king of Jerusalem, the king of Hebron, the king of Jarmuth, the king of Lachish, and the king of Eglon—were brought out to him from the cave."
+        },
+        {
+          "verse": 24,
+          "text": "And when the kings were brought out to Joshua, Joshua summoned everyone on Israel’s side and ordered the army officers who had accompanied him, “Come forward and place your feet on the necks of these kings.” They came forward and placed their feet on their necks."
+        },
+        {
+          "verse": 25,
+          "text": "Joshua said to them, “Do not be frightened or dismayed; be firm and resolute. For this is what G OD is going to do to all the enemies with whom you are at war.”"
+        },
+        {
+          "verse": 26,
+          "text": "After that, Joshua had them put to death and impaled on five stakes, and they remained impaled on the stakes until evening."
+        },
+        {
+          "verse": 27,
+          "text": "At sunset Joshua ordered them taken down from the poles and thrown into the cave in which they had hidden. Large stones were placed over the mouth of the cave, [and there they are] to this very day."
+        },
+        {
+          "verse": 28,
+          "text": "At that time Joshua captured Makkedah and put it and its king to the sword, proscribing it and every person in it and leaving none that escaped. And he treated the king of Makkedah as he had treated the king of Jericho."
+        },
+        {
+          "verse": 29,
+          "text": "From Makkedah, Joshua proceeded with all Israel to Libnah, and he attacked it."
+        },
+        {
+          "verse": 30,
+          "text": "G OD delivered it and its king into the hands of Israel; they put it and all the people in it to the sword, letting none escape. And he treated its king as he had treated the king of Jericho."
+        },
+        {
+          "verse": 31,
+          "text": "From Libnah, Joshua proceeded with all Israel to Lachish; he encamped against it and attacked it."
+        },
+        {
+          "verse": 32,
+          "text": "G OD delivered Lachish into the hands of Israel. They captured it on the second day and put it and all the people in it to the sword, just as they had done to Libnah."
+        },
+        {
+          "verse": 33,
+          "text": "At that time King Horam of Gezer marched to the help of Lachish; but Joshua defeated him and his army, letting none of them escape."
+        },
+        {
+          "verse": 34,
+          "text": "From Lachish, Joshua proceeded with all Israel to Eglon; they encamped against it and attacked it."
+        },
+        {
+          "verse": 35,
+          "text": "They captured it on the same day and put it to the sword, proscribing all the people that were in it, as they had done to Lachish."
+        },
+        {
+          "verse": 36,
+          "text": "From Eglon, Joshua marched with all Israel to Hebron and attacked it."
+        },
+        {
+          "verse": 37,
+          "text": "They captured it and put it, its king, and all its towns, and all the people that were in it, to the sword. He let none escape, proscribing it and all the people in it, just as he had done in the case of Eglon."
+        },
+        {
+          "verse": 38,
+          "text": "Joshua and all Israel with him then turned back to Debir and attacked it."
+        },
+        {
+          "verse": 39,
+          "text": "He captured it and its king and all its towns. They put them to the sword and proscribed all the people in it. They let none escape; just as they had done to Hebron, and as they had done to Libnah and its king, so they did to Debir and its king."
+        },
+        {
+          "verse": 40,
+          "text": "Thus Joshua conquered the whole country: the hill country, the Negeb, the Shephelah, and the slopes, with all their kings; he let none escape, but proscribed everything that breathed—as the E TERNAL , the God of Israel, had commanded."
+        },
+        {
+          "verse": 41,
+          "text": "Joshua conquered them from Kadesh-barnea to Gaza, all the land of Goshen, and up to Gibeon."
+        },
+        {
+          "verse": 42,
+          "text": "All those kings and their lands were conquered by Joshua at a single stroke, for the E TERNAL , the God of Israel, fought for Israel."
+        },
+        {
+          "verse": 43,
+          "text": "Then Joshua, with all Israel, returned to the camp at Gilgal."
+        },
+        {
+          "verse": 1,
+          "text": "When the news reached King Jabin of Hazor, he sent messages to King Jobab of Madon, to the king of Shimron, to the king of Achshaph,"
+        },
+        {
+          "verse": 2,
+          "text": "and to the other kings in the north—in the hill country, in the Arabah south of Chinnereth, in the lowlands, and in the district of Dor on the west;"
+        },
+        {
+          "verse": 3,
+          "text": "to the Canaanites in the east and in the west; to the Amorites, Hittites, Perizzites, and Jebusites in the hill country; and to the Hivites at the foot of Hermon, in the land of Mizpah."
+        },
+        {
+          "verse": 4,
+          "text": "They took the field with all their armies—an enormous host, as numerous as the sands on the seashore—and a vast multitude of horses and chariots."
+        },
+        {
+          "verse": 5,
+          "text": "All these kings joined forces; they came and encamped together at the Waters of Merom to give battle to Israel."
+        },
+        {
+          "verse": 6,
+          "text": "But G OD said to Joshua, “Do not be afraid of them; tomorrow at this time I will have them all lying slain before Israel. You shall hamstring their horses and burn their chariots.”"
+        },
+        {
+          "verse": 7,
+          "text": "So Joshua, with all his combat troops, came upon them suddenly at the Waters of Merom, and pounced upon them."
+        },
+        {
+          "verse": 8,
+          "text": "G OD delivered them into the hands of Israel, and they defeated them and pursued them all the way to Great Sidon and Misrephoth-maim, and all the way to the Valley of Mizpeh on the east; they crushed them, letting none escape."
+        },
+        {
+          "verse": 9,
+          "text": "And Joshua dealt with them as G OD had ordered him; he hamstrung their horses and burned their chariots."
+        },
+        {
+          "verse": 10,
+          "text": "Joshua then turned back and captured Hazor and put its king to the sword.—Hazor was formerly the head of all those kingdoms.—"
+        },
+        {
+          "verse": 11,
+          "text": "They proscribed and put to the sword every person in it. Not a soul survived, and Hazor itself was burned down."
+        },
+        {
+          "verse": 12,
+          "text": "Joshua captured all those royal cities and their kings. He put them to the sword; he proscribed them in accordance with the charge of Moses, the servant of G OD ."
+        },
+        {
+          "verse": 13,
+          "text": "However, all those towns that are still standing on their mounds were not burned down by Israel; it was Hazor alone that Joshua burned down."
+        },
+        {
+          "verse": 14,
+          "text": "The Israelites kept all the spoil and cattle of the rest of those cities as booty. But they cut down their populations with the sword until they exterminated them; they did not spare a soul."
+        },
+        {
+          "verse": 15,
+          "text": "Just as the E TERNAL had commanded [God’s] servant Moses, so Moses had charged Joshua, and so Joshua did; he left nothing undone of all that G OD had commanded Moses."
+        },
+        {
+          "verse": 16,
+          "text": "Joshua conquered the whole of this region: the hill country [of Judah], the Negeb, the whole land of Goshen, the Shephelah, the Arabah, and the hill country and coastal plain of Israel—"
+        },
+        {
+          "verse": 17,
+          "text": "[everything] from Mount Halak, which ascends to Seir, all the way to Baal-gad in the Valley of the Lebanon at the foot of Mount Hermon; and he captured all the kings there and executed them."
+        },
+        {
+          "verse": 18,
+          "text": "Joshua waged war with all those kings over a long period."
+        },
+        {
+          "verse": 19,
+          "text": "Apart from the Hivites who dwelt in Gibeon, not a single city made terms with the Israelites; all were taken in battle."
+        },
+        {
+          "verse": 20,
+          "text": "For it was G OD ’s doing to stiffen their hearts to give battle to Israel, in order that they might be proscribed without quarter and wiped out, as G OD had commanded Moses."
+        },
+        {
+          "verse": 21,
+          "text": "At that time, Joshua went and wiped out the Anakites from the hill country, from Hebron, Debir, and Anab, from the entire hill country of Judah, and from the entire hill country of Israel; Joshua proscribed them and their towns."
+        },
+        {
+          "verse": 22,
+          "text": "No Anakites remained in the land of the Israelites; but some remained in Gaza, Gath, and Ashdod."
+        },
+        {
+          "verse": 23,
+          "text": "Thus Joshua conquered the whole country, just as G OD had promised Moses; and Joshua assigned it to Israel to share according to their tribal divisions. And the land had rest from war."
+        },
+        {
+          "verse": 1,
+          "text": "The following are the local kings whom the Israelites defeated and whose territories they took possession of: East of the Jordan, from the Wadi Arnon to Mount Hermon, including the eastern half of the Arabah:"
+        },
+        {
+          "verse": 2,
+          "text": "King Sihon of the Amorites, who resided in Heshbon and ruled over part of Gilead—from Aroer on the bank of the Wadi Arnon and the wadi proper up to the Wadi Jabbok [and] the border of the Ammonites—"
+        },
+        {
+          "verse": 3,
+          "text": "and over the eastern Arabah up to the Sea of Chinnereth and, southward by way of Beth-jeshimoth at the foot of the slopes of Pisgah on the east, down to the Sea of the Arabah, that is, the Dead Sea."
+        },
+        {
+          "verse": 4,
+          "text": "Also the territory of King Og of Bashan—one of the last of the Rephaim—who resided in Ashtaroth and in Edrei"
+        },
+        {
+          "verse": 5,
+          "text": "and ruled over Mount Hermon, Salcah, and all of Bashan up to the border of the Geshurites and the Maacathites, as also over part of Gilead [down to] the border of King Sihon of Heshbon."
+        },
+        {
+          "verse": 6,
+          "text": "These were vanquished by Moses, the servant of G OD , and the Israelites; and Moses, the servant of G OD , assigned that territory as a possession to the Reubenites, the Gadites, and the half-tribe of Manasseh."
+        },
+        {
+          "verse": 7,
+          "text": "And the following are the local kings whom Joshua and the Israelites defeated on the west side of the Jordan—from Baal-gad in the Valley of the Lebanon to Mount Halak, which ascends to Seir—which Joshua assigned as a possession to the tribal divisions of Israel:"
+        },
+        {
+          "verse": 8,
+          "text": "in the hill country, in the lowlands, in the Arabah, in the slopes, in the wilderness, and in the Negeb—[in the land of] the Hittites, the Amorites, the Canaanites, the Perizzites, the Hivites, and the Jebusites."
+        },
+        {
+          "verse": 9,
+          "text": "They were: the king of Jericho 1 the king of Ai, near Bethel, 1"
+        },
+        {
+          "verse": 10,
+          "text": "the king of Jerusalem 1 the king of Hebron 1"
+        },
+        {
+          "verse": 11,
+          "text": "the king of Jarmuth 1 the king of Lachish 1"
+        },
+        {
+          "verse": 12,
+          "text": "the king of Eglon 1 the king of Gezer 1"
+        },
+        {
+          "verse": 13,
+          "text": "the king of Debir 1 the king of Geder 1"
+        },
+        {
+          "verse": 14,
+          "text": "the king of Hormah 1 the king of Arad 1"
+        },
+        {
+          "verse": 15,
+          "text": "the king of Libnah 1 the king of Adullam 1"
+        },
+        {
+          "verse": 16,
+          "text": "the king of Makkedah 1 the king of Bethel 1"
+        },
+        {
+          "verse": 17,
+          "text": "the king of Tappuah 1 the king of Hepher 1"
+        },
+        {
+          "verse": 18,
+          "text": "the king of Aphek 1 the king of Sharon 1"
+        },
+        {
+          "verse": 19,
+          "text": "the king of Madon 1 the king of Hazor 1"
+        },
+        {
+          "verse": 20,
+          "text": "the king of Shimron-meron 1 the king of Achshaph 1"
+        },
+        {
+          "verse": 21,
+          "text": "the king of Taanach 1 the king of Megiddo 1"
+        },
+        {
+          "verse": 22,
+          "text": "the king of Kedesh 1 the king of Jokneam in the Carmel 1"
+        },
+        {
+          "verse": 23,
+          "text": "the king of Dor in the district of Dor 1 the king of Goiim in Gilgal 1"
+        },
+        {
+          "verse": 24,
+          "text": "the king of Tirzah 1 Total number of kings 31."
+        },
+        {
+          "verse": 1,
+          "text": "Joshua was now old, advanced in years. G OD said to him, “You have grown old, you are advanced in years; and very much of the land still remains to be taken possession of."
+        },
+        {
+          "verse": 2,
+          "text": "This is the territory that remains: all the districts of the Philistines and all [those of] the Geshurites,"
+        },
+        {
+          "verse": 3,
+          "text": "from the Shihor, which is close to Egypt, to the territory of Ekron on the north, are accounted Canaanite, namely, those of the five lords of the Philistines—the Gazites, the Ashdodites, the Ashkelonites, the Gittites, and the Ekronites—and those of the Avvim"
+        },
+        {
+          "verse": 4,
+          "text": "on the south; further, all the Canaanite country from Mearah of the Sidonians to Aphek at the Amorite border"
+        },
+        {
+          "verse": 5,
+          "text": "and the land of the Gebalites, with the whole [Valley of the] Lebanon, from Baal-gad at the foot of Mount Hermon to Lebo-hamath on the east,"
+        },
+        {
+          "verse": 6,
+          "text": "with all the inhabitants of the hill country from the [Valley of the] Lebanon to Misrephoth-maim, namely, all the Sidonians. I Myself will dispossess those nations for the Israelites; you have only to apportion their lands by lot among Israel, as I have commanded you."
+        },
+        {
+          "verse": 7,
+          "text": "Therefore, divide this territory into hereditary portions for the nine tribes and the half-tribe of Manasseh.”"
+        },
+        {
+          "verse": 8,
+          "text": "Now the Reubenites and the Gadites, along with the other half-tribe, had already received the shares that Moses assigned to them on the east side of the Jordan—as assigned to them by Moses the servant of G OD :"
+        },
+        {
+          "verse": 9,
+          "text": "from Aroer on the edge of the Wadi Arnon and the town in the middle of the wadi, the entire Tableland [from] Medeba to Dibon,"
+        },
+        {
+          "verse": 10,
+          "text": "embracing all the towns of King Sihon of the Amorites, who had reigned in Heshbon, up to the border of the Ammonites;"
+        },
+        {
+          "verse": 11,
+          "text": "further, Gilead, the territories of the Geshurites and the Maacathites, and all of Mount Hermon, and the whole of Bashan up to Salcah—"
+        },
+        {
+          "verse": 12,
+          "text": "the entire kingdom of Og, who had reigned over Bashan at Ashtaroth and at Edrei. (He was the last of the remaining Rephaim.) These were defeated and dispossessed by Moses;"
+        },
+        {
+          "verse": 13,
+          "text": "but the Israelites failed to dispossess the Geshurites and the Maacathites, and Geshur and Maacath remain among Israel to this day."
+        },
+        {
+          "verse": 14,
+          "text": "No hereditary portion, however, was assigned to the tribe of Levi, their portion being the fire offerings of the E TERNAL , the God of Israel, as [God] spoke concerning them."
+        },
+        {
+          "verse": 15,
+          "text": "And so Moses assigned [the following] to the tribe of the Reubenites, for their various clans,"
+        },
+        {
+          "verse": 16,
+          "text": "and it became theirs: The territory from Aroer, on the edge of the Wadi Arnon and the town in the middle of the wadi, up to Medeba—the entire Tableland—"
+        },
+        {
+          "verse": 17,
+          "text": "Heshbon and all its towns in the Tableland: Dibon, Bamoth-baal, Beth-baal-meon,"
+        },
+        {
+          "verse": 18,
+          "text": "Jahaz, Kedemoth, Mephaath,"
+        },
+        {
+          "verse": 19,
+          "text": "Kiriathaim, Sibmah, and Zereth-shahar in the hill of the valley,"
+        },
+        {
+          "verse": 20,
+          "text": "Beth-peor, the slopes of Pisgah, and Beth-jeshimoth—"
+        },
+        {
+          "verse": 21,
+          "text": "all the towns of the Tableland and the entire kingdom of Sihon, the king of the Amorites, who had reigned in Heshbon. (For Moses defeated him and the Midianite chiefs Evi, Rekem, Zur, Hur, and Reba, who had dwelt in the land as princes of Sihon."
+        },
+        {
+          "verse": 22,
+          "text": "Together with the others that they slew, the Israelites put Balaam son of Beor, the augur, to the sword.)"
+        },
+        {
+          "verse": 23,
+          "text": "The boundary of the Reubenites was the edge of the Jordan. That was the portion of the Reubenites for their various clans—those towns with their villages."
+        },
+        {
+          "verse": 24,
+          "text": "To the tribe of Gad, for the various Gadite clans, Moses assigned [the following],"
+        },
+        {
+          "verse": 25,
+          "text": "and it became their territory: Jazer, all the towns of Gilead, part of the country of the Ammonites up to Aroer, which is close to Rabbah,"
+        },
+        {
+          "verse": 26,
+          "text": "and from Heshbon to Ramath-mizpeh and Betonim, and from Mahanaim to the border of Lidbir;"
+        },
+        {
+          "verse": 27,
+          "text": "and in the Valley, Beth-haram, Beth-nimrah, Succoth, and Zaphon—the rest of the kingdom of Sihon, the king of Heshbon—down to the edge of the Jordan and up to the tip of the Sea of Chinnereth on the east side of the Jordan."
+        },
+        {
+          "verse": 28,
+          "text": "That was the portion of the Gadites, for their various clans—those towns with their villages."
+        },
+        {
+          "verse": 29,
+          "text": "And to the half-tribe of Manasseh Moses assigned [the following], so that it went to the half-tribe of Manasseh, for its various clans,"
+        },
+        {
+          "verse": 30,
+          "text": "and became their territory: Mahanaim, all of Bashan, the entire kingdom of Og, king of Bashan, and all of Havvoth-jair in Bashan, sixty towns;"
+        },
+        {
+          "verse": 31,
+          "text": "and part of Gilead, and Ashtaroth and Edrei, the royal cities of Og in Bashan, were assigned to the descendants of Machir son of Manasseh—to a part of the descendants of Machir—for their various clans."
+        },
+        {
+          "verse": 32,
+          "text": "Those, then, were the portions that Moses assigned in the steppes of Moab, on the east side of the Jordan."
+        },
+        {
+          "verse": 33,
+          "text": "But no portion was assigned by Moses to the tribe of Levi; the E TERNAL , the God of Israel, is their portion—as [God] spoke concerning them."
+        },
+        {
+          "verse": 1,
+          "text": "And these are the allotments of the Israelites in the land of Canaan, that were apportioned to them by the priest Eleazar, by Joshua son of Nun, and by the family heads of the Israelite tribes,"
+        },
+        {
+          "verse": 2,
+          "text": "the portions that fell to them by lot, as G OD had commanded through Moses for the nine and a half tribes."
+        },
+        {
+          "verse": 3,
+          "text": "For the portion of the other two and a half tribes had been assigned to them by Moses on the other side of the Jordan. He had not assigned any portion among them to the Levites;"
+        },
+        {
+          "verse": 4,
+          "text": "for whereas the descendants of Joseph constituted two tribes, Manasseh and Ephraim, the Levites were assigned no share in the land, but only some towns to live in, with the pastures for their livestock and cattle."
+        },
+        {
+          "verse": 5,
+          "text": "Just as G OD had commanded Moses, so the Israelites did when they apportioned the land."
+        },
+        {
+          "verse": 6,
+          "text": "The Judahites approached Joshua at Gilgal, and Caleb son of Jephunneh the Kenizzite said to him: “You know what instructions G OD gave at Kadesh-barnea to Moses, the agent of God, concerning you and me."
+        },
+        {
+          "verse": 7,
+          "text": "I was forty years old when Moses the servant of G OD sent me from Kadesh-barnea to spy out the land, and I gave him a forthright report."
+        },
+        {
+          "verse": 8,
+          "text": "While my companions who went up with me took the heart out of the people, I was loyal to my E TERNAL God."
+        },
+        {
+          "verse": 9,
+          "text": "On that day, Moses promised on oath, ‘The land on which your foot trod shall be a portion for you and your descendants forever, because you were loyal to my E TERNAL God.’"
+        },
+        {
+          "verse": 10,
+          "text": "Now G OD has preserved me, just as promised. It is forty-five years since G OD made this promise to Moses, when Israel was journeying through the wilderness; and here I am today, eighty-five years old."
+        },
+        {
+          "verse": 11,
+          "text": "I am still as strong today as on the day that Moses sent me; my strength is the same now as it was then, for battle and for activity."
+        },
+        {
+          "verse": 12,
+          "text": "So assign to me this hill country as G OD promised on that day. Though you too heard on that day that Anakites are there and great fortified cities, if only G OD is with me, I will dispossess them, as G OD promised.”"
+        },
+        {
+          "verse": 13,
+          "text": "So Joshua blessed Caleb son of Jephunneh and assigned Hebron to him as his portion."
+        },
+        {
+          "verse": 14,
+          "text": "Thus Hebron became the portion of Caleb son of Jephunneh the Kenizzite, as it still is, because he was loyal to the E TERNAL , the God of Israel.—"
+        },
+        {
+          "verse": 15,
+          "text": "The name of Hebron was formerly Kiriath-arba: [Arba] was the great man among the Anakites. And the land had rest from war."
+        },
+        {
+          "verse": 1,
+          "text": "The portion that fell by lot to the various clans of the tribe of Judah lay farthest south, down to the border of Edom, which is the Wilderness of Zin."
+        },
+        {
+          "verse": 2,
+          "text": "Their southern boundary began from the tip of the Dead Sea, from the tongue that projects southward."
+        },
+        {
+          "verse": 3,
+          "text": "It proceeded to the south of the Ascent of Akrabbim, passed on to Zin, ascended to the south of Kadesh-barnea, passed on to Hezron, ascended to Addar, and made a turn to Karka."
+        },
+        {
+          "verse": 4,
+          "text": "From there it passed on to Azmon and proceeded to the Wadi of Egypt; and the boundary ran on to the Sea. That shall be your southern boundary."
+        },
+        {
+          "verse": 5,
+          "text": "The boundary on the east was the Dead Sea up to the mouth of the Jordan. On the northern side, the boundary began at the tongue of the Sea at the mouth of the Jordan."
+        },
+        {
+          "verse": 6,
+          "text": "The boundary ascended to Beth-hoglah and passed north of Beth-arabah; then the boundary ascended to the Stone of Bohan son of Reuben."
+        },
+        {
+          "verse": 7,
+          "text": "The boundary ascended from the Valley of Achor to Debir and turned north to Gilgal, facing the Ascent of Adummim that is south of the wadi; from there the boundary continued to the Waters of En-shemesh and ran on to En-rogel."
+        },
+        {
+          "verse": 8,
+          "text": "Then the boundary ascended into the Valley of Ben-hinnom, along the southern flank of the Jebusites—that is, Jerusalem. The boundary then ran up to the top of the hill that flanks the Valley of Hinnom on the west, at the northern end of the Valley of Rephaim."
+        },
+        {
+          "verse": 9,
+          "text": "From that hilltop the boundary curved to the fountain of the Waters of Nephtoah and ran on to the towns of Mount Ephron; then the boundary curved to Baalah—that is, Kiriath-jearim."
+        },
+        {
+          "verse": 10,
+          "text": "From Baalah the boundary turned westward to Mount Seir, passed north of the slope of Mount Jearim—that is, Chesalon—descended to Beth-shemesh, and passed on to Timnah."
+        },
+        {
+          "verse": 11,
+          "text": "The boundary then proceeded to the northern flank of Ekron; the boundary curved to Shikkeron, passed on to Mount Baalah, and proceeded to Jabneel; and the boundary ran on to the Sea."
+        },
+        {
+          "verse": 12,
+          "text": "And the western boundary was the edge of the Mediterranean Sea. Those were the boundaries of the various clans of the Judahites on all sides."
+        },
+        {
+          "verse": 13,
+          "text": "In accordance with G OD ’s command to Joshua, Caleb son of Jephunneh was given a portion among the Judahites, namely, Kiriath-arba—that is, Hebron. ([Arba] was the father of Anak.)"
+        },
+        {
+          "verse": 14,
+          "text": "Caleb dislodged from there the three Anakites: Sheshai, Ahiman, and Talmai, descendants of Anak."
+        },
+        {
+          "verse": 15,
+          "text": "From there he marched against the inhabitants of Debir—the name of Debir was formerly Kiriath-sepher—"
+        },
+        {
+          "verse": 16,
+          "text": "and Caleb announced, “I will give my daughter Achsah in marriage to the man who attacks and captures Kiriath-sepher.”"
+        },
+        {
+          "verse": 17,
+          "text": "His kinsman Othniel the Kenizzite captured it; and Caleb gave him his daughter Achsah in marriage."
+        },
+        {
+          "verse": 18,
+          "text": "When she came [to him], she induced him to ask her father for some property. She dismounted from her donkey, and Caleb asked her, “What is the matter?”"
+        },
+        {
+          "verse": 19,
+          "text": "She replied, “Give me a present; for you have given me away as Negeb-land; so give me springs of water.” And he gave her Upper and Lower Gulloth."
+        },
+        {
+          "verse": 20,
+          "text": "This was the portion of the tribe of the Judahites by their clans:"
+        },
+        {
+          "verse": 21,
+          "text": "The towns at the far end of the tribe of Judah, near the border of Edom, in the Negeb, were: Kabzeel, Eder, Jagur,"
+        },
+        {
+          "verse": 22,
+          "text": "Kinah, Dimonah, Adadah,"
+        },
+        {
+          "verse": 23,
+          "text": "Kedesh, Hazor, Ithnan,"
+        },
+        {
+          "verse": 24,
+          "text": "Ziph, Telem, Bealoth,"
+        },
+        {
+          "verse": 25,
+          "text": "Hazor-hadattah, Kerioth-hezron—that is, Hazor—"
+        },
+        {
+          "verse": 26,
+          "text": "Amam, Shema, Moladah,"
+        },
+        {
+          "verse": 27,
+          "text": "Hazar-gaddah, Heshmon, Beth-pelet,"
+        },
+        {
+          "verse": 28,
+          "text": "Hazar-shual, Beer-sheba, Biziothiah,"
+        },
+        {
+          "verse": 29,
+          "text": "Baalah, Iim, Ezem,"
+        },
+        {
+          "verse": 30,
+          "text": "Eltolad, Chesil, Hormah,"
+        },
+        {
+          "verse": 31,
+          "text": "Ziklag, Madmannah, Sansannah,"
+        },
+        {
+          "verse": 32,
+          "text": "Lebaoth, Shilhim, Ain and Rimmon. Total: 29 towns, with their villages."
+        },
+        {
+          "verse": 33,
+          "text": "In the Lowland: Eshtaol, Zorah, Ashnah,"
+        },
+        {
+          "verse": 34,
+          "text": "Zanoah, En-gannim, Tappuah, Enam,"
+        },
+        {
+          "verse": 35,
+          "text": "Jarmuth, Adullam, Socoh, Azekah,"
+        },
+        {
+          "verse": 36,
+          "text": "Shaaraim, Adithaim, Gederah, and Gederothaim—14 towns, with their villages."
+        },
+        {
+          "verse": 37,
+          "text": "Zenan, Hadashah, Migdal-gad,"
+        },
+        {
+          "verse": 38,
+          "text": "Dilan, Mizpeh, Joktheel,"
+        },
+        {
+          "verse": 39,
+          "text": "Lachish, Bozkath, Eglon,"
+        },
+        {
+          "verse": 40,
+          "text": "Cabbon, Lahmas, Chithlish,"
+        },
+        {
+          "verse": 41,
+          "text": "Gederoth, Beth-dagon, Naamah, and Makkedah: 16 towns, with their villages."
+        },
+        {
+          "verse": 42,
+          "text": "Libnah, Ether, Ashan,"
+        },
+        {
+          "verse": 43,
+          "text": "Iphtah, Ashnah, Nezib,"
+        },
+        {
+          "verse": 44,
+          "text": "Keilah, Achzib, and Mareshah: 9 towns, with their villages."
+        },
+        {
+          "verse": 45,
+          "text": "Ekron, with its dependencies and villages."
+        },
+        {
+          "verse": 46,
+          "text": "From Ekron westward, all the towns in the vicinity of Ashdod, with their villages—"
+        },
+        {
+          "verse": 47,
+          "text": "Ashdod, its dependencies and its villages—Gaza, its dependencies and its villages, all the way to the Wadi of Egypt and the edge of the Mediterranean Sea."
+        },
+        {
+          "verse": 48,
+          "text": "And in the hill country: Shamir, Jattir, Socoh,"
+        },
+        {
+          "verse": 49,
+          "text": "Dannah, Kiriath-sannah—that is, Debir—"
+        },
+        {
+          "verse": 50,
+          "text": "Anab, Eshtemoh, Anim,"
+        },
+        {
+          "verse": 51,
+          "text": "Goshen, Holon, and Giloh: 11 towns, with their villages."
+        },
+        {
+          "verse": 52,
+          "text": "Arab, Dumah, Eshan,"
+        },
+        {
+          "verse": 53,
+          "text": "Janum, Beth-tappuah, Aphekah,"
+        },
+        {
+          "verse": 54,
+          "text": "Humtah, Kiriath-arba—that is, Hebron—and Zior: 9 towns, with their villages."
+        },
+        {
+          "verse": 55,
+          "text": "Maon, Carmel, Ziph, Juttah,"
+        },
+        {
+          "verse": 56,
+          "text": "Jezreel, Jokdeam, Zanoah,"
+        },
+        {
+          "verse": 57,
+          "text": "Kain, Gibeah, and Timnah: 10 towns, with their villages."
+        },
+        {
+          "verse": 58,
+          "text": "Halhul, Beth-zur, Gedor,"
+        },
+        {
+          "verse": 59,
+          "text": "Maarath, Beth-anoth, and Eltekon: 6 towns, with their villages."
+        },
+        {
+          "verse": 60,
+          "text": "Kiriath-baal—that is, Kiriath-jearim—and Rabbah: 2 towns, with their villages."
+        },
+        {
+          "verse": 61,
+          "text": "In the wilderness: Beth-arabah, Middin, Secacah,"
+        },
+        {
+          "verse": 62,
+          "text": "Nibshan, Ir-melah, and En-gedi: 6 towns, with their villages."
+        },
+        {
+          "verse": 63,
+          "text": "But the Judahites could not dispossess the Jebusites, the inhabitants of Jerusalem; so the Judahites dwell with the Jebusites in Jerusalem to this day."
+        },
+        {
+          "verse": 1,
+          "text": "The portion that fell by lot to the Josephites ran from the Jordan at Jericho—from the Waters of Jericho east of the wilderness. From Jericho it ascended through the hill country to Bethel."
+        },
+        {
+          "verse": 2,
+          "text": "From Bethel it ran to Luz and passed on to the territory of the Archites at Ataroth,"
+        },
+        {
+          "verse": 3,
+          "text": "descended westward to the territory of the Japhletites as far as the border of Lower Beth-horon and Gezer, and ran on to the Sea."
+        },
+        {
+          "verse": 4,
+          "text": "Thus the Josephites—that is, Manasseh and Ephraim—received their portion."
+        },
+        {
+          "verse": 5,
+          "text": "The territory of the Ephraimites, by their clans, was as follows: The boundary of their portion ran from Atroth-addar on the east to Upper Beth-horon,"
+        },
+        {
+          "verse": 6,
+          "text": "and the boundary ran on to the Sea. And on the north, the boundary proceeded from Michmethath to the east of Taanath-shiloh and passed beyond it up to the east of Janoah;"
+        },
+        {
+          "verse": 7,
+          "text": "from Janoah it descended to Ataroth and Naarath, touched on Jericho, and ran on to the Jordan."
+        },
+        {
+          "verse": 8,
+          "text": "Westward, the boundary proceeded from Tappuah to the Wadi Kanah and ran on to the Sea. This was the portion of the tribe of the Ephraimites, by their clans,"
+        },
+        {
+          "verse": 9,
+          "text": "together with the towns marked off for the Ephraimites within the territory of the Manassites—all those towns with their villages."
+        },
+        {
+          "verse": 10,
+          "text": "However, they failed to dispossess the Canaanites who dwelt in Gezer; so the Canaanites remained in the midst of Ephraim, as is still the case. But they had to perform forced labor."
+        },
+        {
+          "verse": 1,
+          "text": "And this is the portion that fell by lot to the tribe of Manasseh—for he was Joseph’s first-born. Since Machir, the first-born of Manasseh and the father of Gilead, was a valiant warrior, Gilead and Bashan were assigned to him."
+        },
+        {
+          "verse": 2,
+          "text": "And now assignments were made to the remaining Manassites, by their clans: the descendants of Abiezer, Helek, Asriel, Shechem, Hepher, and Shemida. Those were the male descendants of Manasseh son of Joseph, by their clans."
+        },
+        {
+          "verse": 3,
+          "text": "Now Zelophehad son of Hepher son of Gilead son of Machir son of Manasseh had no sons, but only daughters. The names of his daughters were Mahlah, Noah, Hoglah, Milcah, and Tirzah."
+        },
+        {
+          "verse": 4,
+          "text": "They appeared before the priest Eleazar, Joshua son of Nun, and the chieftains, saying: “G OD commanded Moses to grant us a portion among our male kinsmen.” So, in accordance with G OD ’s instructions, they were granted a portion among their father’s kinsmen."
+        },
+        {
+          "verse": 5,
+          "text": "Ten districts fell to Manasseh, apart from the lands of Gilead and Bashan, which are across the Jordan."
+        },
+        {
+          "verse": 6,
+          "text": "Manasseh’s daughters inherited a portion in these together with his sons, while the land of Gilead was assigned to the rest of Manasseh’s descendants."
+        },
+        {
+          "verse": 7,
+          "text": "The boundary of Manasseh ran from Asher to Michmethath, which lies near Shechem. The boundary continued to the right, toward the inhabitants of En-tappuah.—"
+        },
+        {
+          "verse": 8,
+          "text": "The region of Tappuah belonged to Manasseh; but Tappuah, on the border of Manasseh, belonged to the Ephraimites.—"
+        },
+        {
+          "verse": 9,
+          "text": "Then the boundary descended to the Wadi Kanah. Those towns to the south of the wadi belonged to Ephraim as an enclave among the towns of Manasseh. The boundary of Manasseh lay north of the wadi and ran on to the Sea."
+        },
+        {
+          "verse": 10,
+          "text": "What lay to the south belonged to Ephraim, and what lay to the north belonged to Manasseh, with the Sea as its boundary. [This territory] was contiguous with Asher on the north and with Issachar on the east."
+        },
+        {
+          "verse": 11,
+          "text": "Within Issachar and Asher, Manasseh possessed Beth-shean and its dependencies, Ibleam and its dependencies, the inhabitants of Dor and its dependencies, the inhabitants of En-dor and its dependencies, the inhabitants of Taanach and its dependencies, and the inhabitants of Megiddo and its dependencies: these constituted three regions."
+        },
+        {
+          "verse": 12,
+          "text": "The Manassites could not dispossess [the inhabitants of] these towns, and the Canaanites stubbornly remained in this region."
+        },
+        {
+          "verse": 13,
+          "text": "When the Israelites became stronger, they imposed tribute on the Canaanites; but they did not dispossess them."
+        },
+        {
+          "verse": 14,
+          "text": "The Josephites complained to Joshua, saying, “Why have you assigned as our portion a single allotment and a single district, seeing that we are a numerous people whom G OD has blessed so greatly?”"
+        },
+        {
+          "verse": 15,
+          "text": "“If you are a numerous people,” Joshua answered them, “go up to the forest country and clear an area for yourselves there, in the territory of the Perizzites and the Rephaim, seeing that you are cramped in the hill country of Ephraim.”"
+        },
+        {
+          "verse": 16,
+          "text": "“The hill country is not enough for us,” the Josephites replied, “and all the Canaanites who live in the valley area have iron chariots, both those in Beth-shean and its dependencies and those in the Valley of Jezreel.”"
+        },
+        {
+          "verse": 17,
+          "text": "But Joshua declared to the House of Joseph, to Ephraim and Manasseh, “You are indeed a numerous people, possessed of great strength; you shall not have one allotment only."
+        },
+        {
+          "verse": 18,
+          "text": "The hill country shall be yours as well; true, it is forest land, but you will clear it and possess it to its farthest limits. And you shall also dispossess the Canaanites, even though they have iron chariots and even though they are strong.”"
+        },
+        {
+          "verse": 1,
+          "text": "The whole community of Israelites assembled at Shiloh, and set up the Tent of Meeting there. The land was now under their control;"
+        },
+        {
+          "verse": 2,
+          "text": "but there remained seven tribes of the Israelites that had not yet received their portions."
+        },
+        {
+          "verse": 3,
+          "text": "So Joshua said to the Israelites, “How long will you be slack about going and taking possession of the land that the E TERNAL , the God of your ancestors, has assigned to you?"
+        },
+        {
+          "verse": 4,
+          "text": "Appoint three representatives from each tribe; I will send them out to go through the country and write down a description of it for purposes of apportionment, and then come back to me."
+        },
+        {
+          "verse": 5,
+          "text": "They shall divide it into seven parts—Judah shall remain by its territory in the south, and the house of Joseph shall remain by its territory in the north.—"
+        },
+        {
+          "verse": 6,
+          "text": "When you have written down the description of the land in seven parts, bring it here to me. Then I will cast lots for you here before the E TERNAL our God."
+        },
+        {
+          "verse": 7,
+          "text": "For the Levites have no share among you, since G OD ’s priesthood is their portion; and Gad and Reuben and the half-tribe of Manasseh have received the portions that were assigned to them by Moses the servant of G OD , on the eastern side of the Jordan.”"
+        },
+        {
+          "verse": 8,
+          "text": "The men set out on their journeys: Joshua ordered those who were leaving to write down a description of the land—“Go, traverse the country and write down a description of it. Then return to me, and I will cast lots for you here at Shiloh before G OD .”"
+        },
+        {
+          "verse": 9,
+          "text": "So the men went and traversed the land; they described it in a document, town by town, in seven parts, and they returned to Joshua in the camp at Shiloh."
+        },
+        {
+          "verse": 10,
+          "text": "Joshua cast lots for them at Shiloh before G OD , and there Joshua apportioned the land among the Israelites according to their divisions."
+        },
+        {
+          "verse": 11,
+          "text": "The lot of the tribe of the Benjaminites, by their clans, came out first. The territory that fell to their lot lay between the Judahites and the Josephites."
+        },
+        {
+          "verse": 12,
+          "text": "The boundary on their northern rim began at the Jordan; the boundary ascended to the northern flank of Jericho, ascended westward into the hill country and ran on to the Wilderness of Beth-aven."
+        },
+        {
+          "verse": 13,
+          "text": "From there the boundary passed on southward to Luz, to the flank of Luz—that is, Bethel; then the boundary descended to Atroth-addar [and] to the hill south of Lower Beth-horon."
+        },
+        {
+          "verse": 14,
+          "text": "The boundary now turned and curved onto the western rim; and the boundary ran southward from the hill on the south side of Beth-horon till it ended at Kiriath-baal—that is, Kiriath-jearim—a town of the Judahites. That was the western rim."
+        },
+        {
+          "verse": 15,
+          "text": "The southern rim: From the outskirts of Kiriath-jearim, the boundary passed westward and ran on to the fountain of the Waters of Nephtoah."
+        },
+        {
+          "verse": 16,
+          "text": "Then the boundary descended to the foot of the hill by the Valley of Ben-hinnom at the northern end of the Valley of Rephaim; then it ran down the Valley of Hinnom along the southern flank of the Jebusites to En-rogel."
+        },
+        {
+          "verse": 17,
+          "text": "Curving northward, it ran on to En-shemesh and ran on to Geliloth, facing the Ascent of Adummim, and descended to the Stone of Bohan son of Reuben."
+        },
+        {
+          "verse": 18,
+          "text": "It continued northward to the edge of the Arabah and descended into the Arabah."
+        },
+        {
+          "verse": 19,
+          "text": "The boundary passed on to the northern flank of Beth-hoglah, and the boundary ended at the northern tongue of the Dead Sea, at the southern end of the Jordan. That was the southern boundary."
+        },
+        {
+          "verse": 20,
+          "text": "On their eastern rim, finally, the Jordan was their boundary. That was the portion of the Benjaminites, by their clans, according to its boundaries on all sides."
+        },
+        {
+          "verse": 21,
+          "text": "And the towns of the tribe of the Benjaminites, by its clans, were: Jericho, Beth-hoglah, Emek-keziz,"
+        },
+        {
+          "verse": 22,
+          "text": "Beth-arabah, Zemaraim, Bethel,"
+        },
+        {
+          "verse": 23,
+          "text": "Avvim, Parah, Ophrah,"
+        },
+        {
+          "verse": 24,
+          "text": "Chephar-ammonah, Ophni, and Geba—12 towns, with their villages."
+        },
+        {
+          "verse": 25,
+          "text": "Also Gibeon, Ramah, Beeroth,"
+        },
+        {
+          "verse": 26,
+          "text": "Mizpeh, Chephirah, Mozah,"
+        },
+        {
+          "verse": 27,
+          "text": "Rekem, Irpeel, Taralah,"
+        },
+        {
+          "verse": 28,
+          "text": "Zela, Eleph, and Jebus—that is, Jerusalem—Gibeath [and] Kiriath: 14 towns, with their villages. That was the portion of the Benjaminites, by their clans."
+        },
+        {
+          "verse": 1,
+          "text": "The second lot fell to Simeon. The portion of the tribe of the Simeonites, by their clans, lay inside the portion of the Judahites."
+        },
+        {
+          "verse": 2,
+          "text": "Their portion comprised: Beer-sheba—or Sheba—Moladah,"
+        },
+        {
+          "verse": 3,
+          "text": "Hazar-shual, Balah, Ezem,"
+        },
+        {
+          "verse": 4,
+          "text": "Eltolad, Bethul, Hormah,"
+        },
+        {
+          "verse": 5,
+          "text": "Ziklag, Beth-marcaboth, Hazar-susah,"
+        },
+        {
+          "verse": 6,
+          "text": "Beth-lebaoth, and Sharuhen—13 towns, with their villages."
+        },
+        {
+          "verse": 7,
+          "text": "Ain, Rimmon, Ether, and Ashan: 4 towns, with their villages—"
+        },
+        {
+          "verse": 8,
+          "text": "together with all the villages in the vicinity of those towns, down to Baalath-beer [and] Ramath-negeb. That was the portion of the tribe of the Simeonites, by their clans."
+        },
+        {
+          "verse": 9,
+          "text": "The portion of the Simeonites was part of the territory of the Judahites; since the share of the Judahites was larger than they needed, the Simeonites received a portion inside their portion."
+        },
+        {
+          "verse": 10,
+          "text": "The third lot emerged for the Zebulunites, by their clans. The boundary of their portion: Starting at Sarid,"
+        },
+        {
+          "verse": 11,
+          "text": "their boundary ascended westward to Maralah, touching Dabbesheth and touching the wadi alongside Jokneam."
+        },
+        {
+          "verse": 12,
+          "text": "And it also ran from Sarid along the eastern side, where the sun rises, past the territory of Chisloth-tabor and on to Daberath and ascended to Japhia."
+        },
+        {
+          "verse": 13,
+          "text": "From there it ran [back] to the east, toward the sunrise, to Gath-hepher, to Eth-kazin, and on to Rimmon, where it curved to Neah."
+        },
+        {
+          "verse": 14,
+          "text": "Then it turned—that is, the boundary on the north—to Hannathon. Its extreme limits were the Valley of Iphtah-el,"
+        },
+        {
+          "verse": 15,
+          "text": "Kattath, Nahalal, Shimron, Idalah, and Bethlehem: 12 towns, with their villages."
+        },
+        {
+          "verse": 16,
+          "text": "That was the portion of the Zebulunites by their clans—those towns, with their villages."
+        },
+        {
+          "verse": 17,
+          "text": "The fourth lot fell to Issachar, the Issacharites by their clans."
+        },
+        {
+          "verse": 18,
+          "text": "Their territory comprised: Jezreel, Chesulloth, Shunem,"
+        },
+        {
+          "verse": 19,
+          "text": "Hapharaim, Shion, Anaharath,"
+        },
+        {
+          "verse": 20,
+          "text": "Rabbith, Kishion, Ebez,"
+        },
+        {
+          "verse": 21,
+          "text": "Remeth, En-gannim, En-haddah, and Beth-pazzez."
+        },
+        {
+          "verse": 22,
+          "text": "The boundary touched Tabor, Shahazimah, and Beth-shemesh; and their boundary ran to the Jordan: 16 towns, with their villages."
+        },
+        {
+          "verse": 23,
+          "text": "That was the portion of the tribe of the Issacharites, by their clans—the towns with their villages."
+        },
+        {
+          "verse": 24,
+          "text": "The fifth lot fell to the tribe of the Asherites, by their clans."
+        },
+        {
+          "verse": 25,
+          "text": "Their boundary ran along Helkath, Hali, Beten, Achshaph,"
+        },
+        {
+          "verse": 26,
+          "text": "Allammelech, Amad, and Mishal; and it touched Carmel on the west, and Shihor-libnath."
+        },
+        {
+          "verse": 27,
+          "text": "It also ran along the east side to Beth-dagon, and touched Zebulun and the Valley of Iphtah-el to the north, [as also] Beth-emek and Neiel; then it ran to Cabul on the north,"
+        },
+        {
+          "verse": 28,
+          "text": "Ebron, Rehob, Hammon, and Kanah, up to Great Sidon."
+        },
+        {
+          "verse": 29,
+          "text": "The boundary turned to Ramah and on to the fortified city of Tyre; then the boundary turned to Hosah and it ran on westward to Mehebel, Achzib,"
+        },
+        {
+          "verse": 30,
+          "text": "Ummah, Aphek, and Rehob: 22 towns, with their villages."
+        },
+        {
+          "verse": 31,
+          "text": "That was the portion of the tribe of the Asherites, by their clans—those towns, with their villages."
+        },
+        {
+          "verse": 32,
+          "text": "The sixth lot fell to the Naphtalites, the Naphtalites by their clans."
+        },
+        {
+          "verse": 33,
+          "text": "Their boundary ran from Heleph, Elon-bezaanannim, Adami-nekeb, and Jabneel to Lakkum, and it ended at the Jordan."
+        },
+        {
+          "verse": 34,
+          "text": "The boundary then turned westward to Aznoth-tabor and ran from there to Hukok. It touched Zebulun on the south, and it touched Asher on the west, and Judah at the Jordan on the east."
+        },
+        {
+          "verse": 35,
+          "text": "Its fortified towns were Ziddim, Zer, Hammath, Rakkath, Chinnereth,"
+        },
+        {
+          "verse": 36,
+          "text": "Adamah, Ramah, Hazor,"
+        },
+        {
+          "verse": 37,
+          "text": "Kedesh, Edrei, En-hazor,"
+        },
+        {
+          "verse": 38,
+          "text": "Iron, Migdal-el, Horem, Beth-anath, and Beth-shemesh: 19 towns, with their villages."
+        },
+        {
+          "verse": 39,
+          "text": "That was the portion of the tribe of the Naphtalites, by their clans—the towns, with their villages."
+        },
+        {
+          "verse": 40,
+          "text": "The seventh lot fell to the tribe of the Danites, by their clans."
+        },
+        {
+          "verse": 41,
+          "text": "Their allotted territory comprised: Zorah, Eshtaol, Ir-shemesh,"
+        },
+        {
+          "verse": 42,
+          "text": "Shaalabbin, Aijalon, Ithlah,"
+        },
+        {
+          "verse": 43,
+          "text": "Elon, Timnah, Ekron,"
+        },
+        {
+          "verse": 44,
+          "text": "Eltekeh, Gibbethon, Baalath,"
+        },
+        {
+          "verse": 45,
+          "text": "Jehud, Bene-berak, Gath-rimmon,"
+        },
+        {
+          "verse": 46,
+          "text": "Me-jarkon, and Rakkon, at the border near Joppa."
+        },
+        {
+          "verse": 47,
+          "text": "But the territory of the Danites slipped from their grasp. So the Danites migrated and made war on Leshem. They captured it and put it to the sword; they took possession of it and settled in it. And they changed the name of Leshem to Dan, after their ancestor Dan."
+        },
+        {
+          "verse": 48,
+          "text": "That was the portion of the tribe of the Danites, by their clans—those towns, with their villages."
+        },
+        {
+          "verse": 49,
+          "text": "When they had finished allotting the land by its boundaries, the Israelites gave a portion in their midst to Joshua son of Nun."
+        },
+        {
+          "verse": 50,
+          "text": "At G OD ’s command they gave him the town that he asked for, Timnath-serah in the hill country of Ephraim; he fortified the town and settled in it."
+        },
+        {
+          "verse": 51,
+          "text": "These are the portions assigned by lot to the tribes of Israel by the priest Eleazar, Joshua son of Nun, and the family heads, before G OD at Shiloh, at the entrance of the Tent of Meeting. When they had finished dividing the land,"
+        },
+        {
+          "verse": 1,
+          "text": "G OD said to Joshua:"
+        },
+        {
+          "verse": 2,
+          "text": "“Speak to the Israelites: Designate the cities of refuge—about which I commanded you through Moses—"
+        },
+        {
+          "verse": 3,
+          "text": "to which a manslayer who kills a person by mistake, unintentionally, may flee. They shall serve you as a refuge from the blood avenger."
+        },
+        {
+          "verse": 4,
+          "text": "[The slayer] shall flee to one of those cities, stand at the entrance to the city gate, and plead the case before the elders of that city; and they shall offer admission to the city and provide a place in which to live among them."
+        },
+        {
+          "verse": 5,
+          "text": "Should the blood avenger come in pursuit, they shall not give up the manslayer, since the other person was killed without intent and had not been an enemy in the past."
+        },
+        {
+          "verse": 6,
+          "text": "[The slayer] shall live in that city until there is a trial before the assembly, [and remain there] until the death of the high priest who is in office at that time. Thereafter, the manslayer may return home, to the town from which that person fled.”"
+        },
+        {
+          "verse": 7,
+          "text": "So they set aside Kedesh in the hill country of Naphtali in Galilee, Shechem in the hill country of Ephraim, and Kiriath-arba—that is, Hebron—in the hill country of Judah."
+        },
+        {
+          "verse": 8,
+          "text": "And across the Jordan, east of Jericho, they assigned Bezer in the wilderness, in the Tableland, from the tribe of Reuben; Ramoth in Gilead from the tribe of Gad; and Golan in Bashan from the tribe of Manasseh."
+        },
+        {
+          "verse": 9,
+          "text": "Those were the towns designated for all the Israelites and for the resident aliens among them, to which anyone who killed a person unintentionally might flee, and not die by the hand of the blood avenger before standing trial by the assembly."
+        },
+        {
+          "verse": 1,
+          "text": "The family heads of the Levites approached the priest Eleazar, Joshua son of Nun, and the family heads of the Israelite tribes,"
+        },
+        {
+          "verse": 2,
+          "text": "and spoke to them at Shiloh in the land of Canaan, as follows: “G OD commanded through Moses that we be given towns to live in, along with their pastures for our livestock.”"
+        },
+        {
+          "verse": 3,
+          "text": "So the Israelites, in accordance with G OD ’s command, assigned to the Levites, out of their own portions, the following towns with their pastures:"
+        },
+        {
+          "verse": 4,
+          "text": "The [first] lot among the Levites fell to the Kohathite clans. To the descendants of the priest Aaron, there fell by lot 13 towns from the tribe of Judah, the tribe of Simeon, and the tribe of Benjamin;"
+        },
+        {
+          "verse": 5,
+          "text": "and to the remaining Kohathites [there fell] by lot 10 towns from the clans of the tribe of Ephraim, the tribe of Dan, and the half-tribe of Manasseh."
+        },
+        {
+          "verse": 6,
+          "text": "To the Gershonites [there fell] by lot 13 towns from the clans of the tribe of Issachar, the tribe of Asher, the tribe of Naphtali, and the half-tribe of Manasseh in Bashan."
+        },
+        {
+          "verse": 7,
+          "text": "[And] to the Merarites, by their clans—12 towns from the tribe of Reuben, the tribe of Gad, and the tribe of Zebulun."
+        },
+        {
+          "verse": 8,
+          "text": "The Israelites assigned those towns with their pastures by lot to the Levites—as G OD had commanded through Moses."
+        },
+        {
+          "verse": 9,
+          "text": "From the tribe of the Judahites and the tribe of the Simeonites were assigned the following towns, which will be listed by name;"
+        },
+        {
+          "verse": 10,
+          "text": "they went to the descendants of Aaron among the Kohathite clans of the Levites, for the first lot had fallen to them."
+        },
+        {
+          "verse": 11,
+          "text": "To them were assigned in the hill country of Judah Kiriath-arba—that is, Hebron—together with the pastures around it. [Arba was] the father of the Anokites."
+        },
+        {
+          "verse": 12,
+          "text": "They gave the fields and the villages of the town to Caleb son of Jephunneh as his holding."
+        },
+        {
+          "verse": 13,
+          "text": "But to the descendants of Aaron the priest they assigned Hebron—the city of refuge for manslayers—together with its pastures, Libnah with its pastures,"
+        },
+        {
+          "verse": 14,
+          "text": "Jattir with its pastures, Eshtemoa with its pastures,"
+        },
+        {
+          "verse": 15,
+          "text": "Holon with its pastures, Debir with its pastures,"
+        },
+        {
+          "verse": 16,
+          "text": "Ain with its pastures, Juttah with its pastures, and Beth-shemesh with its pastures—9 towns from those two tribes."
+        },
+        {
+          "verse": 17,
+          "text": "And from the tribe of Benjamin: Gibeon with its pastures, Geba with its pastures,"
+        },
+        {
+          "verse": 18,
+          "text": "Anathoth with its pastures, and Almon with its pastures—4 towns."
+        },
+        {
+          "verse": 19,
+          "text": "All the towns of the descendants of the priest Aaron, 13 towns with their pastures."
+        },
+        {
+          "verse": 20,
+          "text": "As for the other clans of the Kohathites, the remaining Levites descended from Kohath, the towns in their lot were: From the tribe of Ephraim"
+        },
+        {
+          "verse": 21,
+          "text": "they were given, in the hill country of Ephraim, Shechem—the city of refuge for manslayers—with its pastures, Gezer with its pastures,"
+        },
+        {
+          "verse": 22,
+          "text": "Kibzaim with its pastures, and Beth-horon with its pastures—4 towns."
+        },
+        {
+          "verse": 23,
+          "text": "From the tribe of Dan, Elteke with its pastures, Gibbethon with its pastures,"
+        },
+        {
+          "verse": 24,
+          "text": "Aijalon with its pastures, and Gath-rimmon with its pastures—4 towns."
+        },
+        {
+          "verse": 25,
+          "text": "And from the half-tribe of Manasseh, Taanach with its pastures, and Gath-rimmon with its pastures—2 towns."
+        },
+        {
+          "verse": 26,
+          "text": "All the towns for the remaining clans of the Kohathites came to 10, with their pastures."
+        },
+        {
+          "verse": 27,
+          "text": "To the Gershonites of the Levitical clans: From the half-tribe of Manasseh, Golan in Bashan—the city of refuge for manslayers—with its pastures, and Beeshterah with its pastures—2 towns."
+        },
+        {
+          "verse": 28,
+          "text": "From the tribe of Issachar: Kishion with its pastures, Dobrath with its pastures,"
+        },
+        {
+          "verse": 29,
+          "text": "Jarmuth with its pastures, and En-gannim with its pastures—4 towns."
+        },
+        {
+          "verse": 30,
+          "text": "From the tribe of Asher: Mishal with its pastures, Abdon with its pastures,"
+        },
+        {
+          "verse": 31,
+          "text": "Helkath with its pastures, and Rehob with its pastures—4 towns."
+        },
+        {
+          "verse": 32,
+          "text": "From the tribe of Naphtali, Kedesh in Galilee—the city of refuge for manslayers—with its pastures, Hammoth-dor with its pastures, and Kartan with its pastures—3 towns."
+        },
+        {
+          "verse": 33,
+          "text": "All the towns of the Gershonites, by their clans, came to 13 towns, with their pastures."
+        },
+        {
+          "verse": 34,
+          "text": "To the remaining Levites, the clans of the Merarites: From the tribe of Zebulun, Jokneam with its pastures, Kartah with its pastures,"
+        },
+        {
+          "verse": 35,
+          "text": "Dimnah with its pastures, and Nahalal with its pastures—4 towns."
+        },
+        {
+          "verse": 36,
+          "text": "--"
+        },
+        {
+          "verse": 37,
+          "text": "--"
+        },
+        {
+          "verse": 38,
+          "text": "From the tribe of Gad, Ramoth in Gilead—the city of refuge for manslayers—with its pastures, Mahanaim with its pastures,"
+        },
+        {
+          "verse": 39,
+          "text": "Heshbon with its pastures, and Jazer with its pastures—4 towns in all."
+        },
+        {
+          "verse": 40,
+          "text": "All the towns that went by lot to the Merarites, by their clans—the rest of the Levitical clans—came to 12 towns."
+        },
+        {
+          "verse": 41,
+          "text": "All the towns of the Levites within the holdings of the Israelites came to 48 towns, with their pastures."
+        },
+        {
+          "verse": 42,
+          "text": "Thus those towns were assigned, every town with its surrounding pasture; and so it was with all those towns."
+        },
+        {
+          "verse": 43,
+          "text": "Israel was given the whole country that G OD had sworn to their fathers to assign them; they took possession of it and settled in it."
+        },
+        {
+          "verse": 44,
+          "text": "G OD gave them rest on all sides, just as had been promised to their fathers on oath. Not one of all their enemies withstood them; G OD delivered all their enemies into their hands."
+        },
+        {
+          "verse": 45,
+          "text": "Not one of the good things that G OD had promised to the House of Israel was lacking. Everything was fulfilled."
+        },
+        {
+          "verse": 1,
+          "text": "Then Joshua summoned the Reubenites, the Gadites, and the half-tribe of Manasseh,"
+        },
+        {
+          "verse": 2,
+          "text": "and said to them, “You have observed all that Moses the servant of G OD commanded you, and have obeyed me in everything that I commanded you."
+        },
+        {
+          "verse": 3,
+          "text": "You have not forsaken your kindred through the long years down to this day, but have faithfully observed the Instruction of the E TERNAL your God."
+        },
+        {
+          "verse": 4,
+          "text": "Now the E TERNAL your God has given your kindred rest, as [God] promised them. Therefore turn and go to your homes, to the land of your holdings beyond the Jordan that Moses the servant of G OD assigned to you."
+        },
+        {
+          "verse": 5,
+          "text": "But be very careful to fulfill the Instruction and the Teaching that Moses the servant of G OD enjoined upon you: to love the E TERNAL your God, to walk in godly ways, to keep the commandments, and to hold fast to [God]—and to render service with all your heart and soul.”"
+        },
+        {
+          "verse": 6,
+          "text": "Then Joshua blessed them and dismissed them, and they went to their homes."
+        },
+        {
+          "verse": 7,
+          "text": "To the one half-tribe of Manasseh Moses had assigned territory in Bashan, and to the other Joshua assigned [territory] on the west side of the Jordan, with their kindred. Furthermore, when Joshua sent the two and a half tribes off to their homes, he blessed them"
+        },
+        {
+          "verse": 8,
+          "text": "and said to them, “Return to your homes with great wealth—with very much livestock, with silver and gold, with copper and iron, and with a great quantity of clothing. Share the spoil of your enemies with your kin.”"
+        },
+        {
+          "verse": 9,
+          "text": "So the Reubenites, the Gadites, and the half-tribe of Manasseh left the Israelites at Shiloh, in the land of Canaan, and made their way back to the land of Gilead, the land of their own holding, which they had acquired by G OD ’s command through Moses."
+        },
+        {
+          "verse": 10,
+          "text": "When they came to the region of the Jordan in the land of Canaan, the Reubenites and the Gadites and the half-tribe of Manasseh built an altar there by the Jordan, a great conspicuous altar."
+        },
+        {
+          "verse": 11,
+          "text": "A report reached the Israelites: “The Reubenites, the Gadites, and the half-tribe of Manasseh have built an altar opposite the land of Canaan, in the region of the Jordan, across from the Israelites.”"
+        },
+        {
+          "verse": 12,
+          "text": "When the Israelites heard this, the whole community of the Israelites assembled at Shiloh to make war on them."
+        },
+        {
+          "verse": 13,
+          "text": "But [first] the Israelites sent the priest Phinehas son of Eleazar to the Reubenites, the Gadites, and the half-tribe of Manasseh in the land of Gilead,"
+        },
+        {
+          "verse": 14,
+          "text": "accompanied by ten chieftains, one chieftain from each of the tribal families of Israel, every one of them a family head among the contingents of Israel."
+        },
+        {
+          "verse": 15,
+          "text": "When they came to the Reubenites, the Gadites, and the half-tribe of Manasseh in the land of Gilead, they spoke to them as follows:"
+        },
+        {
+          "verse": 16,
+          "text": "“Thus said all of G OD ’s community: What is this treachery that you have committed this day against the God of Israel, turning away from G OD , building yourselves an altar and rebelling this day against G OD !"
+        },
+        {
+          "verse": 17,
+          "text": "Is the sin of Peor, which brought a plague upon G OD ’s community, such a small thing to us? We have not purified ourselves from it to this very day;"
+        },
+        {
+          "verse": 18,
+          "text": "and now you would turn away from G OD ! If you rebel against G OD today, tomorrow the divine wrath will be directed at the whole community of Israel."
+        },
+        {
+          "verse": 19,
+          "text": "If it is because the land of your holding is impure, cross over into the land of G OD ’s own holding, where the Tabernacle of G OD abides, and acquire holdings among us. But do not rebel against G OD , and do not rebel against us by building for yourselves an altar other than the altar of the E TERNAL our God."
+        },
+        {
+          "verse": 20,
+          "text": "When Achan son of Zerah violated the proscription, anger struck the whole community of Israel; he was not the only one who perished for that sin.”"
+        },
+        {
+          "verse": 21,
+          "text": "The Reubenites, the Gadites, and the half-tribe of Manasseh replied to the heads of the contingents of Israel: They said,"
+        },
+        {
+          "verse": 22,
+          "text": "“God, the E TERNAL God! God, the E TERNAL God, surely knows, and Israel too shall know! If we acted in rebellion or in treachery against G OD , do not vindicate us this day!"
+        },
+        {
+          "verse": 23,
+          "text": "If we built an altar to turn away from G OD , if it was to offer burnt offerings or grain offerings upon it, or to present sacrifices of well-being upon it, may G OD be the one to demand [a reckoning]."
+        },
+        {
+          "verse": 24,
+          "text": "We did this thing only out of our concern that, in time to come, your children might say to our children, ‘What have you to do with the E TERNAL , the God of Israel?"
+        },
+        {
+          "verse": 25,
+          "text": "G OD has made the Jordan a boundary between you and us, O Reubenites and Gadites; you have no share in G OD !’ Thus your children might prevent our children from worshiping G OD ."
+        },
+        {
+          "verse": 26,
+          "text": "So we decided to provide [a witness] for ourselves by building an altar—not for burnt offerings or [other] sacrifices,"
+        },
+        {
+          "verse": 27,
+          "text": "but as a witness between you and us, and between the generations to come—that we may perform the service of G OD at Shiloh with our burnt offerings, our sacrifices, and our offerings of well-being; and that your children should not say to our children in time to come, ‘You have no share in G OD .’"
+        },
+        {
+          "verse": 28,
+          "text": "We reasoned: should they speak thus to us and to our children in time to come, we would reply, ‘See the replica of G OD ’s altar, which our fathers made—not for burnt offerings or sacrifices, but as a witness between you and us.’"
+        },
+        {
+          "verse": 29,
+          "text": "Far be it from us to rebel against G OD , or to turn away this day from G OD and build an altar for burnt offerings, grain offerings, and sacrifices other than the altar of the E TERNAL our God that stands before the Tabernacle.”"
+        },
+        {
+          "verse": 30,
+          "text": "When the priest Phinehas and the chieftains of the community—the heads of the contingents of Israel—who were with him heard the explanation given by the Reubenites, the Gadites, and the Manassites, they approved."
+        },
+        {
+          "verse": 31,
+          "text": "The priest Phinehas son of Eleazar said to the Reubenites, the Gadites, and the Manassites, “Now we know that G OD is in our midst, since you have not committed such treachery against G OD . You have indeed saved the Israelites from punishment by G OD .”"
+        },
+        {
+          "verse": 32,
+          "text": "Then the priest Phinehas son of Eleazar and the chieftains returned from the Reubenites and the Gadites in the land of Gilead to the Israelites in the land of Canaan, and gave them their report."
+        },
+        {
+          "verse": 33,
+          "text": "The Israelites were pleased, and the Israelites praised God; and they spoke no more of going to war against them, to ravage the land in which the Reubenites and Gadites dwelt."
+        },
+        {
+          "verse": 34,
+          "text": "The Reubenites and the Gadites named the altar [“Witness”], meaning, “It is a witness between us and them that the E TERNAL is [our] God.”"
+        },
+        {
+          "verse": 1,
+          "text": "Much later, after G OD had given Israel rest from all the enemies around them, and when Joshua was old and well advanced in years,"
+        },
+        {
+          "verse": 2,
+          "text": "Joshua summoned all Israel, their elders and commanders, their magistrates and officials, and said to them: “I have grown old and am advanced in years."
+        },
+        {
+          "verse": 3,
+          "text": "You have seen all that the E TERNAL your God has done to all those nations on your account, for it was the E TERNAL your God who fought for you."
+        },
+        {
+          "verse": 4,
+          "text": "See, I have allotted to you, by your tribes, [the territory of] these nations that still remain, and that of all the nations that I have destroyed, from the Jordan to the Mediterranean Sea in the west."
+        },
+        {
+          "verse": 5,
+          "text": "It is the E TERNAL your God who will thrust them out on your account and drive them out to make way for you, and you shall possess their land as the E TERNAL your God promised you."
+        },
+        {
+          "verse": 6,
+          "text": "“But be most resolute to observe faithfully all that is written in the Book of the Teaching of Moses, without ever deviating from it to the right or to the left,"
+        },
+        {
+          "verse": 7,
+          "text": "and without intermingling with these nations that are left among you. Do not utter the names of their gods or swear by them; do not serve them or bow down to them."
+        },
+        {
+          "verse": 8,
+          "text": "But hold fast to the E TERNAL your God as you have done to this day."
+        },
+        {
+          "verse": 9,
+          "text": "“G OD has driven out great, powerful nations on your account, and no one has withstood you to this day."
+        },
+        {
+          "verse": 10,
+          "text": "A single one of you would put a thousand to flight, for the E TERNAL your God has been fighting for you, just as you were promised."
+        },
+        {
+          "verse": 11,
+          "text": "For your own sakes, therefore, be most mindful to love the E TERNAL your God."
+        },
+        {
+          "verse": 12,
+          "text": "For should you turn away and attach yourselves to the remnant of those nations—to those that are left among you—and intermarry with them, you joining them and they joining you,"
+        },
+        {
+          "verse": 13,
+          "text": "know for certain that the E TERNAL your God will not continue to drive these nations out before you; they shall become a snare and a trap for you, a scourge to your sides and thorns in your eyes, until you perish from this good land that the E TERNAL your God has given you."
+        },
+        {
+          "verse": 14,
+          "text": "“I am now going the way of all the earth. Acknowledge with all your heart and soul that not one of the good things that the E TERNAL your God promised you has failed to happen; they have all come true for you, not a single one has failed."
+        },
+        {
+          "verse": 15,
+          "text": "But just as every good thing that the E TERNAL your God promised you has been fulfilled for you, so G OD can bring upon you every evil thing until you have been wiped off this good land that the E TERNAL your God has given you."
+        },
+        {
+          "verse": 16,
+          "text": "If you break the covenant that the E TERNAL your God enjoined upon you, and go and serve other gods and bow down to them, then G OD ’s anger will burn against you, and you shall quickly perish from the good land that you have been given.”"
+        },
+        {
+          "verse": 1,
+          "text": "Joshua assembled all the tribes of Israel at Shechem. He summoned Israel’s elders and commanders, magistrates and officers; and they presented themselves before God."
+        },
+        {
+          "verse": 2,
+          "text": "Then Joshua said to all the people, “Thus said the E TERNAL , the God of Israel: In olden times, your ancestors—Terah, father of Abraham and father of Nahor—lived beyond the Euphrates and worshiped other gods."
+        },
+        {
+          "verse": 3,
+          "text": "But I took your ancestor Abraham from beyond the Euphrates and led him through the whole land of Canaan and multiplied his offspring. I gave him Isaac,"
+        },
+        {
+          "verse": 4,
+          "text": "and to Isaac I gave Jacob and Esau. I gave Esau the hill country of Seir as his possession, while Jacob and his children went down to Egypt."
+        },
+        {
+          "verse": 5,
+          "text": "“Then I sent Moses and Aaron, and I plagued Egypt with [the wonders] that I wrought in their midst, after which I freed you—"
+        },
+        {
+          "verse": 6,
+          "text": "I freed your ancestors—from Egypt, and you came to the Sea. But the Egyptians pursued your ancestors to the Sea of Reeds with chariots and riders."
+        },
+        {
+          "verse": 7,
+          "text": "They cried out to G OD , who put darkness between you and the Egyptians; then [God] brought the Sea upon them, and it covered them. Your own eyes saw what I did to the Egyptians. “After you had lived a long time in the wilderness,"
+        },
+        {
+          "verse": 8,
+          "text": "I brought you to the land of the Amorites who lived beyond the Jordan. They gave battle to you, but I delivered them into your hands; I annihilated them for you, and you took possession of their land."
+        },
+        {
+          "verse": 9,
+          "text": "Thereupon Balak son of Zippor, the king of Moab, made ready to attack Israel. He sent for Balaam son of Beor to curse you,"
+        },
+        {
+          "verse": 10,
+          "text": "but I refused to listen to Balaam; he had to bless you, and thus I saved you from him."
+        },
+        {
+          "verse": 11,
+          "text": "“Then you crossed the Jordan and you came to Jericho. The citizens of Jericho and the Amorites, Perizzites, Canaanites, Hittites, Girgashites, Hivites, and Jebusites fought you, but I delivered them into your hands."
+        },
+        {
+          "verse": 12,
+          "text": "I sent a plague ahead of you, and it drove them out before you—[just like] the two Amorite kings—not by your sword or by your bow."
+        },
+        {
+          "verse": 13,
+          "text": "I have given you a land for which you did not labor and towns that you did not build, and you have settled in them; you are enjoying vineyards and olive groves that you did not plant."
+        },
+        {
+          "verse": 14,
+          "text": "“Now, therefore, revere G OD and render service with undivided loyalty; put away the gods that your ancestors served beyond the Euphrates and in Egypt, and serve G OD ."
+        },
+        {
+          "verse": 15,
+          "text": "Or, if you are loath to serve G OD , choose this day which ones you are going to serve—the gods that your ancestors served beyond the Euphrates, or those of the Amorites in whose land you are settled; but I and my household will serve G OD .”"
+        },
+        {
+          "verse": 16,
+          "text": "In reply, the people declared, “Far be it from us to forsake the E TERNAL and serve other gods!"
+        },
+        {
+          "verse": 17,
+          "text": "For it was the E TERNAL our God who brought us and our ancestors up from the land of Egypt, the house of bondage, and who wrought those wondrous signs before our very eyes, and guarded us all along the way that we traveled and among all the peoples through whose midst we passed."
+        },
+        {
+          "verse": 18,
+          "text": "And then G OD drove out before us all the peoples—the Amorites—that inhabited the country. We too will serve the E TERNAL —who is our God.”"
+        },
+        {
+          "verse": 19,
+          "text": "Joshua, however, said to the people, “You will not be able to serve the E TERNAL —who is a holy God, a jealous one—who will not forgive your transgressions and your sins."
+        },
+        {
+          "verse": 20,
+          "text": "If you forsake the E TERNAL and serve alien gods, [God] will turn and deal harshly with you and make an end of you, after having been gracious to you.”"
+        },
+        {
+          "verse": 21,
+          "text": "But the people replied to Joshua, “No, we will serve the E TERNAL !”"
+        },
+        {
+          "verse": 22,
+          "text": "Thereupon Joshua said to the people, “You are witnesses against yourselves that you have by your own act chosen to serve the E TERNAL .” “Yes, we are!” they responded."
+        },
+        {
+          "verse": 23,
+          "text": "“Then put away the alien gods that you have among you and direct your hearts to the E TERNAL , the God of Israel.”"
+        },
+        {
+          "verse": 24,
+          "text": "And the people declared to Joshua, “It is the E TERNAL our God whom we will serve—and whom we will obey.”"
+        },
+        {
+          "verse": 25,
+          "text": "On that day at Shechem, Joshua made a covenant for the people and he made a fixed rule for them."
+        },
+        {
+          "verse": 26,
+          "text": "Joshua recorded all this in a book of divine instruction. He took a great stone and set it up at the foot of the oak in the sacred precinct of G OD ;"
+        },
+        {
+          "verse": 27,
+          "text": "and Joshua said to all the people, “See, this very stone shall be a witness against us, for it heard all the words that G OD spoke to us; it shall be a witness against you, lest you break faith with your God.”"
+        },
+        {
+          "verse": 28,
+          "text": "Joshua then dismissed the people to their allotted portions."
+        },
+        {
+          "verse": 29,
+          "text": "After these events, Joshua son of Nun, the servant of G OD , died at the age of one hundred and ten years."
+        },
+        {
+          "verse": 30,
+          "text": "They buried him on his own property, at Timnath-serah in the hill country of Ephraim, north of Mount Gaash."
+        },
+        {
+          "verse": 31,
+          "text": "Israel served G OD during the lifetime of Joshua and the lifetime of the elders who lived on after Joshua, and who had experienced all the deeds that G OD had wrought for Israel."
+        },
+        {
+          "verse": 32,
+          "text": "The bones of Joseph, which the Israelites had brought up from Egypt, were buried at Shechem, in the piece of ground that Jacob had bought for a hundred ss See note at Gen. 33.19.</i> from the children of Hamor, Shechem’s father, and which had become a heritage of the Josephites."
+        },
+        {
+          "verse": 33,
+          "text": "Eleazar son of Aaron also died, and they buried him on the hill of his son Phinehas, which had been assigned to him in the hill country of Ephraim."
+        }
+      ]
+    }
+  ]
+}

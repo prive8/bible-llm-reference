@@ -272,7 +272,7 @@ def main():
     print(f"Ingesting Tanakh editions into {DATA_DIR}...")
     print(f"Source: Sefaria API ({SEFARIA_BASE}/<Book>.<Chapter>)")
     print(f"Polite delay: {POLITE_DELAY_SEC}s between requests")
-    print(f"Books: {len(BOOKS)} total (5 Torah + 11 Nevi'im + 13 Ketuvim)")
+    print(f"Books: {len(BOOKS)} total (5 Torah + 21 Nevi'im + 13 Ketuvim)")
     print(f"Total chapters: {sum(b[3] for b in BOOKS)}")
     print(f"Total verses (canonical): {sum(b[4] for b in BOOKS)}")
     print()

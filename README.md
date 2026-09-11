@@ -346,6 +346,8 @@ Three user personas drove the v0.14.0 design center — see [`docs/use-cases.md`
 
 The front-end roadmap is **three layers over the same CLI backend** — Reader / Scholar / Comparative — so each persona gets a tailored surface without rebuilding the data layer.
 
+For the **scannable, building-reference** version (per-persona core expectations + concrete request lists + Council role mapping), see [`docs/audience_expectations.md`](./docs/audience_expectations.md). Use that doc when building features, writing tests, or filling Council roles.
+
 ## Related projects
 
 - **[`prive8/llm-from-scratch`](https://github.com/prive8/llm-from-scratch)** — a Karpathy-style workshop on building a GPT from scratch. Used as a reference when Phase 2 lands.

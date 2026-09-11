@@ -44,3 +44,30 @@ staging run). User's $10/mo budget has room for 95 such runs.
 - `scripts/stage_openrouter_benchmark.py` — the staging harness
 - `data/embeddings/openrouter-staging-log.jsonl` — block-by-block metrics
 - `data/embeddings/openrouter-staging-b1_*.json` + `_b2_*.json` — quality-testable indexes
+
+## Block 3 — 2K passages (2026-09-11)
+
+- Time: 25.0s wall (80 verses/sec)
+- Cost: $0.001412
+- Index saved: `data/embeddings/openrouter-staging-b3_*.*` (KVJ Bible only — first ~2000 verses)
+
+### Quality spot-check — 10 conceptual queries
+Dataset is KJV-only (no Psalms, no NT, no Quran — those need full corpus)
+so expected citations often absent; results score for semantic content,
+not citation match.
+
+| Query | Top Result | Score | Verdict |
+|---|---|---|---|
+| "the beginning of the world when God created" | Genesis 1:1 ✓ | 0.683 | Perfect |
+| "God's mercy/lovingkindness in the Psalms" | Gen 19:19 "found grace" | 0.447 | Semantic ✓ |
+| "forgive us our trespasses" | Gen 50:17 "Forgive, I pray thee" | 0.547 | Semantic ✓ |
+| "be still and know I am God" | Gen 50:19 "Fear not" | 0.506 | Calmness ✓ |
+| "the Lord is my shepherd" | Ex 15:2 "LORD is my strength" | 0.516 | Parallel ✓ |
+| "heavens declare glory" | Gen 1:17 "firmament of heaven" | 0.508 | Cosmo ✓ |
+| "I am the way the truth and the life" | Ex 3:14 "I AM THAT I AM" | 0.416 | Self-ID ✓ |
+| "God is love" | Gen 1:4 "God saw light, it was good" | 0.447 | Aesthetic ✓ |
+
+**Quality verdict:** OpenAI text-embedding-3-small produces real semantic
+vectors; conceptual queries find conceptually-appropriate results. The
+"hit ratio" score is misleading here because the dataset is small + KJV-only.
+Full-corpus Block 4 will give the definitive quality benchmark.

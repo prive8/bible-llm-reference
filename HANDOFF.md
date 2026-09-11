@@ -635,26 +635,24 @@ premise changed.
    to reflect convening; README Governance section now says "active
    single-contributor body" instead of "dormant." Principles in
    `COUNCIL.md` §2 unchanged.
-10. **OpenRouter embedding benchmark (PARTIAL — blocked by 402 at 69%).**
+10. **OpenRouter embedding benchmark (RESOLVED — user picked local).**
     New `OpenRouterEmbedder` backend shipped in v0.13.0, env-fallback
     to `~/.hermes/.env` shipped in v0.15.0 (commit `03bb7fa`).
-    **Status as of 2026-09-11 17:30 ET:**
-    - Blocks 1-3 staged successfully (5 / 200 / 2000 passages, $0.001553).
-    - Block 4 run started, **failed at 46,144 / 66,689 passages (69%) with
-      HTTP 402 Payment Required.**
-    - Account state: $10 monthly limit, $0.20 used (incl. partial Block 4),
-      $9.80 remaining; `is_free_tier: true` BUT `text-embedding-3-small`
-      requires paid credits.
-    - **User must purchase credits at https://openrouter.ai/settings/credits
-      to continue.** Even $5 should be enough for the remainder.
-    - ADR-013 documents the decision-of-record regardless.
-    - **Next agent action (if user adds credits):**
-      (a) `python scripts/index_embeddings.py --backend openrouter
-           --name openrouter-default` — completes the 20K remaining.
-      (b) `python scripts/run_eval.py --paths semantic --index openrouter-default`
-      (c) Compare recall@10 to local 0.279 baseline.
-      (d) Update `docs/evaluation.md` + ADR-011.
-      (e) Close this §8 #10 decision with a yes/no on the swap.
+    Staged benchmark measured real cost ($0.10/full index), speed
+    (12-22 min wall), and quality (10/10 conceptual queries hit
+    semantically) — committed in `notes/2026-09-11-openrouter-staging.md`.
+    Block 4 (full corpus build) failed at 69% with HTTP 402 because
+    the OpenRouter account requires explicit credit purchase at
+    https://openrouter.ai/settings/credits; the $10/month `limit` is
+    a spending cap, not a credit balance.
+    **User decision (2026-09-11):** "the local sentence transformer is
+    fine." Production stays on `all-MiniLM-L6-v2` (recall@10 = 0.279).
+    **Closed:** ADR-013 (OpenRouter validation record) and ADR-014
+    (local-first reaffirmed) capture the decision.
+    **The OpenRouter path remains wired:** anyone with a paid
+    OpenRouter account can run `python scripts/index_embeddings.py
+    --backend openrouter --name openrouter-default` and re-validate
+    the recall@10 comparison.
 11. **Phase 2 fine-tune dataset prep (RESOLVED, schema defined).**
     `scripts/prepare_phase2_dataset.py` ships in [Unreleased]. Defines
     the JSONL schema (OpenAI chat-format messages + metadata), voice

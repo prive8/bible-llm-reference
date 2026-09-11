@@ -68,8 +68,11 @@ python3 -m bible search "faith without works" -n 5 --strongs
 python3 -m bible search "light" -t WEB -n 3 --json
 python3 -m bible search "ברא" -t WLCa --limit 3 # Hebrew unpointed
 
-# Semantic search (Milestone 3B; auto backend = local → NIM → mock)
-python3 -m bible semantic "finding peace in suffering" --backend nim  # needs NVIDIA_API_KEY
+# Semantic search (Milestone 3B; default = local MiniLM, free, offline)
+python3 -m bible semantic "finding peace in suffering"
+# Alternate backends (require API keys):
+#   --backend openrouter  (needs credit at https://openrouter.ai/settings/credits)
+#   --backend nim         (needs NVIDIA_API_KEY; ~$1.20 per full index build)
 python3 -m bible semantic "verses about mercy" --tradition all --json
 
 # Hybrid search — BM25 + semantic fusion (Milestone 3C; requires local index)

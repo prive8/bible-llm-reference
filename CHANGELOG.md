@@ -4,6 +4,53 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-09-11
+
+### Added
+- **OpenRouterEmbedder measured data** — `scripts/stage_openrouter_benchmark.py`
+  staged Blocks 1→4 (5/200/2000/66000 passages) on the OpenAI
+  `text-embedding-3-small` model via OpenRouter. Block 4 hit HTTP 402
+  at 69% because the OpenRouter free tier requires credit purchase
+  at https://openrouter.ai/settings/credits. Per user decision
+  (2026-09-11), the local `all-MiniLM-L6-v2` embedder remains the
+  production default. See `notes/2026-09-11-openrouter-staging.md`
+  for measured cost ($0.10/full index), speed (12-22 min wall),
+  and quality (10/10 conceptual queries hit semantically).
+- **New sister-script test** `t_openrouter_resolves_key_from_hermes_env_fallback`
+  locks the new env-var resolution path.
+- **ADR-013** (OpenRouter validation record) appended to
+  `docs/design-decisions.md`.
+- **ADR-014** (local-first reaffirmed) added to
+  `docs/design-decisions.md`.
+- **docs/use-cases.md** (105 lines): three-persona front-end
+  brainstorming — academic scholar, secular wisdom-seeker,
+  non-Abrahamic researcher.
+- **docs/audience_expectations.md** (364 lines): six-persona compiled
+  reference with Council-role mapping (the load-bearing persona is
+  Sarah, the lay-faithful reader).
+- **docs/audience-similarities.md** (427 lines): cross-persona
+  analysis + 9-bundle next-level roadmap (P0 = Layer 1 Reader MVP).
+
+### Changed
+- **`bible/semantic.py`** — both `NIMEmbedder` and `OpenRouterEmbedder`
+  now fall back to `~/.hermes/.env` after the shell env lookup,
+  matching the Hermes convention of centralized credential storage.
+  Without this patch, scripts in a fresh terminal could not see keys
+  the user added via Hermes gateway restart.
+- **HANDOFF.md §8 #10** is now RESOLVED (was PARTIAL) — user confirmed
+  local-first production path; OpenRouter path is wired but
+  unprovisioned.
+- **tests/run_all.py** — existing "missing-key raises AuthError" tests
+  patched with hermetic mocks for the `~/.hermes/.env` fallback so
+  they don't depend on the user's actual `.env`.
+
+### Notes
+- **`docs/use-cases.md`** was originally drafted 2026-09-10 but
+  errored mid-stream; the working draft was committed in v0.14.0's
+  same-day thread and the companion docs
+  (`audience_expectations.md`, `audience-similarities.md`) are
+  v0.15.0 additions.
+
 ## [0.14.0] — 2026-09-10
 
 ### Added

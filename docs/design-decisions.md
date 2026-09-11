@@ -400,8 +400,89 @@ credential storage. New sister-script test
 - ADR-001 — Local-first principle
 - ADR-010 — Pluggable embedder factory (parent decision)
 
+### Production status (2026-09-11 — user decision)
+
+After the 402 stop, the user confirmed "the local sentence transformer
+is fine." This ADR therefore **remains in place as the
+infrastructure-validation record**, but the **production-default does not
+swap to OpenRouter** until the user adds credits and validates
+end-to-end. Concretely:
+
+- **Production embedder today:** local sentence-transformers
+  `all-MiniLM-L6-v2`, recall@10 baseline = 0.279 (per
+  `docs/evaluation.md` v0.10.0). Default per ADR-001.
+- **OpenRouter path:** wired and tested (Blocks 1-3 verified semantically
+  on real Bible text). Available via `--backend openrouter` whenever the
+  user adds ≥ $5 in credits at https://openrouter.ai/settings/credits.
+- **Why not swap without validation:** $0.20 was spent before the 402
+  kicked in; an additional full run + eval would cost ~$0.10. The 5-15%
+  recall@10 improvement I expected is *unvalidated*. ADR-001 (local-first)
+  holds until measurement proves the swap is worth the spend.
+
 ### Sign-off
 
 This ADR is signed off by the acting chair (Pierce) on 2026-09-11
 under the single-contributor convening from `COUNCIL.md` §3.1. Council
 review pending per the dormant-by-default position.
+
+## ADR-014 — Local sentence-transformers is the production embedder (v0.15.0)
+
+**Date:** 2026-09-11
+**Status:** Accepted
+**Deciders:** Pierce (acting chair per `COUNCIL.md` §6.1)
+**Supersedes:** — (affirms ADR-001; clarifies that ADR-013 did not change production default)
+**Closes:** HANDOFF §8 #1, #8, #10 (with the OpenRouter path kept available-but-not-provisioned)
+
+### Context
+
+ADR-013 documents the measured cost profile of the OpenRouter
+embedding path and the env-fallback shipped in v0.15.0. ADR-013 does
+**not** swap production default — the user explicitly confirmed on
+2026-09-11 ("the local sentence transformer is fine") that:
+
+1. ADR-001's local-first principle stands.
+2. The OpenRouter path is wired and available but unused until credits
+   are purchased and quality is validated against the local baseline.
+
+This ADR codifies that decision so future contributors don't get
+confused about what the production default is.
+
+### Decision
+
+**Production embedder default remains `all-MiniLM-L6-v2` via the local
+sentence-transformers backend (`get_embedder("local")`).**
+
+The `OpenRouterEmbedder` and `NIMEmbedder` backends stay available as
+optional alternates. To use them:
+
+- **OpenRouter:** add ≥$5 credits at https://openrouter.ai/settings/credits;
+  then `get_embedder("openrouter")` resumes working with no code change.
+- **NIM:** requires the user to authorize NIM spend per ADR-010.
+  Default model EOL documented in `notes/2026-09-10-nim-eol.md`.
+
+### Consequences
+
+**Positive:**
+- Zero spend for production retrieval (ADR-001 honored).
+- No vendor lock-in (factory pattern preserves swap-in per ADR-010).
+- No quality risk while the OpenRouter-vs-local recall comparison
+  remains unvalidated.
+
+**Negative:**
+- Default 0.279 recall@10 unchallenged. If the user *does* later fund
+  the OpenRouter path, we may discover the swap yields <5% improvement
+  (not worth the spend) — at that point, ADR-013 can be retired.
+
+### Related
+
+- ADR-001 — Local-first principle (parent)
+- ADR-010 — Pluggable embedder factory
+- ADR-013 — OpenRouter validation record (sibling; clarifies this is *not*
+  a production-default swap)
+- `docs/evaluation.md` — recall@10 baseline (v0.10.0)
+- `notes/2026-09-11-openrouter-staging.md` — measured cost/speed/quality
+
+### Sign-off
+
+This ADR is signed off by the acting chair (Pierce) on 2026-09-11
+under the single-contributor convening from `COUNCIL.md` §3.1.

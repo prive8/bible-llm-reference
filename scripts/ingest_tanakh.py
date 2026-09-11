@@ -132,6 +132,16 @@ def fetch_chapter(sefaria_book: str, chapter: int) -> dict:
 
     Returns the raw JSON dict with `text` (English) and `he` (Hebrew) arrays.
     Retries up to 3 times with exponential backoff on transient failures.
+
+    Notes on HTTP client choices:
+    - We use stdlib `urllib.request` (no extra dependency).
+    - We send `Connection: close` to disable HTTP keep-alive — during the
+      long Tanakh ingest (1,858 chapters), Python's urllib keep-alive
+      pool was hanging on Sefaria's rate limiter after ~20 minutes of
+      continuous use. Forcing a fresh connection per request trades a
+      tiny per-request latency penalty for reliable long-running behavior.
+    - We also use a short (10s) timeout — if Sefaria is slow, fail fast
+      and retry rather than hang.
     """
     url = f"{SEFARIA_BASE}/{sefaria_book}.{chapter}"
     last_err: Exception | None = None
@@ -142,9 +152,10 @@ def fetch_chapter(sefaria_book: str, chapter: int) -> dict:
                 headers={
                     "User-Agent": USER_AGENT,
                     "Accept": "application/json",
+                    "Connection": "close",  # disable keep-alive; see docstring
                 },
             )
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:  # network, timeout, 5xx
             last_err = e

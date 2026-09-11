@@ -319,6 +319,10 @@ domain) and surface it through the lookup API.
 - ✅ `docs/phase3-scope-torah.md` — scope doc, license attribution, acceptance criteria, out-of-scope (full Tanakh, Targum, Talmud are Phase 3.3+).
 - ✅ `bible/semantic.py --tradition` choices expanded to include `judaism`.
 
+### Phase 3.3 — Full Tanakh (Prophets + Writings) 📋 SCOPED (2026-09-10, v0.14.0 target)
+
+- 📋 `docs/phase3-scope-tanakh.md` — scope doc written. Adds ~24 books (Nevi'im + Ketuvim) on top of Torah; ~17,400 additional verses, ~570 additional chapters. Total Tanakh after Phase 3.3: ~30 books, ~927 chapters, ~23,000 verses. Implementation deferred (estimated ~3.5 hours; ingest alone is ~35-40 min due to Sefaria politeness). Same Sefaria API + same editions + same data shape as Torah phase.
+
 ### Daily note template
 
 ```

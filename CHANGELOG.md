@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Added
+- **`docs/phase3-scope-tanakh.md`** — scope doc for Phase 3.3 full Tanakh
+  (Nevi'im + Ketuvim, ~24 books, ~570 chapters, ~17,400 verses on top
+  of Torah). Adapter design recommends two narrow surfaces
+  (`bible/torah.py` for Pentateuch, `bible/tanakh.py` for the broader
+  canon) rather than a rename. Estimated ~3.5 hours implementation
+  time, mostly waiting on Sefaria ingest (~35-40 min). Inherits two
+  bugs from v0.11.0 that the implementation must NOT repeat:
+  (a) Hebrew/English key-swap in ingest script,
+  (b) NFC nikkud combining-mark ordering in test assertions.
+
 ## [0.13.0] — 2026-09-10
 
 ### Added

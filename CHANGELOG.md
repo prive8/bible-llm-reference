@@ -4,6 +4,43 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-09-10
+
+### Added
+- **`OpenRouterEmbedder` — paid hosted-embedding backend** (mirrors
+  `NIMEmbedder` API). Default model: `openai/text-embedding-3-small`
+  (1536-dim, ~$0.02/M tokens → ~$0.02 for the full ~1.12M-token
+  corpus). User authorized OpenRouter spend on 2026-09-10 as the
+  paid alternative to the NIM free-tier path (which is gated behind
+  a paid tier on the user's account, see `notes/2026-09-10-nim-eol.md`
+  for the discovery story).
+- **`bible/semantic.py` `get_embedder` factory routes `openrouter`**
+  explicitly. `auto` resolution now prefers `local` (free, offline)
+  > `openrouter` (cheap, paid, better retrieval) > `nim` (free-tier
+  gated on this account) > `mock` (CI fallback). Tests cover all four
+  paths plus the precedence-order assertion when both OpenRouter and
+  NIM keys are set.
+- **9 new OpenRouter sister-script tests** mirroring the NIM test
+  patterns: missing-key guard, full roundtrip, query-vs-texts
+  (no input_type for OpenAI-family), out-of-order index sort defense,
+  HTTP 429 / 401 mapping, malformed JSON, default-constants sanity,
+  factory routing, auto-precedence-over-NIM. Suite now **107 tests**.
+- **HANDOFF §8 #10** added — closes the OpenRouter benchmark workflow
+  (build index with OpenRouter → run eval harness → compare to local
+  baseline → close the decision).
+
+### Changed
+- `bible/semantic.py` `--backend` choices expanded from
+  `auto|local|mock|nim` to `auto|local|mock|nim|openrouter`.
+- `scripts/index_embeddings.py` `--backend` choices match.
+- `scripts/run_eval.py` (existing): no change — it already takes
+  `--index <name>`, so the OpenRouter benchmark reuses the harness
+  unchanged.
+- `t_nim_default_model_eol_documented_in_handoff` updated to also
+  check that OpenRouter is documented as the alternative paid path,
+  so the regression test locks both NIM (EOL) and OpenRouter (chosen
+  replacement) into the suite.
+
 ## [0.12.0] — 2026-09-10
 
 ### Changed

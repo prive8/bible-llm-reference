@@ -135,7 +135,7 @@ def collect_corpus(include_bible: bool = True, include_quran: bool = True, limit
 def main():
     parser = argparse.ArgumentParser(description="Generate offline vector index for semantic search (Milestone 3B)")
     parser.add_argument("--name", default="default", help="Output index name (default: 'default')")
-    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim"], default="auto",
+    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default="auto",
                         help="Embedder backend to use (default: 'auto')")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size for embedding (default: 64)")
     parser.add_argument("--limit", type=int, default=0, help="Optional max verses to index (for quick testing)")

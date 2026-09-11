@@ -222,6 +222,222 @@ DEFAULT_NIM_BATCH = 32
 DEFAULT_NIM_TIMEOUT = 60  # seconds per request
 
 
+# OpenRouter-hosted embedding defaults (paid; user has authorized spend
+# as of 2026-09-10). OpenRouter is OpenAI-compatible on the wire but
+# prefixes model IDs with the provider (e.g. "openai/text-embedding-3-small").
+# Free-tier note: OpenRouter has no truly-free embedding models as of
+# 2026-09-10 (only chat models are free), so this backend is paid-only.
+# See HANDOFF §8 #1 + #8 for the cost-posture reasoning.
+DEFAULT_OPENROUTER_MODEL = "openai/text-embedding-3-small"
+DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_OPENROUTER_BATCH = 100  # OpenRouter allows larger batches than NIM
+DEFAULT_OPENROUTER_TIMEOUT = 60
+
+
+class OpenRouterError(RuntimeError):
+    """Base class for OpenRouter embedder errors."""
+
+
+class OpenRouterAuthError(OpenRouterError):
+    """Missing or rejected OPENROUTER_API_KEY (HTTP 401/403)."""
+
+
+class OpenRouterRateLimitError(OpenRouterError):
+    """Rate-limited (HTTP 429). Retryable after backoff; check your spend."""
+
+
+class OpenRouterServerError(OpenRouterError):
+    """Server-side error (HTTP 5xx). Retryable."""
+
+
+class OpenRouterResponseError(OpenRouterError):
+    """Response was malformed (non-JSON, missing 'data', wrong shape)."""
+
+
+class OpenRouterConnectionError(OpenRouterError):
+    """Network-level failure (DNS, timeout, refused)."""
+
+
+class OpenRouterEmbedder(BaseEmbedder):
+    """OpenRouter-hosted embeddings backend.
+
+    Talks to the OpenAI-compatible ``/v1/embeddings`` endpoint at
+    ``openrouter.ai``. Reads ``OPENROUTER_API_KEY`` from the environment
+    unless ``api_key`` is passed explicitly.
+
+    OpenRouter is a paid service (no truly-free embedding tier as of
+    2026-09-10). User has explicitly authorized spend as of 2026-09-10;
+    see HANDOFF §8 #1 + #8. Default model is ``openai/text-embedding-3-small``
+    (1536-dim, ~$0.02 per million tokens).
+
+    Configuration (constructor takes precedence, env vars are fallbacks):
+        model      — OpenRouter model ID (with provider prefix).
+                     Env: ``OPENROUTER_EMBED_MODEL``.
+        base_url   — Endpoint base URL. Env: ``OPENROUTER_BASE_URL``.
+        api_key    — Bearer token. Env: ``OPENROUTER_API_KEY``.
+        batch_size — Max inputs per request. Default 100.
+        timeout    — Per-request timeout in seconds. Default 60.
+        app_name   — Sent as ``X-Title`` header for OpenRouter app
+                     attribution (no functional effect, just analytics).
+
+    Note: unlike NIM's E5-style embedders, the OpenAI-family models do
+    not have an ``input_type`` parameter. ``embed_query`` is just a
+    one-element ``embed_texts`` call.
+    """
+
+    def __init__(
+        self,
+        model: str = DEFAULT_OPENROUTER_MODEL,
+        base_url: str = DEFAULT_OPENROUTER_BASE_URL,
+        api_key: Optional[str] = None,
+        batch_size: int = DEFAULT_OPENROUTER_BATCH,
+        timeout: int = DEFAULT_OPENROUTER_TIMEOUT,
+        app_name: str = "bible-llm-reference",
+    ):
+        # Resolve config with env-var fallbacks
+        self.model = os.environ.get("OPENROUTER_EMBED_MODEL", model)
+        self.base_url = os.environ.get("OPENROUTER_BASE_URL", base_url).rstrip("/")
+        resolved_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
+        self.api_key = resolved_key
+        self.batch_size = max(1, batch_size)
+        self.timeout = max(1, timeout)
+        self.app_name = app_name
+        # Test hook: tests can monkey-patch this to a fake transport.
+        self._http_post = self._default_http_post
+
+        if not self.api_key:
+            raise OpenRouterAuthError(
+                "OPENROUTER_API_KEY is not set. Either export it in your "
+                "shell, add it to ~/.hermes/.env, or pass api_key=... to "
+                "OpenRouterEmbedder(...).\n"
+                "Get a key at https://openrouter.ai — the cheapest embedding "
+                f"model ({DEFAULT_OPENROUTER_MODEL}) runs ~$0.02 per million "
+                "tokens, so a one-time 1.12M-token index build costs ~$0.02."
+            )
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Embed a batch of texts. Returns one float list per input, in order."""
+        if not texts:
+            return []
+        results: list[list[float]] = []
+        for i in range(0, len(texts), self.batch_size):
+            batch = list(texts[i : i + self.batch_size])
+            batch_results = self._embed_one_batch(batch)
+            results.extend(batch_results)
+        return results
+
+    def embed_query(self, query: str) -> list[float]:
+        """Embed a single ad-hoc query. Just a one-element embed_texts() call."""
+        return self.embed_texts([query])[0]
+
+    def _embed_one_batch(self, texts: list[str]) -> list[list[float]]:
+        url = f"{self.base_url}/embeddings"
+        body = {
+            "model": self.model,
+            "input": texts,
+            "encoding_format": "float",
+        }
+        try:
+            payload = self._http_post(url, body)
+        except urllib.error.HTTPError as e:
+            body_text = ""
+            try:
+                body_text = e.read().decode("utf-8", errors="replace")[:500]
+            except Exception:
+                pass
+            if e.code in (401, 403):
+                raise OpenRouterAuthError(
+                    f"OpenRouter auth failed (HTTP {e.code}). Check that "
+                    f"OPENROUTER_API_KEY is set and has credit/allowance "
+                    f"for model {self.model!r}. Server said: {body_text or '(empty)'}"
+                ) from e
+            if e.code == 429:
+                raise OpenRouterRateLimitError(
+                    f"OpenRouter rate limit hit (HTTP 429). Either slow down, "
+                    f"check your spend cap at https://openrouter.ai/credits, "
+                    f"or upgrade. Server said: {body_text or '(empty)'}"
+                ) from e
+            if 500 <= e.code < 600:
+                raise OpenRouterServerError(
+                    f"OpenRouter server error (HTTP {e.code}). Retry with "
+                    f"backoff. Server said: {body_text or '(empty)'}"
+                ) from e
+            raise OpenRouterError(
+                f"OpenRouter HTTP error {e.code}: {body_text or '(empty)'}"
+            ) from e
+        except urllib.error.URLError as e:
+            raise OpenRouterConnectionError(
+                f"OpenRouter connection failed: {e.reason}. Check "
+                f"OPENROUTER_BASE_URL ({self.base_url!r}) and your network."
+            ) from e
+
+        # Parse + validate response
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise OpenRouterResponseError(
+                f"OpenRouter returned non-JSON response: {e}"
+            ) from e
+
+        if "data" not in data:
+            raise OpenRouterResponseError(
+                f"OpenRouter response missing 'data' field. Got keys: "
+                f"{list(data.keys())}"
+            )
+
+        items = data["data"]
+        if not isinstance(items, list):
+            raise OpenRouterResponseError(
+                f"OpenRouter 'data' field is not a list: {type(items)}"
+            )
+
+        if len(items) != len(texts):
+            raise OpenRouterResponseError(
+                f"OpenRouter returned {len(items)} embeddings for "
+                f"{len(texts)} inputs. API contract violation."
+            )
+
+        # Sort by 'index' to defend against out-of-order returns
+        indexed = sorted(items, key=lambda x: x.get("index", 0))
+        out: list[list[float]] = []
+        for item in indexed:
+            emb = item.get("embedding")
+            if not isinstance(emb, list):
+                raise OpenRouterResponseError(
+                    f"OpenRouter 'embedding' is not a list: {type(emb)}"
+                )
+            try:
+                vec = [float(x) for x in emb]
+            except (TypeError, ValueError) as e:
+                raise OpenRouterResponseError(
+                    f"OpenRouter embedding contains non-numeric value: {e}"
+                ) from e
+            out.append(vec)
+        return out
+
+    def _default_http_post(self, url: str, body: dict) -> str:
+        """The default HTTP transport. Tests can replace ``_http_post`` to mock."""
+        data = json.dumps(body).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        # OpenRouter app attribution headers (analytics only; safe to
+        # set to anything reasonable; required by OpenRouter's TOS for
+        # ranked-app display, optional in the API contract itself).
+        if self.app_name:
+            headers["X-Title"] = self.app_name
+        req = urllib.request.Request(
+            url,
+            data=data,
+            method="POST",
+            headers=headers,
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            return resp.read().decode("utf-8")
+
+
 class NIMEmbedder(BaseEmbedder):
     """NVIDIA NIM hosted embeddings backend.
 
@@ -383,12 +599,16 @@ class NIMEmbedder(BaseEmbedder):
 
 
 def get_embedder(backend: str = "auto") -> BaseEmbedder:
-    """Factory for embedding backends: 'local', 'mock', 'nim', or 'auto'.
+    """Factory for embedding backends: 'local', 'mock', 'nim',
+    'openrouter', or 'auto'.
 
     'auto' resolution order:
       1. If ``sentence_transformers`` importable → ``LocalSentenceTransformerEmbedder``
-      2. Else if ``NVIDIA_API_KEY`` in env → ``NIMEmbedder`` (network call)
-      3. Else → ``MockDeterministicEmbedder`` (offline / CI fallback)
+      2. Else if ``OPENROUTER_API_KEY`` in env → ``OpenRouterEmbedder``
+         (preferred when both are available — typically cheaper + better
+         for retrieval than the local MiniLM model; see HANDOFF §8 #8)
+      3. Else if ``NVIDIA_API_KEY`` in env → ``NIMEmbedder``
+      4. Else → ``MockDeterministicEmbedder`` (offline / CI fallback)
 
     Local embedder instances are cached per-process via an LRU wrapper.
     Without caching, every search_semantic() call would re-load the
@@ -401,12 +621,19 @@ def get_embedder(backend: str = "auto") -> BaseEmbedder:
         return _get_cached_local_embedder()
     elif backend == "nim":
         return NIMEmbedder()
+    elif backend == "openrouter":
+        return OpenRouterEmbedder()
     elif backend == "auto":
         try:
             import sentence_transformers  # noqa: F401
             return _get_cached_local_embedder()
         except ImportError:
             pass
+        if os.environ.get("OPENROUTER_API_KEY"):
+            try:
+                return OpenRouterEmbedder()
+            except OpenRouterAuthError:
+                pass
         if os.environ.get("NVIDIA_API_KEY"):
             try:
                 return NIMEmbedder()
@@ -580,8 +807,8 @@ def main():
     parser.add_argument("-n", "--top-k", type=int, default=10, help="Number of results (default: 10)")
     parser.add_argument("--tradition", choices=["all", "bible", "islam", "judaism"], default="all",
                         help="Filter tradition (default: all)")
-    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim"], default="auto",
-                        help="Embedder backend (default: auto — local if available, else NIM if NVIDIA_API_KEY set, else mock)")
+    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default="auto",
+                        help="Embedder backend (default: auto — local if available, else OpenRouter if OPENROUTER_API_KEY set, else NIM if NVIDIA_API_KEY set, else mock)")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()

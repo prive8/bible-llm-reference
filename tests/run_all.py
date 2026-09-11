@@ -84,6 +84,8 @@ _metrics_for_query = _mod._metrics_for_query
 from bible.semantic import (  # noqa: E402
     DEFAULT_NIM_BASE_URL,
     DEFAULT_NIM_MODEL,
+    DEFAULT_OPENROUTER_BASE_URL,
+    DEFAULT_OPENROUTER_MODEL,
     NIMAuthError,
     NIMConnectionError,
     NIMEmbedder,
@@ -91,6 +93,13 @@ from bible.semantic import (  # noqa: E402
     NIMRateLimitError,
     NIMResponseError,
     NIMServerError,
+    OpenRouterAuthError,
+    OpenRouterConnectionError,
+    OpenRouterEmbedder,
+    OpenRouterError,
+    OpenRouterRateLimitError,
+    OpenRouterResponseError,
+    OpenRouterServerError,
     get_embedder,
     cosine_similarity,
     dot_product,
@@ -708,15 +717,22 @@ def t_nim_default_model_eol_documented_in_handoff():
     so this test locks in the documentation finding rather than the
     implementation — the implementation will change when the user
     authorizes spend.
+
+    Updated 2026-09-10: OpenRouter added as the alternative paid path
+    (HANDOFF §8 #10). Test now also checks that OpenRouter is documented
+    as the chosen replacement, so future contributors see both paths.
     """
     handoff = (ROOT / "HANDOFF.md").read_text(encoding="utf-8")
     # Find the §8 #8 line and check it mentions 410 / EOL / free-tier
     needle_eol = "410" in handoff or "EOL" in handoff or "end of life" in handoff.lower()
     needle_free_tier = "free-tier" in handoff.lower() or "free tier" in handoff.lower()
     needle_decision = "#8" in handoff and "NIM" in handoff
+    needle_openrouter = "OpenRouter" in handoff
     _assert(needle_eol, "HANDOFF must mention the EOL/410 status of the default NIM model")
     _assert(needle_free_tier, "HANDOFF must mention free-tier restrictions")
     _assert(needle_decision, "HANDOFF must keep HANDOFF §8 #8 reference")
+    _assert(needle_openrouter,
+            "HANDOFF must mention OpenRouter as the alternative paid path (added in v0.13.0)")
 
 
 @_register("t_council_convened_per_doc")
@@ -791,6 +807,304 @@ def t_get_embedder_factory_routes_nim():
             _os.environ.pop("NVIDIA_API_KEY", None)
         else:
             _os.environ["NVIDIA_API_KEY"] = saved_key
+
+
+# ---------------------------------------------------------------------------
+# OpenRouter embedder tests (paid backend added in v0.13.0)
+# ---------------------------------------------------------------------------
+
+@_register("t_openrouter_missing_key_raises_clear_auth_error")
+def t_openrouter_missing_key_raises_clear_auth_error():
+    """Construction without OPENROUTER_API_KEY must fail with OpenRouterAuthError
+    that mentions both the env var and the model name (so a future
+    contributor can self-diagnose)."""
+    import os as _os
+    saved = _os.environ.pop("OPENROUTER_API_KEY", None)
+    try:
+        try:
+            OpenRouterEmbedder()
+            _assert(False, "OpenRouterEmbedder() should have raised OpenRouterAuthError")
+        except OpenRouterAuthError as e:
+            msg = str(e)
+            _assert("OPENROUTER_API_KEY" in msg, f"error must mention env var: {msg!r}")
+            _assert(DEFAULT_OPENROUTER_MODEL in msg, f"error must mention default model: {msg!r}")
+    finally:
+        if saved is not None:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_embed_roundtrip_with_mock_transport")
+def t_openrouter_embed_roundtrip_with_mock_transport():
+    """Mock HTTP transport: 3 inputs → 3 embeddings, monotonic markers across batches.
+
+    Verifies the request body shape (model + input + encoding_format; NO
+    input_type since OpenAI-family models don't have it), the response
+    parsing, and the per-index ordering defense.
+    """
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+    captured_requests: list[dict] = []
+    global_index = [0]
+
+    def fake_post(url: str, body: dict) -> str:
+        captured_requests.append({"url": url, "body": dict(body)})
+        n = len(body["input"])
+        batch_offset = global_index[0]
+        global_index[0] += n
+        return json.dumps({
+            "data": [
+                {"index": i, "embedding": [float((batch_offset + i + 1) * 100)] * 4}
+                for i in range(n)
+            ],
+            "usage": {"prompt_tokens": 5 * n, "total_tokens": 5 * n},
+        })
+
+    try:
+        embedder = OpenRouterEmbedder(batch_size=2)
+        embedder._http_post = fake_post
+        out = embedder.embed_texts(["alpha", "beta", "gamma"])
+        _assert(len(out) == 3, f"expected 3, got {len(out)}")
+        # Monotonic markers: batch1 → 100, 200; batch2 → 300
+        _assert(out[0][0] == 100.0, f"out[0][0]={out[0][0]} expected 100.0")
+        _assert(out[1][0] == 200.0, f"out[1][0]={out[1][0]} expected 200.0")
+        _assert(out[2][0] == 300.0, f"out[2][0]={out[2][0]} expected 300.0")
+        # Body shape: must NOT have input_type (OpenAI doesn't support it)
+        for req in captured_requests:
+            _assert("input_type" not in req["body"],
+                    f"OpenRouter body must not have input_type: {req['body']}")
+            _assert(req["body"]["encoding_format"] == "float",
+                    f"encoding_format must be float: {req['body']}")
+            _assert(req["body"]["model"] == DEFAULT_OPENROUTER_MODEL,
+                    f"model must be default: {req['body']}")
+        # URL shape
+        for req in captured_requests:
+            _assert(req["url"].endswith("/embeddings"), f"url must end with /embeddings: {req['url']}")
+            _assert("openrouter.ai" in req["url"], f"url must hit openrouter.ai: {req['url']}")
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_embed_query_is_one_element_embed_texts")
+def t_openrouter_embed_query_is_one_element_embed_texts():
+    """embed_query must work like a one-element embed_texts call (no
+    input_type override — OpenAI-family models don't have one)."""
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        return json.dumps({
+            "data": [{"index": 0, "embedding": [0.5, 0.25, 0.125]}],
+            "usage": {"prompt_tokens": 3, "total_tokens": 3},
+        })
+
+    try:
+        embedder = OpenRouterEmbedder()
+        embedder._http_post = fake_post
+        out = embedder.embed_query("test query")
+        _assert(len(out) == 3, f"expected dim 3, got {len(out)}")
+        _assert(out == [0.5, 0.25, 0.125], f"got {out}")
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_out_of_order_indexes_are_sorted")
+def t_openrouter_out_of_order_indexes_are_sorted():
+    """Fake API returns reversed index values; embedder must sort them
+    to preserve input order."""
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        n = len(body["input"])
+        # Return items in REVERSE index order to trigger the sort defense
+        return json.dumps({
+            "data": [
+                {"index": n - 1 - i, "embedding": [float((n - i) * 100)]}
+                for i in range(n)
+            ],
+        })
+
+    try:
+        embedder = OpenRouterEmbedder()
+        embedder._http_post = fake_post
+        out = embedder.embed_texts(["a", "b", "c"])
+        _assert(len(out) == 3, f"expected 3, got {len(out)}")
+        # After sort-by-index, the embeddings must be in input order:
+        # sorted indices are [0, 1, 2] with embeddings [100, 200, 300]
+        # which is input order — so out[0] corresponds to "a" = 100.
+        _assert(out[0][0] == 100.0, f"out[0][0]={out[0][0]} expected 100.0")
+        _assert(out[1][0] == 200.0, f"out[1][0]={out[1][0]} expected 200.0")
+        _assert(out[2][0] == 300.0, f"out[2][0]={out[2][0]} expected 300.0")
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_http_429_maps_to_rate_limit_error")
+def t_openrouter_http_429_maps_to_rate_limit_error():
+    """HTTP 429 from OpenRouter must raise OpenRouterRateLimitError (not generic)."""
+    import urllib.error as _ue
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        raise _ue.HTTPError(
+            url="https://openrouter.ai/api/v1/embeddings",
+            code=429,
+            msg="Too Many Requests",
+            hdrs=(),
+            fp=None,
+        )
+
+    try:
+        embedder = OpenRouterEmbedder()
+        embedder._http_post = fake_post
+        try:
+            embedder.embed_texts(["a"])
+            _assert(False, "expected OpenRouterRateLimitError")
+        except OpenRouterRateLimitError:
+            pass
+        except OpenRouterError as e:
+            _assert(False, f"expected OpenRouterRateLimitError, got OpenRouterError: {e}")
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_http_401_maps_to_auth_error")
+def t_openrouter_http_401_maps_to_auth_error():
+    """HTTP 401/403 from OpenRouter must raise OpenRouterAuthError (not generic)."""
+    import urllib.error as _ue
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        raise _ue.HTTPError(
+            url="https://openrouter.ai/api/v1/embeddings",
+            code=401,
+            msg="Unauthorized",
+            hdrs=(),
+            fp=None,
+        )
+
+    try:
+        embedder = OpenRouterEmbedder()
+        embedder._http_post = fake_post
+        try:
+            embedder.embed_texts(["a"])
+            _assert(False, "expected OpenRouterAuthError")
+        except OpenRouterAuthError:
+            pass
+        except OpenRouterError as e:
+            _assert(False, f"expected OpenRouterAuthError, got OpenRouterError: {e}")
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_malformed_json_raises_response_error")
+def t_openrouter_malformed_json_raises_response_error():
+    """Non-JSON response from OpenRouter must raise OpenRouterResponseError."""
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+
+    def fake_post(url: str, body: dict) -> str:
+        return "this is not json {"
+
+    try:
+        embedder = OpenRouterEmbedder()
+        embedder._http_post = fake_post
+        try:
+            embedder.embed_texts(["a"])
+            _assert(False, "expected OpenRouterResponseError")
+        except OpenRouterResponseError:
+            pass
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_default_model_and_base_url")
+def t_openrouter_default_model_and_base_url():
+    """Sanity-check the OpenRouter default constants."""
+    _assert(DEFAULT_OPENROUTER_MODEL == "openai/text-embedding-3-small",
+            f"DEFAULT_OPENROUTER_MODEL expected 'openai/text-embedding-3-small', got {DEFAULT_OPENROUTER_MODEL!r}")
+    _assert("openrouter.ai" in DEFAULT_OPENROUTER_BASE_URL,
+            f"DEFAULT_OPENROUTER_BASE_URL must point at openrouter.ai: {DEFAULT_OPENROUTER_BASE_URL!r}")
+    _assert(DEFAULT_OPENROUTER_BASE_URL.endswith("/v1"),
+            f"DEFAULT_OPENROUTER_BASE_URL must end with /v1: {DEFAULT_OPENROUTER_BASE_URL!r}")
+
+
+@_register("t_get_embedder_factory_routes_openrouter")
+def t_get_embedder_factory_routes_openrouter():
+    """get_embedder('openrouter') must return an OpenRouterEmbedder instance."""
+    import os as _os
+    saved = _os.environ.get("OPENROUTER_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+    try:
+        embedder = get_embedder("openrouter")
+        _assert(isinstance(embedder, OpenRouterEmbedder),
+                type(embedder).__name__)
+    finally:
+        if saved is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_get_embedder_auto_prefers_openrouter_over_nim_when_both_keys_set")
+def t_get_embedder_auto_prefers_openrouter_over_nim_when_both_keys_set():
+    """When both OPENROUTER_API_KEY and NVIDIA_API_KEY are set, 'auto'
+    must prefer OpenRouter (cheaper + better for our retrieval shape;
+    see HANDOFF §8 #8)."""
+    import os as _os
+    saved_or = _os.environ.get("OPENROUTER_API_KEY")
+    saved_nim = _os.environ.get("NVIDIA_API_KEY")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake"
+    _os.environ["NVIDIA_API_KEY"] = "nvapi-fake"
+    try:
+        # Only test if sentence_transformers is NOT importable (otherwise
+        # 'auto' returns LocalSentenceTransformerEmbedder, which is even
+        # higher priority than OpenRouter).
+        try:
+            import sentence_transformers  # noqa: F401
+            _skip_with_reason = True
+        except ImportError:
+            _skip_with_reason = False
+        if _skip_with_reason:
+            return  # skip — Local has priority over both
+        embedder = get_embedder("auto")
+        _assert(isinstance(embedder, OpenRouterEmbedder),
+                f"expected OpenRouterEmbedder, got {type(embedder).__name__}")
+    finally:
+        if saved_or is None:
+            _os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            _os.environ["OPENROUTER_API_KEY"] = saved_or
+        if saved_nim is None:
+            _os.environ.pop("NVIDIA_API_KEY", None)
+        else:
+            _os.environ["NVIDIA_API_KEY"] = saved_nim
 
 
 # ---------------------------------------------------------------------------

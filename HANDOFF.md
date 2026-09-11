@@ -508,15 +508,15 @@ premise changed.
 
 1. **Embedding model for semantic search (Milestone 3B).** Architecture
    landed in v0.6.0 + v0.7.0 (ADR-010). NIM `NIMEmbedder` is implemented
-   and tested. Operational choice (when to actually index the 31K Bible +
-   6K Quran + 6K Torah corpus with NIM vs. local sentence-transformers)
-   deferred — user has not yet authorized spend on hosted inference, and
-   NIM embedding endpoints are gated behind a paid tier on the user's
-   account (free-tier NIM exposes zero embedding models as of 2026-09-10,
-   see decision #8). The architecture supports both backends
-   interchangeably; either path works.
-   **Revisit when:** user signals willingness to spend on hosted inference
-   (per memory, 2026-09-09 cost posture: free-tier endpoints only).
+   and tested. **OpenRouter** `OpenRouterEmbedder` added in v0.13.0 as
+   a paid-but-cheap alternative; the user authorized OpenRouter spend
+   on 2026-09-10. Operational choice (which backend to actually use for
+   indexing the 31K Bible + 6K Quran + 6K Torah corpus) is now bounded
+   by two options: NIM (free-tier gated — see #8) or OpenRouter
+   (~$0.02 one-time for the full corpus). Local sentence-transformers
+   remains the no-spend option. The architecture supports all three
+   backends interchangeably. **Revisit when:** user runs the live
+   OpenRouter benchmark (item added in v0.13.0, see §8 #10 below).
 2. **Phase 2 base model (RESOLVED 2026-09-10, v0.12.0).** Family
    pick: **Llama-3.1-8B-Instruct** (or successor at same parameter
    count). Reasoning in ADR-012. The pick is a *family* not a
@@ -564,9 +564,13 @@ premise changed.
    original default `nvidia/nv-embedqa-e5-v5` returned 410 Gone (EOL
    2026-08-25). Free-tier NIM currently exposes ~80 chat models but
    **zero embedding models**.
-   **Revisit when:** user authorizes a one-time NIM indexing spend
-   (~$1.20 for 1.12M-token corpus, ~7-10 min wall time; queries stay
-   free-tier). Until then, local model is the production path.
+   **Path forward (2026-09-10 update):** User authorized OpenRouter
+   spend as an alternative paid path. `OpenRouterEmbedder` shipped in
+   v0.13.0 with default model `openai/text-embedding-3-small` (1536-dim,
+   ~$0.02/M tokens → ~$0.02 for full corpus). When `OPENROUTER_API_KEY`
+   is added to `~/.hermes/.env`, the benchmark in #10 below runs.
+   **Revisit when:** OpenRouter benchmark completes (item #10). Until
+   then, local model is the production path.
 9. **Council convening (RESOLVED 2026-09-10, v0.12.0).** The
    `COUNCIL.md` constitution was previously labeled "STUB" and
    deferred until a second contributor or Phase 2. On 2026-09-10 the
@@ -582,6 +586,26 @@ premise changed.
    to reflect convening; README Governance section now says "active
    single-contributor body" instead of "dormant." Principles in
    `COUNCIL.md` §2 unchanged.
+10. **OpenRouter embedding benchmark (PENDING, v0.13.0).** New
+    `OpenRouterEmbedder` backend shipped in v0.13.0 (commit pending).
+    After user adds `OPENROUTER_API_KEY` to `~/.hermes/.env`, the next
+    agent should:
+    (a) Run `python scripts/index_embeddings.py --backend openrouter --name openrouter-default`
+        to rebuild the index with OpenAI `text-embedding-3-small`
+        (1536-dim, ~$0.02 total for the ~1.12M-token corpus).
+    (b) Run `python scripts/run_eval.py --paths semantic --index openrouter-default`
+        to get OpenRouter recall@10 / MRR / nDCG@10 numbers.
+    (c) Compare to local baseline (semantic recall@10 = 0.279 in
+        `docs/evaluation.md` v0.10.0 baseline).
+    (d) Update `docs/evaluation.md` + `docs/design-decisions.md` ADR-011
+        with the result.
+    (e) Close this §8 #10 decision with a yes/no on whether the
+        paid-embedder swap is worth the $0.02.
+    Expected outcome (educated guess, not from data): OpenRouter
+    `text-embedding-3-small` is the strongest general-purpose English
+    embedder at the cheap tier and should outperform
+    `all-MiniLM-L6-v2` by 5-15% on recall@10. If the gap is < 5%, the
+    local model stays the production path; if it's > 10%, swap.
 
 ---
 

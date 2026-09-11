@@ -98,3 +98,52 @@ because the staging script manually loaded the key from the file. The
 production indexer relied on shell-env propagation. **Future integration
 tests should always invoke the production script, not a parallel
 implementation.**
+
+## Block 4 (final attempt) — 402 Payment Required at 69% (2026-09-11)
+
+The v0.15.0 env-fallback patch fixed the script, and the indexer ran
+cleanly to 46,144 / 66,689 passages (69%) before OpenRouter returned:
+
+```
+HTTP 402: Insufficient credits. This account never purchased credits.
+https://openrouter.ai/settings/credits
+```
+
+### Account state at the moment of failure
+Per `GET https://openrouter.ai/api/v1/auth/key`:
+- limit: $10 (monthly)
+- limit_remaining: $9.80
+- usage (since reset): $0.20
+- is_free_tier: true
+- (Key prefix: sk-or-v1-77d...c87)
+
+So the user's free-tier key comes with a small initial credit allocation
+that gets exhausted even by moderate use. Paid-only models
+(`openai/text-embedding-3-small`) require explicit credit purchase.
+
+### What this means for the project's $10/mo budget
+- The user must purchase credits on https://openrouter.ai/settings/credits
+  to use paid embedding models via OpenRouter.
+- **Cumulative real spend: $0.20.** (Block 4 partial + Blocks 1-3 ≈ $0.20)
+- Remaining budget: ~$9.80 — room for ~70 more full-corpus rebuilds after credits are added.
+- ADR-013 acceptance criteria still hold; the env-fallback bug + the
+  credit-budget discovery are both documented.
+
+### Untried fallbacks if user wants no-spend
+- **Local sentence-transformers**: zero cost, recall@10 baseline 0.279.
+  Already indexed as `data/embeddings/default_*` per v0.13.0.
+- **Hugging Face free tier**: ≈1k requests/day on `intfloat/e5-large-v2`,
+  flaky per memory. Marginal value.
+- **NIM (paid)**: $1.20 per build, user is still reluctant per memory.
+
+### Recommended next move
+If user is comfortable with paid OpenRouter:
+- Add $5–$10 of credits at https://openrouter.ai/settings/credits
+- Re-run `scripts/index_embeddings.py --backend openrouter --name openrouter-default`
+  (cost will be another $0.10)
+- Then run `scripts/run_eval.py --paths semantic --index openrouter-default`
+  to get the recall@10 number for the ADR-013 / HANDOFF §8 #10 comparison
+
+If user wants zero-spend:
+- Skip OpenRouter for now; the local `default` index is already validated
+- Document ADR-013 as "OpenRouter path validated but not committed; local sentence-transformers default per ADR-001 stands"

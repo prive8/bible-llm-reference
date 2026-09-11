@@ -635,26 +635,26 @@ premise changed.
    to reflect convening; README Governance section now says "active
    single-contributor body" instead of "dormant." Principles in
    `COUNCIL.md` §2 unchanged.
-10. **OpenRouter embedding benchmark (PENDING, v0.13.0).** New
-    `OpenRouterEmbedder` backend shipped in v0.13.0 (commit pending).
-    After user adds `OPENROUTER_API_KEY` to `~/.hermes/.env`, the next
-    agent should:
-    (a) Run `python scripts/index_embeddings.py --backend openrouter --name openrouter-default`
-        to rebuild the index with OpenAI `text-embedding-3-small`
-        (1536-dim, ~$0.02 total for the ~1.12M-token corpus).
-    (b) Run `python scripts/run_eval.py --paths semantic --index openrouter-default`
-        to get OpenRouter recall@10 / MRR / nDCG@10 numbers.
-    (c) Compare to local baseline (semantic recall@10 = 0.279 in
-        `docs/evaluation.md` v0.10.0 baseline).
-    (d) Update `docs/evaluation.md` + `docs/design-decisions.md` ADR-011
-        with the result.
-    (e) Close this §8 #10 decision with a yes/no on whether the
-        paid-embedder swap is worth the $0.02.
-    Expected outcome (educated guess, not from data): OpenRouter
-    `text-embedding-3-small` is the strongest general-purpose English
-    embedder at the cheap tier and should outperform
-    `all-MiniLM-L6-v2` by 5-15% on recall@10. If the gap is < 5%, the
-    local model stays the production path; if it's > 10%, swap.
+10. **OpenRouter embedding benchmark (PARTIAL — blocked by 402 at 69%).**
+    New `OpenRouterEmbedder` backend shipped in v0.13.0, env-fallback
+    to `~/.hermes/.env` shipped in v0.15.0 (commit `03bb7fa`).
+    **Status as of 2026-09-11 17:30 ET:**
+    - Blocks 1-3 staged successfully (5 / 200 / 2000 passages, $0.001553).
+    - Block 4 run started, **failed at 46,144 / 66,689 passages (69%) with
+      HTTP 402 Payment Required.**
+    - Account state: $10 monthly limit, $0.20 used (incl. partial Block 4),
+      $9.80 remaining; `is_free_tier: true` BUT `text-embedding-3-small`
+      requires paid credits.
+    - **User must purchase credits at https://openrouter.ai/settings/credits
+      to continue.** Even $5 should be enough for the remainder.
+    - ADR-013 documents the decision-of-record regardless.
+    - **Next agent action (if user adds credits):**
+      (a) `python scripts/index_embeddings.py --backend openrouter
+           --name openrouter-default` — completes the 20K remaining.
+      (b) `python scripts/run_eval.py --paths semantic --index openrouter-default`
+      (c) Compare recall@10 to local 0.279 baseline.
+      (d) Update `docs/evaluation.md` + ADR-011.
+      (e) Close this §8 #10 decision with a yes/no on the swap.
 11. **Phase 2 fine-tune dataset prep (RESOLVED, schema defined).**
     `scripts/prepare_phase2_dataset.py` ships in [Unreleased]. Defines
     the JSONL schema (OpenAI chat-format messages + metadata), voice

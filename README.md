@@ -336,6 +336,16 @@ See [`SECURITY.md`](./SECURITY.md). This is a public repo with no secrets in the
 
 **Data:** Each source carries its own license. See the [Data sources](#data-sources) table. Public domain, CC-BY-SA, or CC-BY 4.0 — verify with your jurisdiction before commercial use.
 
+## Use cases
+
+Three user personas drove the v0.14.0 design center — see [`docs/use-cases.md`](./docs/use-cases.md) for the full write-up:
+
+- **Academic** — original-language + critical apparatus + reproducible queries (the biblical studies scholar persona)
+- **Secular seeker** — easy entry, cross-tradition comparison, plain-English summaries clearly marked as such (the wisdom-seeker persona)
+- **Comparative researcher** — cross-tradition parallel display, source transparency, non-Abrahamic primary corpora (the religious-studies researcher persona)
+
+The front-end roadmap is **three layers over the same CLI backend** — Reader / Scholar / Comparative — so each persona gets a tailored surface without rebuilding the data layer.
+
 ## Related projects
 
 - **[`prive8/llm-from-scratch`](https://github.com/prive8/llm-from-scratch)** — a Karpathy-style workshop on building a GPT from scratch. Used as a reference when Phase 2 lands.

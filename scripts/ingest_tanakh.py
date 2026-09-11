@@ -205,27 +205,80 @@ def extract_hebrew(raw: dict) -> list[str]:
 # Edition ingest
 # ---------------------------------------------------------------------------
 
+def _load_partial(target_path: Path) -> tuple[dict, list[str]]:
+    """Load an existing partial edition file for incremental update.
+
+    Returns (canonical_doc, books_already_present).
+    The doc dict is built from scratch; books_already_present is the list
+    of book names with non-empty verse arrays. Caller uses this to skip
+    books that are already fully ingested.
+    """
+    if not target_path.exists():
+        return None, []
+    with open(target_path, "r", encoding="utf-8") as f:
+        doc = json.load(f)
+    already = [d["name"] for d in doc.get("divisions", []) if d.get("verses")]
+    return doc, already
+
+
 def ingest_edition(edition_key: str, edition_label: str, license_str: str,
                    extract_fn, target_filename: str,
                    only_book: str | None = None,
-                   skip_existing: bool = False) -> Path | None:
-    """Walk all books × chapters, call extract_fn(raw) → text, build schema."""
+                   skip_existing: bool = False,
+                   incremental: bool = True) -> Path | None:
+    """Walk all books × chapters, call extract_fn(raw) → text, build schema.
+
+    Per-book writes: after each book completes, the JSON file is rewritten
+    with the new book appended. This means a long-running ingest can be
+    interrupted and resumed without losing the books that already completed.
+
+    With --only-book: writes only that one book (still per-book incremental).
+    With --skip-existing and a complete edition on disk: skip the edition.
+    """
     print(f"  [{edition_key}] starting ({edition_label})...")
-    divisions = []
+    target = DATA_DIR / target_filename
+
+    # Load partial state for incremental mode
+    canonical_doc = None
+    already_present: list[str] = []
+    if incremental and target.exists():
+        canonical_doc, already_present = _load_partial(target)
+        if canonical_doc is not None:
+            print(f"  [{edition_key}] resuming — {len(already_present)} book(s) already present: {already_present}")
+
+    if skip_existing and target.exists() and not only_book and not canonical_doc:
+        # skip the whole edition (no partial state to resume)
+        print(f"  [{edition_key}] {target.name} exists, skipping (--skip-existing)")
+        return None
+
+    if canonical_doc is None:
+        canonical_doc = {
+            "tradition": "judaism",
+            "translation": edition_label,
+            "key": edition_key,
+            "language": "he" if edition_key == "hebrew-nikkud" else "en",
+            "structure": "book_chapter_verse",
+            "license": license_str,
+            "source": "Sefaria API (www.sefaria.org)",
+            "divisions": [],
+        }
+
+    divisions_by_name = {d["name"]: d for d in canonical_doc.get("divisions", [])}
     total_expected_verses = 0
-    total_actual_verses = 0
+    total_actual_verses = sum(
+        sum(len(v) for v in d.get("verses", []))
+        for d in canonical_doc.get("divisions", [])
+    )
 
     for canonical, hebrew, translit, n_chapters, n_verses, section in BOOKS:
         if only_book and canonical != only_book:
             continue
 
-        # If skip-existing is on and target filename exists for this
-        # single-edition file, skip the whole book
-        target = DATA_DIR / target_filename
-        if skip_existing and target.exists() and not only_book:
-            # skip the whole edition
-            print(f"  [{edition_key}] {target.name} exists, skipping (--skip-existing)")
-            return None
+        # Skip if this book is already fully present (incremental mode)
+        if incremental and canonical in already_present:
+            print(f"    {canonical} ({section}): already present, skipping")
+            total_expected_verses += n_verses
+            continue
 
         sefaria_book = SEFARIA_BOOK_NAME.get(canonical, canonical)
         verses = []
@@ -242,33 +295,49 @@ def ingest_edition(edition_key: str, edition_label: str, license_str: str,
 
         total_expected_verses += n_verses
         total_actual_verses += len(verses)
-        divisions.append({
+        book_obj = {
             "name": canonical,
             "name_hebrew": hebrew,
             "name_transliteration": translit,
             "section": section,
             "chapters_count": n_chapters,
             "verses": verses,
-        })
-        print(f"    {canonical} ({section}): {n_chapters} chapters, "
-              f"{len(verses)} verses (running total: {total_actual_verses} "
-              f"of {total_expected_verses} expected)")
+        }
+        divisions_by_name[canonical] = book_obj
+        # Reorder canonical_doc["divisions"] to follow BOOKS order
+        canonical_doc["divisions"] = [
+            divisions_by_name[b[0]]
+            for b in BOOKS if b[0] in divisions_by_name
+        ]
+        # Per-book write: incremental progress so a long-running ingest
+        # can be interrupted and resumed. Recompute totals from the doc
+        # itself rather than incrementally (which had a double-count bug).
+        total_actual_verses = sum(
+            len(v) for d in canonical_doc.get("divisions", [])
+            for v in d.get("verses", [])
+        )
+        if incremental and not only_book:
+            with open(target, "w", encoding="utf-8") as f:
+                json.dump(canonical_doc, f, ensure_ascii=False, indent=2)
+            print(f"    {canonical} ({section}): {n_chapters} chapters, "
+                  f"{len(verses)} verses (wrote {target.name}; "
+                  f"running total: {total_actual_verses} of {total_expected_verses} expected)")
+        else:
+            print(f"    {canonical} ({section}): {n_chapters} chapters, "
+                  f"{len(verses)} verses (running total: {total_actual_verses} "
+                  f"of {total_expected_verses} expected)")
         if only_book:
             break  # Only ingest the requested book
 
-    canonical_doc = {
-        "tradition": "judaism",
-        "translation": edition_label,
-        "key": edition_key,
-        "language": "he" if edition_key == "hebrew-nikkud" else "en",
-        "structure": "book_chapter_verse",
-        "license": license_str,
-        "source": "Sefaria API (www.sefaria.org)",
-        "divisions": divisions,
-    }
-    target = DATA_DIR / target_filename
-    with open(target, "w", encoding="utf-8") as f:
-        json.dump(canonical_doc, f, ensure_ascii=False, indent=2)
+    if incremental:
+        # Final write ensures the file is canonical-ordered and complete
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(canonical_doc, f, ensure_ascii=False, indent=2)
+    else:
+        # Single-shot write (legacy behavior)
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(canonical_doc, f, ensure_ascii=False, indent=2)
+
     print(f"  Wrote {target.name} ({total_actual_verses} verses, "
           f"{total_expected_verses - total_actual_verses} missing)")
     return target
@@ -280,6 +349,8 @@ def main():
                         help="Only ingest a single book (e.g. 'Joshua') for debugging")
     parser.add_argument("--skip-existing", action="store_true",
                         help="Skip editions whose output file already exists")
+    parser.add_argument("--no-incremental", action="store_true",
+                        help="Disable per-book incremental writes (legacy single-shot mode)")
     args = parser.parse_args()
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -295,6 +366,11 @@ def main():
         print(f"*** --only-book {args.only_book}: single-book mode ***")
         print()
 
+    incremental = not args.no_incremental
+    if not incremental:
+        print("*** --no-incremental: legacy single-shot mode ***")
+        print()
+
     # Hebrew first (smaller payload, sets baseline)
     ingest_edition(
         edition_key="hebrew-nikkud",
@@ -304,6 +380,7 @@ def main():
         target_filename="hebrew-nikkud.json",
         only_book=args.only_book,
         skip_existing=args.skip_existing,
+        incremental=incremental,
     )
     # English (Modernized JPS 1917)
     ingest_edition(
@@ -314,6 +391,7 @@ def main():
         target_filename="jps1917-modernized.json",
         only_book=args.only_book,
         skip_existing=args.skip_existing,
+        incremental=incremental,
     )
     print()
     print("Tanakh ingestion complete.")

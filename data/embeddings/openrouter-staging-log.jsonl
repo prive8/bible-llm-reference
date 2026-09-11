@@ -1,0 +1,2 @@
+{"label": "BLOCK 1", "name": "openrouter-staging-b1", "n": 5, "elapsed_sec": 0.61, "per_verse_sec": 0.1217, "verses_per_sec": 8.22, "est_tokens": 150, "cost_usd": 3e-06, "projected_full_wall_min": 133.9, "projected_full_cost_usd": 0.1056}
+{"label": "BLOCK 2", "name": "openrouter-staging-b2", "n": 200, "elapsed_sec": 2.25, "per_verse_sec": 0.0113, "verses_per_sec": 88.83, "est_tokens": 6887, "cost_usd": 0.000138, "projected_full_wall_min": 12.4, "projected_full_cost_usd": 0.1056}

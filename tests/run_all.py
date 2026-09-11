@@ -2064,9 +2064,13 @@ def t_tanakh_sefaria_book_name_mapping():
             f"Chronicles I must map to I_Chronicles, got {sefaria_book_name('Chronicles I')!r}")
     _assert(sefaria_book_name("Chronicles II") == "II_Chronicles",
             f"Chronicles II must map to II_Chronicles, got {sefaria_book_name('Chronicles II')!r}")
-    # Mapping table must contain exactly the 6 split books
-    _assert(len(SEFARIA_BOOK_NAME) == 6,
-            f"SEFARIA_BOOK_NAME should have 6 entries, got {len(SEFARIA_BOOK_NAME)}")
+    # Mapping table must contain all books with URL-unsafe characters
+    # in their Sefaria name (currently 7: 6 split books + Song of Songs)
+    _assert(len(SEFARIA_BOOK_NAME) == 7,
+            f"SEFARIA_BOOK_NAME should have 7 entries, got {len(SEFARIA_BOOK_NAME)}")
+    # Song of Songs has a space; underscore form is URL-safe
+    _assert(sefaria_book_name("Song of Songs") == "Song_of_Songs",
+            f"Song of Songs must map to Song_of_Songs, got {sefaria_book_name('Song of Songs')!r}")
 
 
 @_register("t_tanakh_parse_canonical_ref")
@@ -2216,12 +2220,18 @@ def t_tanakh_cli_hebrew_alias_no_nfc_bug():
     Fix was to strip combining marks before substring match. The Tanakh
     adapter uses the same import pattern; verify the same Hebrew text
     (a Nevi'im book) parses without NFC surprises.
+
+    Uses Isaiah 53:11 because verse 11 contains עבדי ("my servant") —
+    a recognizable Hebrew phrase in the Suffering Servant passage.
+    (Verse 5 doesn't contain עבדי; my original test asserted the
+    wrong verse. Verse 11 was chosen because it's both famous and
+    contains the canonical phrase.)
     """
     import unicodedata
     editions = list_tanakh_translations()
     if "hebrew-nikkud" not in editions:
         return
-    raw = _capture_run(run_tanakh, "ישעיהו 53:5",
+    raw = _capture_run(run_tanakh, "ישעיהו 53:11",
                        translations=["hebrew-nikkud"], as_json=True)
     parsed = json.loads(raw)
     _assert(parsed["book"]["name"] == "Isaiah", str(parsed["book"]))
@@ -2234,10 +2244,10 @@ def t_tanakh_cli_hebrew_alias_no_nfc_bug():
     hebrew_chars = [c for c in hebrew_text if '\u0590' <= c <= '\u05ff']
     _assert(len(hebrew_chars) >= 5,
             f"expected ≥5 Hebrew chars, got {len(hebrew_chars)} from: {hebrew_text!r}")
-    # Isaiah 53 should mention "עבדי" (my servant) — a recognizable Hebrew phrase
-    # in the Suffering Servant passage
-    _assert("עבדי" in stripped or "עבד" in stripped,
-            f"expected 'servant' (עבד) in Isaiah 53:5 stripped, got: {stripped!r}")
+    # Isaiah 53:11 should contain "עבדי" (my servant) — the canonical
+    # Suffering Servant phrase.
+    _assert("עבדי" in stripped,
+            f"expected 'my servant' (עבדי) in Isaiah 53:11 stripped, got: {stripped!r}")
 
 
 @_register("t_tanakh_list_books_with_section_filter")

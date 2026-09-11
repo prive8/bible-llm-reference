@@ -115,6 +115,7 @@ SEFARIA_BOOK_NAME = {
     "Kings II": "II_Kings",
     "Chronicles I": "I_Chronicles",
     "Chronicles II": "II_Chronicles",
+    "Song of Songs": "Song_of_Songs",
 }
 
 USER_AGENT = "BibleLLM-Ingest/0.14.0 (+https://github.com/prive8/bible-llm-reference)"

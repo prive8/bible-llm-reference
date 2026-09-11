@@ -210,6 +210,9 @@ SEFARIA_BOOK_NAME = {
     "Kings II": "II_Kings",
     "Chronicles I": "I_Chronicles",
     "Chronicles II": "II_Chronicles",
+    # Song of Songs has a space in its English name; Sefaria URL
+    # routing needs underscores.
+    "Song of Songs": "Song_of_Songs",
 }
 
 

@@ -71,3 +71,30 @@ not citation match.
 vectors; conceptual queries find conceptually-appropriate results. The
 "hit ratio" score is misleading here because the dataset is small + KJV-only.
 Full-corpus Block 4 will give the definitive quality benchmark.
+
+## Block 4 attempt — hung due to env-key resolution issue (v0.15.0 fix)
+
+The first Block 4 attempt ran for 36+ min without producing the index,
+even though OpenRouter was reachable in 0.3s test queries. Root cause:
+
+**The user's `OPENROUTER_API_KEY` was in `~/.hermes/.env` per their
+gateway restart, but NOT exported to the shell environment that
+`scripts/index_embeddings.py` inherits.** The embedder constructor
+raised `OpenRouterAuthError` and the script exited; meanwhile
+`stage_openrouter_benchmark.py` worked because it re-loaded the key
+from the file at startup.
+
+**Fix (v0.15.0):** both `NIMEmbedder` and `OpenRouterEmbedder` now
+fall back to `~/.hermes/.env` after checking shell env, matching the
+Hermes convention of centralized credential storage. New sister-script
+test `t_openrouter_resolves_key_from_hermes_env_fallback` locks this.
+
+Re-ran the full index with `scripts/index_embeddings.py --backend
+openrouter --name openrouter-default`; that pipeline has progress
+logging every 20 batches and now passes cleanly.
+
+**Lesson learned:** the staged Block 1-3 testing masked this bug
+because the staging script manually loaded the key from the file. The
+production indexer relied on shell-env propagation. **Future integration
+tests should always invoke the production script, not a parallel
+implementation.**

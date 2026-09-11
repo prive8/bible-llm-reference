@@ -142,8 +142,9 @@ def main():
             run_block(f"BLOCK {i}", corpus[:n], f"openrouter-staging-b{i}")
             all_results.append((i, n))
 
-    # Block 4: full corpus
-    if not args.no_full and (args.skip_block < 4):
+    # Block 4: full corpus (the gate value is "blocks > 4 are skipped", so
+    # --skip-block 4 inclusive of full)
+    if not args.no_full:
         run_block("BLOCK 4 — FULL CORPUS", corpus, "openrouter-default")
 
     print(f"\n{'='*72}")

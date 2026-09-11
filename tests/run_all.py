@@ -18,10 +18,12 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import traceback
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -486,16 +488,19 @@ def t_nim_missing_key_raises_clear_auth_error():
     """
     import os as _os
     saved = _os.environ.pop("NVIDIA_API_KEY", None)
-    try:
+    # Patch away the ~/.hermes/.env fallback so the test is hermetic.
+    fake_home = "/nonexistent_hermes_home_for_test"
+    with mock.patch("bible.semantic.Path.home", return_value=Path(fake_home)):
         try:
-            NIMEmbedder()
-            _assert(False, "NIMEmbedder() should have raised NIMAuthError")
-        except NIMAuthError as e:
-            _assert("NVIDIA_API_KEY" in str(e), f"error should mention the env var: {e}")
-            _assert("build.nvidia.com" in str(e), f"error should link to the key signup: {e}")
-    finally:
-        if saved is not None:
-            _os.environ["NVIDIA_API_KEY"] = saved
+            try:
+                NIMEmbedder()
+                _assert(False, "NIMEmbedder() should have raised NIMAuthError")
+            except NIMAuthError as e:
+                _assert("NVIDIA_API_KEY" in str(e), f"error should mention the env var: {e}")
+                _assert("build.nvidia.com" in str(e), f"error should link to the key signup: {e}")
+        finally:
+            if saved is not None:
+                _os.environ["NVIDIA_API_KEY"] = saved
 
 
 @_register("t_nim_embed_roundtrip_with_mock_transport")
@@ -829,22 +834,50 @@ def t_get_embedder_factory_routes_nim():
 
 @_register("t_openrouter_missing_key_raises_clear_auth_error")
 def t_openrouter_missing_key_raises_clear_auth_error():
-    """Construction without OPENROUTER_API_KEY must fail with OpenRouterAuthError
+    """Without OPENROUTER_API_KEY in any location (shell env, ~/.hermes/.env,
+    or explicit arg) the constructor must fail with OpenRouterAuthError
     that mentions both the env var and the model name (so a future
     contributor can self-diagnose)."""
     import os as _os
     saved = _os.environ.pop("OPENROUTER_API_KEY", None)
-    try:
+    # Patch away the ~/.hermes/.env fallback so the test is hermetic.
+    fake_home = "/nonexistent_hermes_home_for_test"
+    with mock.patch("bible.semantic.Path.home", return_value=Path(fake_home)):
         try:
-            OpenRouterEmbedder()
-            _assert(False, "OpenRouterEmbedder() should have raised OpenRouterAuthError")
-        except OpenRouterAuthError as e:
-            msg = str(e)
-            _assert("OPENROUTER_API_KEY" in msg, f"error must mention env var: {msg!r}")
-            _assert(DEFAULT_OPENROUTER_MODEL in msg, f"error must mention default model: {msg!r}")
+            try:
+                OpenRouterEmbedder()
+                _assert(False, "OpenRouterEmbedder() should have raised OpenRouterAuthError")
+            except OpenRouterAuthError as e:
+                msg = str(e)
+                _assert("OPENROUTER_API_KEY" in msg, f"error must mention env var: {msg!r}")
+                _assert(DEFAULT_OPENROUTER_MODEL in msg, f"error must mention default model: {msg!r}")
+        finally:
+            if saved is not None:
+                _os.environ["OPENROUTER_API_KEY"] = saved
+
+
+@_register("t_openrouter_resolves_key_from_hermes_env_fallback")
+def t_openrouter_resolves_key_from_hermes_env_fallback():
+    """When OPENROUTER_API_KEY is not in the shell env but is in
+    ~/.hermes/.env, OpenRouterEmbedder() must still find it. This avoids
+    forcing users to `export` in every shell, and matches the Hermes
+    convention of centralized credential storage."""
+    import os as _os
+    import shutil as _sh
+    saved = _os.environ.pop("OPENROUTER_API_KEY", None)
+    fake_home = tempfile.mkdtemp(prefix="hermes_env_fallback_")
+    try:
+        env_file = Path(fake_home) / ".hermes" / ".env"
+        env_file.parent.mkdir(parents=True, exist_ok=True)
+        env_file.write_text("# other keys\nNVIDIA_API_KEY=nvapi-fake\nOPENROUTER_API_KEY=sk-or-v1-fallback-test\n")
+        with mock.patch("bible.semantic.Path.home", return_value=Path(fake_home)):
+            emb = OpenRouterEmbedder()
+        _assert(emb.api_key == "sk-or-v1-fallback-test",
+                f"expected key from ~/.hermes/.env, got {emb.api_key[:20]!r}")
     finally:
         if saved is not None:
             _os.environ["OPENROUTER_API_KEY"] = saved
+        _sh.rmtree(fake_home, ignore_errors=True)
 
 
 @_register("t_openrouter_embed_roundtrip_with_mock_transport")

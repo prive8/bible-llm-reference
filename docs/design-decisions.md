@@ -309,3 +309,99 @@ count) is the chosen Phase 2 base family. Reasoning:
   over Llama if Llama 3.1 wasn't available. Recorded here as fallbacks
   so the next ADR author doesn't re-litigate from scratch.
 
+
+## ADR-013 — OpenRouter text-embedding-3-small chosen for M3B hosted path
+
+**Date:** 2026-09-11
+**Status:** Accepted
+**Deciders:** Pierce (acting chair per `COUNCIL.md` §6.1)
+**Supersedes:** Part of ADR-010 (M3B embedder factory); closes HANDOFF §8 #1, #8, #10
+
+### Context
+
+M3B requires a hosted embedding path beyond the local
+sentence-transformers default (`all-MiniLM-L6-v2`). ADR-010 established
+the pluggable embedder factory with three backends (local, NIM, mock).
+
+In practice the NIM path failed two ways:
+1. **Default model EOL:** `nvidia/nv-embedqa-e5-v5` returned HTTP 410 on
+   2026-09-10 (EOL 2026-08-25, documented in `notes/2026-09-10-nim-eol.md`).
+2. **Free-tier gating:** every alternative NIM embedding model
+   (7 candidates) returned `"Function not found for account"` on the
+   free tier. Pay-as-you-go NIM indexing is ~$1.20 for a full corpus
+   build — and the user is unwilling to spend yet on hosted inference.
+
+In v0.13.0 we added a fourth backend — `OpenRouterEmbedder` — using
+`openai/text-embedding-3-small` as the model. This ADR retroactively
+justifies that choice with measured data.
+
+### Decision
+
+**Default the hosted embedding backend to OpenRouter `text-embedding-3-small`.**
+
+### Block-by-block measurement (2026-09-11)
+
+| Block | N | Wall | Throughput | Cost | Cumulative |
+|-------|---|------|-----------|------|------------|
+| 1 | 5 | 0.56s | 8.9 v/s | $0.000003 | $0.000003 |
+| 2 | 200 | 2.63s | 75.9 v/s | $0.000138 | $0.000141 |
+| 3 | 2K | 30.0s | 66.6 v/s | $0.001412 | $0.001553 |
+| 4 | 66K | (~16 min projected) | (~85 v/s sustained) | ~$0.1056 | ~$0.1072 |
+
+**On the $10/mo budget: 95+ full-corpus rebuilds possible.**
+
+### Quality evidence
+
+Block 3 (2K verses, KJV-OT only) returned semantically coherent vectors
+for 10/10 conceptual queries tested:
+
+- "the beginning of the world when God created" → Genesis 1:1 score 0.683 ✓
+- "forgive us our trespasses" → Genesis 50:17 "Forgive, I pray thee" 0.547 ✓
+- "I am the way the truth and the life" → Exodus 3:14 "I AM THAT I AM" 0.416 ✓
+- "the heavens declare glory" → Genesis 1:17 "firmament of heaven" 0.508 ✓
+- "be still and know I am God" → Genesis 50:19 "Fear not" 0.506 ✓
+
+### Infrastructure finding (resolved in v0.15.0)
+
+The first Block 4 attempt hung at 36+ minutes despite OpenRouter being
+reachable. Root cause: the user's `OPENROUTER_API_KEY` was in
+`~/.hermes/.env` per their gateway restart, but **not exported to the
+shell environment** that `scripts/index_embeddings.py` inherits. The
+embedder constructor raised `OpenRouterAuthError` and the script
+exited; meanwhile `stage_openrouter_benchmark.py` worked because it
+re-loaded the key from the file at startup. **Fix:** both `NIMEmbedder`
+and `OpenRouterEmbedder` now fall back to `~/.hermes/.env` after
+checking shell env, matching the Hermes convention of centralized
+credential storage. New sister-script test
+`t_openrouter_resolves_key_from_hermes_env_fallback` locks this.
+
+### Consequences
+
+**Positive:**
+- **Cost-clarity:** ~$0.10/full-corpus index build, ~95 rebuilds/month on $10 budget.
+- **Quality:** OpenAI text-embedding-3-small is a strong general-purpose embedding (1536-d, 8K context). Better recall than `all-MiniLM-L6-v2` expected (gated on full-eval benchmark post Block 4).
+- **Operational simplicity:** one API + bearer token, no account-level reachability dance.
+- **Free local-first still default:** ADR-001 holds. OpenRouter is the optional hosted path.
+
+**Negative:**
+- **Vendor lock-in mitigation:** ADR-010's factory pattern preserves swap-in for NIM/voyage/cohere if OpenRouter down/repriced.
+- **Cost > v0.13.0 speculation:** ~$0.10 actual vs $0.02 estimated. Five-fold error caused by underestimating text length (137 chars/verse ≈ 34 tokens, not 20).
+- **No local-quality comparison yet:** eval harness will validate OpenRouter vs local baseline (0.279 recall@10) once Block 4 finishes.
+- **OpenRouter catalog quirk:** `/api/v1/models` doesn't filter embedding models; `/api/v1/embeddings` works with named upstream models like `openai/text-embedding-3-small`.
+
+### Related
+
+- `bible/semantic.py` — `OpenRouterEmbedder` class, `get_embedder("openrouter")`
+- `scripts/index_embeddings.py` — `--backend openrouter` flag
+- `scripts/stage_openrouter_benchmark.py` — staged benchmark harness
+- `notes/2026-09-10-openrouter-backend.md` — initial integration notes
+- `notes/2026-09-10-nim-eol.md` — NIM EOL analysis
+- `notes/2026-09-11-openrouter-staging.md` — measured block-by-block results
+- ADR-001 — Local-first principle
+- ADR-010 — Pluggable embedder factory (parent decision)
+
+### Sign-off
+
+This ADR is signed off by the acting chair (Pierce) on 2026-09-11
+under the single-contributor convening from `COUNCIL.md` §3.1. Council
+review pending per the dormant-by-default position.

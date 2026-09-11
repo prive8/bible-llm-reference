@@ -294,11 +294,31 @@ class OpenRouterEmbedder(BaseEmbedder):
         timeout: int = DEFAULT_OPENROUTER_TIMEOUT,
         app_name: str = "bible-llm-reference",
     ):
-        # Resolve config with env-var fallbacks
+        # Resolve config with env-var fallbacks. Order: explicit arg →
+        # shell env → `~/.hermes/.env` (the conventional Hermes location;
+        # avoids forcing users to `export` in every shell).
         self.model = os.environ.get("OPENROUTER_EMBED_MODEL", model)
         self.base_url = os.environ.get("OPENROUTER_BASE_URL", base_url).rstrip("/")
-        resolved_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
-        self.api_key = resolved_key
+
+        def _resolve_key() -> str | None:
+            if api_key:
+                return api_key
+            env_key = os.environ.get("OPENROUTER_API_KEY")
+            if env_key:
+                return env_key
+            # Fallback: try ~/.hermes/.env (Hermes convention; the user's
+            # gateway may load this without exporting to the shell env).
+            try:
+                env_path = Path.home() / ".hermes" / ".env"
+                if env_path.exists():
+                    for line in env_path.read_text().splitlines():
+                        if line.startswith("OPENROUTER_API_KEY="):
+                            return line.split("=", 1)[1].strip()
+            except OSError:
+                pass
+            return None
+
+        self.api_key = _resolve_key()
         self.batch_size = max(1, batch_size)
         self.timeout = max(1, timeout)
         self.app_name = app_name
@@ -466,11 +486,28 @@ class NIMEmbedder(BaseEmbedder):
         timeout: int = DEFAULT_NIM_TIMEOUT,
         input_type: str = "passage",
     ):
-        # Resolve config with env-var fallbacks
+        # Resolve config with env-var fallbacks (NIMEmbedder).
+        # Order: explicit arg → shell env → ~/.hermes/.env.
         self.model = os.environ.get("NIM_EMBED_MODEL", model)
         self.base_url = os.environ.get("NIM_BASE_URL", base_url).rstrip("/")
-        resolved_key = api_key if api_key is not None else os.environ.get("NVIDIA_API_KEY")
-        self.api_key = resolved_key
+
+        def _resolve_nim_key() -> Optional[str]:
+            if api_key:
+                return api_key
+            env_key = os.environ.get("NVIDIA_API_KEY")
+            if env_key:
+                return env_key
+            try:
+                env_path = Path.home() / ".hermes" / ".env"
+                if env_path.exists():
+                    for line in env_path.read_text().splitlines():
+                        if line.startswith("NVIDIA_API_KEY="):
+                            return line.split("=", 1)[1].strip()
+            except OSError:
+                pass
+            return None
+
+        self.api_key = _resolve_nim_key()
         self.batch_size = max(1, batch_size)
         self.timeout = max(1, timeout)
         self.input_type = input_type

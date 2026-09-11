@@ -302,3 +302,153 @@ If that MVP lands cleanly, Layer 2's cross-reference graph visualization and Lay
 The thing that's interesting about these three personas: they're not in tension. They want **the same tool with different surfaces**. The data, the retrieval, the citation discipline — all the same. Only the rendering layer changes. That's a healthy sign for the architecture: if we build the right substrate, the front-end is mostly UI work, not new engineering.
 
 The biggest risk is the temptation to add AI-generated "synthesis" modes. Persona 2 doesn't want it (paraphrased citations), Persona 3 explicitly forbids it (academic honesty), and Persona 1 would tolerate it only if it's rigorously labeled and scoped to "academic consensus summaries with citations to the underlying papers." That's a hard mode to ship well; defer it.
+
+---
+
+## Persona 4 — Sarah, the lay-faithful reader (the missing majority)
+
+### Background
+
+This is intentionally not named "Rabbi Sarah" or "Pastor Sarah" or "Imam Sarah." The persona spans traditions because the *relationship with the text* is the same even though the *tradition* differs. She's a 35-year-old active member of her congregation/mosque/synagogue/temple. Not a scholar, doesn't read Hebrew/Arabic/Greek/Sanskrit, has never opened BibleWorks and never will. Uses a study Bible or a printed Quran with commentary when she studies. Active on social media where she sometimes sees verses quoted out of context and finds it annoying.
+
+This is the largest single user population by an order of magnitude — every "Reader"-style use case study suggests lay-faithful are 10-100× more numerous than academics, and "want to read their own tradition's text better" is the most-cited reason people interact with religious corpora online. **If we get this persona wrong, the failure modes are concrete and harmful**, not just "they leave" — see below.
+
+### What she actually wants
+
+- **Read the actual text, not commentary on it.** When she opens a verse, she wants the verse — not an AI summary, not a "what this means for you today," not a parallel theological interpretation. She has her own pastor/rabbi/imam/spiritual director for that. The tool's job is to give her the words.
+- **Cross-reference for personal study.** "Where else does this idea appear in the Bible/Quran/Torah?" is a real and frequent question. She wants answers her pastor could give her if she asked, but at 11pm on a Tuesday when she's reading.
+- **Multiple translations side-by-side, clearly labeled.** "How does the KJV render this verse vs. the NIV vs. the NRSV" is a normal study question. She wants to *see* the differences, not be told what the differences mean.
+- **Original-language awareness, light touch.** She's curious that the "sheol" in Psalm 6:5 is the Hebrew word שְׁאוֹל and it has a meaning the English doesn't quite capture — but she's not going to learn Hebrew. Show the original word once with a short gloss; don't lecture about Hebrew morphology.
+- **Strong's / lemma lookup for "what's this word mean."** She sometimes sees a word in her study Bible (e.g. "chesed" in the Old Testament) and wants a quick definition. Strong's numbers + a one-line gloss per number is exactly right for this.
+- **No surprise theology, no AI sermon.** She does NOT want the tool to:
+  - tell her what her tradition teaches
+  - tell her what to believe
+  - generate devotional content
+  - generate "discussion questions for your Bible study group"
+  - suggest she pray
+  - refer to her tradition's authority figures as if the tool had standing to do so
+
+This last point is non-negotiable. The runtime contract (`RUNTIME_CONTRACT.md`) forbids exactly this kind of impersonation; Sarah is the user that contract was written for.
+
+### Things she'd actually request (concrete examples)
+
+1. **"Read me Psalm 23, but show me the Hebrew word for 'still waters' with a one-line gloss."**
+   Current capability: yes. `python3 -m bible parallel "Psalms 23:2" --translations kjv,niv,nrsv` + a Hebrew-with-nikkud edition showing מֵ֣י מְנוּחֹ֑ת and a brief note that מְנוּחָה means "rest" / "settled place." **Front-end:** verse view with translation columns + original-language sidebar with short gloss.
+
+2. **"Where else in the Bible does 'the Lord is my shepherd' get quoted or alluded to?"**
+   Current capability: yes. `python3 -m bible references "Psalms 23:1" --hops 2` shows 75 outgoing references including John 10 (the Good Shepherd), Hebrews 13:20 (the great Shepherd), etc. **Front-end:** "See also" panel under each verse; clickable to full citation graph.
+
+3. **"I'm leading a Bible study on Wednesday. Help me find 3 verses about hospitality in the OT that aren't 'love your neighbor.'"**
+   Current capability: partial. `python3 -m bible semantic "hospitality" --tradition judaism --top-k 30` returns relevant verses. She would still have to read through and curate. **Front-end:** search results with semantic similarity score visible so she can self-filter; "I've already saved these" state per user (no account, so just sessionStorage or URL-encoded list).
+
+4. **"What's the Hebrew word for 'lovingkindness' and how many times does it appear in the Psalms?"**
+   Current capability: partial. She can look up H2617 (`python3 -m bible strongs H2617`) and see the gloss ("lovingkindness, lovingkindness, mercy") and the full definition. Counting occurrences across the corpus requires a bulk query. **Roadmap:** a "concordance" feature — "all verses with this lemma" — would be exactly right for her.
+
+5. **"My pastor said Paul quotes the Greek poets in Acts 17. Which verses?"**
+   Current capability: partial. `python3 -m bible search "poets" --strongs` finds Acts 17:28 with the Areopagus quote ("In God we live and move and have our being" — citing Epimenides / Aratus). **Front-end:** search bar; result includes the cross-reference annotation. **Roadmap:** a "classic-source citations in the Bible" feature (Greek poets, OT references to Canaanite myths) would be a delightful unexpected discovery for her.
+
+6. **"I want to memorize Psalm 23. Give me a way to study it verse by verse, hide the text, and test myself."**
+   Current capability: no. **Roadmap:** memorization / spaced-repetition tool would be a high-value feature for lay-faithful. Not a corpus problem; a UI problem. But the corpus feeds it.
+
+7. **"I saw a meme that quoted Isaiah 53:5 ('by his stripes we are healed'). What does the rest of the chapter say?"**
+   Current capability: yes. `python3 -m bible parallel "Isaiah 53"` gives all 12 verses of the chapter. **Front-end:** reverse citation lookup (paste a quote, find the source + the rest of the chapter) would be perfect.
+
+8. **"Show me the chapter map for Psalms — give me a thumbnail of what each psalm is 'about' (without preaching)."**
+   Current capability: partial. Each psalm is in the corpus. The "what's it about" is not in the corpus. **Roadmap:** requires a curated psalm-summary dataset (community project, public domain). Worth doing.
+
+### Front-end features that would matter to her
+
+- **Translation toggle, not selection.** Don't make her pick a translation at signup. Show all 13 Bible translations side-by-side by default; let her collapse the ones she doesn't read.
+- **Original-language sidebar with one-line gloss.** NOT a Hebrew lesson; just "this word in your translation is the Hebrew שלום, which means peace/wholeness/completeness." Three words max.
+- **Strong's numbers visible but not mandatory.** Hover for the gloss; click for full entry.
+- **Cross-reference panel** that's clearly labeled "Other places this idea appears" — not "scholarly apparatus."
+- **No AI synthesis.** This is the runtime contract. She's the user for whom this is non-negotiable.
+- **Personal bookmarks / verse lists.** She'd save "Psalm 23" and "Isaiah 53" and "1 Cor 13" to come back to. Local storage, no account.
+- **Print / share-a-card.** "I want to print this verse as a one-page PDF to put in my Bible." Or "share on Signal with a citation link." Standard web-app stuff.
+
+### What would make her leave — and why this matters more than other personas
+
+- **AI-generated devotional content** that pretends to be from her tradition's voice: she would recognize this as cultural vandalism and lose trust in the tool forever. Worse, she might share it with her community and damage *their* trust in online Bible study tools generally.
+- **Theology drift.** If the tool starts framing verses with "Christians believe X" vs. "Jews believe Y," she's reading an external description of her own tradition, which is patronizing.
+- **Trivialization of sacred text.** Showing Psalm 23 next to a Stoic meditation as "basically the same idea" without explicit framing would be disrespectful in a way she would feel.
+- **Surprise AI behavior.** Anything that the tool does that she didn't ask for. She came to read, not to be served.
+- **Forced interpretation.** Even a "neutral" gloss is interpretive. Make it clear when something is the literal translation, when it's a contextual gloss, and when it's a traditional interpretation from her tradition.
+
+The failure mode for this persona is not "she leaves and writes a negative review." It's "she uses the tool for a year, gradually internalizes an AI-mediated understanding of her own sacred text, and her tradition's actual interpretive community loses a member to a chatbot."
+
+**This is why `RUNTIME_CONTRACT.md` exists.** The four rules — every claim cited, no paraphrased citations, internal diversity surfaced, no spiritual authority impersonation — were not written with Persona 1 (the academic) or Persona 3 (the comparative researcher) in mind. They were written with Persona 4 in mind. If we get her right, we get everyone right. If we get her wrong, we make the world slightly worse for people trying to read their own sacred texts.
+
+---
+
+## Persona 5 — Jordan, the AI engineer / RAG builder (the developer of derivative tools)
+
+### Background
+
+Not a user of religious texts at all. Builds LLM applications for a living — RAG pipelines, agent frameworks, evaluation harnesses, dataset tooling. Has heard about this project, sees that it's a "structured reference tool for religion corpora," and wonders: *can I use this as the retrieval backend for the religion question-answering product I'm building for [client / startup / employer]?*
+
+This is the persona that determines whether this project has *long-term impact* outside the immediate user-facing community. The three religious-text personas (1, 3, 4) determine whether the project is *correct*. Persona 2 determines whether it's *accessible*. Persona 5 determines whether it's *useful at scale* — because if RAG builders can plug this into their stacks cleanly, the tool gets embedded in dozens of downstream applications.
+
+### What they actually want
+
+- **A clean JSON API** for every corpus operation. (We have this — every CLI command supports `--json`.)
+- **Stable, predictable schemas.** The data shape shouldn't change between minor versions. (Per ADR-003-style discipline: raw committed, derived gitignored.)
+- **Clear license terms** that they can show their legal team. (Public Domain Hebrew, CC-BY English, CC-BY 4.0 cross-references — all documented in `data/*/README.md`.)
+- **Self-hostable.** Their client's compliance team won't let them ship a cloud API. Docker image + clear local-runs work.
+- **Documentation that reads like an SDK reference, not a religious studies paper.** Method, examples, edge cases, performance characteristics.
+- **Pluggable backend support.** The fact that v0.13.0 added OpenRouter means they can swap embedding models without code changes — that's exactly the API surface they want.
+
+### Things they'd actually request
+
+1. **"Does your retrieval layer support batched queries? I need to embed 10,000 questions at once."**
+   Current capability: partial. `bible.semantic.search_semantic` accepts a single query. Batching is via the embedder. The `OpenRouterEmbedder` has `batch_size=100` configurable. **Roadmap:** a `bible search --batch-queries file.txt` CLI would be perfect.
+
+2. **"What's the latency / throughput of your hybrid retrieval?"**
+   Current capability: unknown (no formal benchmark). The eval harness (`scripts/run_eval.py`) measures *quality* (recall, MRR, nDCG) but not *latency*. **Roadmap:** a `scripts/benchmark.py` that records p50/p95/p99 retrieval latency would help Persona 5 (and us, internally).
+
+3. **"Can I get a Dockerfile + docker-compose.yml that runs the corpus + a simple FastAPI server?"**
+   Current capability: no. **Roadmap:** a Dockerfile would be high-leverage for Persona 5. We have a Python package; packaging it as a container with a FastAPI frontend would let them ship.
+
+4. **"I want to evaluate my fine-tuned Llama-3.1-8B against your citation-grounded retrieval baseline."**
+   Current capability: yes. `scripts/run_eval.py` already produces MRR / nDCG / recall metrics. **Roadmap:** a `scripts/run_eval.py --against-saved-index baseline.npz` mode that compares two index runs side-by-side would be exactly what evaluation engineers want.
+
+5. **"What's your versioning story? When you bump to v1.0, will v0.14 data files still work?"**
+   Current capability: weak. We don't have a stability promise. **Roadmap:** a `docs/stability.md` with a commitment to schema stability for the 0.x series would help Persona 5.
+
+### What would make them leave
+
+- Hidden cloud dependencies ("works on my laptop but only when this internal service is up").
+- API breakage between minor versions.
+- Unclear licensing.
+- Undocumented performance characteristics.
+- "Just read the source" answers in lieu of docs.
+
+---
+
+## Persona 6 — Priya, the interfaith dialogue facilitator (briefly)
+
+Different from Persona 3 in important ways. Persona 3 is a researcher who produces academic papers. Persona 6 *runs programs*. She organizes multi-faith reading groups, synagogues-and-mosques joint study sessions, "Christian-Buddhist-Jewish comparative ethics" weekend retreats. She needs materials that work for *mixed audiences* — people who are each rooted in their own tradition but willing to read each other's texts respectfully.
+
+Out of scope for this repo's *first* front-end, but worth mentioning because:
+- She's a natural advocate for the tool once it exists
+- Her needs overlap heavily with Persona 3 (cross-tradition display) but with different emphasis on "what works for a group setting, not just for one scholar"
+- Her use case eventually drives the non-Abrahamic corpus work (Phase 4+)
+
+---
+
+## Updated cross-cutting implications
+
+Adding Persona 4 changes the calculus in one important way: **the front-end MVP can't be tech-bro / minimal-academic only.** It has to feel like a *reading* tool, not a *research* tool. Persona 2 was right that big-search-box-Google-style is the entry point; Persona 4 reinforces that the *initial render* must be the text itself, not commentary on it.
+
+It also doesn't change the three-layer architecture — Reader / Scholar / Comparative — but it does change *which layer is the default*. **Reader is the default for everyone except Persona 1.** Persona 4 doesn't want to opt into "scholar mode" by default; she wants to opt *out* of basic reading and into technical display only when she explicitly wants it.
+
+It also means the MVP rejection criterion shifts: a feature that confuses Persona 4 (e.g. AI-generated sermon) is a *blocker*. A feature that confuses Persona 1 (e.g. doesn't show variant readings) is *missing* but not blocking. Build the Persona-4-shaped MVP first; the rest can iterate on top.
+
+---
+
+## Closing note (updated)
+
+The thing that's interesting about these six personas: they're not in tension. They want **the same tool with different surfaces**. The data, the retrieval, the citation discipline — all the same. Only the rendering layer changes. That's a healthy sign for the architecture: if we build the right substrate, the front-end is mostly UI work, not new engineering.
+
+The biggest risk is the temptation to add AI-generated "synthesis" modes. Persona 2 doesn't want it (paraphrased citations), Persona 3 explicitly forbids it (academic honesty), Persona 1 would tolerate it only if it's rigorously labeled and scoped to "academic consensus summaries with citations to the underlying papers," and **Persona 4 must not be exposed to it under any framing.** That's a hard mode to ship well; defer it indefinitely.
+
+If we ship one persona well, **Persona 4 is the one to ship first.** She's the largest audience, the highest-stakes failure mode, and the one whose trust — once lost — is hardest to rebuild. Get her right and the rest follow.

@@ -348,6 +348,8 @@ The front-end roadmap is **three layers over the same CLI backend** — Reader /
 
 For the **scannable, building-reference** version (per-persona core expectations + concrete request lists + Council role mapping), see [`docs/audience_expectations.md`](./docs/audience_expectations.md). Use that doc when building features, writing tests, or filling Council roles.
 
+For the **cross-persona similarity analysis** (what personas want in common, the 9-bundle next-level roadmap prioritized P0–P3, and what "inference is begging" means for the next layer), see [`docs/audience-similarities.md`](./docs/audience-similarities.md).
+
 ## Related projects
 
 - **[`prive8/llm-from-scratch`](https://github.com/prive8/llm-from-scratch)** — a Karpathy-style workshop on building a GPT from scratch. Used as a reference when Phase 2 lands.

@@ -2050,18 +2050,20 @@ def t_tanakh_sefaria_book_name_mapping():
             "Joshua must not be transformed")
     _assert(sefaria_book_name("Isaiah") == "Isaiah",
             "Isaiah must not be transformed")
-    _assert(sefaria_book_name("Samuel I") == "I Samuel",
-            f"Samuel I must map to I Samuel, got {sefaria_book_name('Samuel I')!r}")
-    _assert(sefaria_book_name("Samuel II") == "II Samuel",
-            f"Samuel II must map to II Samuel, got {sefaria_book_name('Samuel II')!r}")
-    _assert(sefaria_book_name("Kings I") == "I Kings",
-            f"Kings I must map to I Kings, got {sefaria_book_name('Kings I')!r}")
-    _assert(sefaria_book_name("Kings II") == "II Kings",
-            f"Kings II must map to II Kings, got {sefaria_book_name('Kings II')!r}")
-    _assert(sefaria_book_name("Chronicles I") == "I Chronicles",
-            f"Chronicles I must map to I Chronicles, got {sefaria_book_name('Chronicles I')!r}")
-    _assert(sefaria_book_name("Chronicles II") == "II Chronicles",
-            f"Chronicles II must map to II Chronicles, got {sefaria_book_name('Chronicles II')!r}")
+    # Sefaria accepts spaces OR underscores; we use underscores because
+    # urllib3 rejects literal-space URLs.
+    _assert(sefaria_book_name("Samuel I") == "I_Samuel",
+            f"Samuel I must map to I_Samuel, got {sefaria_book_name('Samuel I')!r}")
+    _assert(sefaria_book_name("Samuel II") == "II_Samuel",
+            f"Samuel II must map to II_Samuel, got {sefaria_book_name('Samuel II')!r}")
+    _assert(sefaria_book_name("Kings I") == "I_Kings",
+            f"Kings I must map to I_Kings, got {sefaria_book_name('Kings I')!r}")
+    _assert(sefaria_book_name("Kings II") == "II_Kings",
+            f"Kings II must map to II_Kings, got {sefaria_book_name('Kings II')!r}")
+    _assert(sefaria_book_name("Chronicles I") == "I_Chronicles",
+            f"Chronicles I must map to I_Chronicles, got {sefaria_book_name('Chronicles I')!r}")
+    _assert(sefaria_book_name("Chronicles II") == "II_Chronicles",
+            f"Chronicles II must map to II_Chronicles, got {sefaria_book_name('Chronicles II')!r}")
     # Mapping table must contain exactly the 6 split books
     _assert(len(SEFARIA_BOOK_NAME) == 6,
             f"SEFARIA_BOOK_NAME should have 6 entries, got {len(SEFARIA_BOOK_NAME)}")

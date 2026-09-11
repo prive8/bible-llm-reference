@@ -200,14 +200,16 @@ for k, v in SHORT_ALIASES.items():
 # canonical name than ours. Sefaria uses Roman numerals for Samuel/Kings/Chronicles
 # in their canonical schema: "I Samuel", "II Samuel", "I Kings", "II Kings",
 # "I Chronicles", "II Chronicles". Our canonical names are "Samuel I", "Kings I", etc.
-# Map our canonical name → Sefaria's expected Book string in the URL.
+# Map our canonical name → Sefaria's expected Book string. Sefaria accepts
+# spaces OR underscores in URL paths, but urllib3 (and many HTTP libraries)
+# treat literal-space URLs as malformed; we use underscores to be safe.
 SEFARIA_BOOK_NAME = {
-    "Samuel I": "I Samuel",
-    "Samuel II": "II Samuel",
-    "Kings I": "I Kings",
-    "Kings II": "II Kings",
-    "Chronicles I": "I Chronicles",
-    "Chronicles II": "II Chronicles",
+    "Samuel I": "I_Samuel",
+    "Samuel II": "II_Samuel",
+    "Kings I": "I_Kings",
+    "Kings II": "II_Kings",
+    "Chronicles I": "I_Chronicles",
+    "Chronicles II": "II_Chronicles",
 }
 
 

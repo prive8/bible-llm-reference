@@ -105,14 +105,16 @@ BOOKS = [
     ("Chronicles II", "דברי הימים ב", "Divrei HaYamim II", 36, 822, "Ketuvim"),
 ]
 
-# Sefaria uses Roman-numeral prefixes for split books in their URL schema.
+# Sefaria uses Roman-numeral prefixes for split books. Sefaria accepts
+# spaces or underscores in URL paths but urllib3 (and many HTTP
+# libraries) treat literal-space URLs as malformed; we use underscores.
 SEFARIA_BOOK_NAME = {
-    "Samuel I": "I Samuel",
-    "Samuel II": "II Samuel",
-    "Kings I": "I Kings",
-    "Kings II": "II Kings",
-    "Chronicles I": "I Chronicles",
-    "Chronicles II": "II Chronicles",
+    "Samuel I": "I_Samuel",
+    "Samuel II": "II_Samuel",
+    "Kings I": "I_Kings",
+    "Kings II": "II_Kings",
+    "Chronicles I": "I_Chronicles",
+    "Chronicles II": "II_Chronicles",
 }
 
 USER_AGENT = "BibleLLM-Ingest/0.14.0 (+https://github.com/prive8/bible-llm-reference)"

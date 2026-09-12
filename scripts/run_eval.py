@@ -135,6 +135,8 @@ def run_path(
     top_k: int,
     bm25_weight: float,
     solo_weight: float,
+    index_name: str = "default",
+    backend: str = "local",
 ) -> dict:
     """Run one retrieval path against the benchmark; return aggregate metrics."""
     per_query: list[dict] = []
@@ -149,18 +151,18 @@ def run_path(
             # search_semantic uses the on-disk index; if it doesn't exist,
             # skip the path (don't crash — the harness should be runnable
             # in degraded mode for BM25-only testing).
-            if not (EMBEDDINGS_DIR / "default_meta.json").exists():
-                print(f"  [skip semantic] no index at {EMBEDDINGS_DIR}", file=sys.stderr)
-                return {"skipped": True, "reason": "no semantic index built"}
+            if not (EMBEDDINGS_DIR / f"{index_name}_meta.json").exists():
+                print(f"  [skip semantic] no index '{index_name}' at {EMBEDDINGS_DIR}", file=sys.stderr)
+                return {"skipped": True, "reason": f"no semantic index '{index_name}' built"}
             hits = search_semantic(
-                query, index_name="default", top_k=top_k,
-                tradition=None, backend="local",
+                query, index_name=index_name, top_k=top_k,
+                tradition=None, backend=backend,
             )
             retrieved = [h["citation"] for h in hits]
         elif path == "hybrid":
             # Need both BM25 + semantic. If semantic missing, skip.
-            if not (EMBEDDINGS_DIR / "default_meta.json").exists():
-                return {"skipped": True, "reason": "no semantic index built"}
+            if not (EMBEDDINGS_DIR / f"{index_name}_meta.json").exists():
+                return {"skipped": True, "reason": f"no semantic index '{index_name}' built"}
             bm25_idx = get_bm25_index("KJV")
             bm25_hits = bm25_idx.search(query, limit=top_k)
             bm25_dicts = [
@@ -169,8 +171,8 @@ def run_path(
                 for h in bm25_hits
             ]
             sem_hits = search_semantic(
-                query, index_name="default", top_k=top_k,
-                tradition=None, backend="local",
+                query, index_name=index_name, top_k=top_k,
+                tradition=None, backend=backend,
             )
             fused = hybrid_search(
                 query=query,
@@ -271,6 +273,13 @@ def main() -> int:
                         help="Optional CSV output path for per-query rows")
     parser.add_argument("--limit", type=int, default=0,
                         help="Optional: limit benchmark to first N queries (for quick iteration)")
+    parser.add_argument("--index", default="default",
+                        help="Vector index name for semantic/hybrid paths (default 'default')")
+    parser.add_argument("--backend", default="local",
+                        choices=["local", "openrouter", "nim", "mock", "auto"],
+                        help="Embedder backend for query encoding (default 'local'; use "
+                             "'openrouter' if the named --index was built with the OpenRouter "
+                             "embedder — dimensions must match)")
     args = parser.parse_args()
 
     if hasattr(sys.stdout, "reconfigure"):
@@ -298,6 +307,8 @@ def main() -> int:
             top_k=args.top_k,
             bm25_weight=args.bm25_weight,
             solo_weight=args.solo_weight,
+            index_name=args.index,
+            backend=args.backend,
         )
         if not results[path].get("skipped"):
             r = results[path]

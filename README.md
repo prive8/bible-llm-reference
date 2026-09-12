@@ -381,6 +381,8 @@ See [`SECURITY.md`](./SECURITY.md). This is a public repo with no secrets in the
 
 Six user personas drive the front-end design (see [`docs/use-cases.md`](./docs/use-cases.md) for the full write-up, [`docs/audience_expectations.md`](./docs/audience_expectations.md) for the building-reference version, and [`docs/audience-similarities.md`](./docs/audience-similarities.md) for the cross-persona roadmap):
 
+For a **quick per-persona cheat sheet** (which front-end layer each persona routes to, plus 5 sample questions per persona), see [`docs/sample-questions.md`](./docs/sample-questions.md).
+
 - **Academic** — original-language + critical apparatus + reproducible queries (the biblical studies scholar persona, Persona 1)
 - **Secular seeker** — easy entry, cross-tradition comparison, plain-English summaries clearly marked as such (the wisdom-seeker persona, Persona 2)
 - **Comparative researcher** — cross-tradition parallel display, source transparency, non-Abrahamic primary corpora (the religious-studies researcher persona, Persona 3)

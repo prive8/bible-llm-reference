@@ -65,8 +65,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install "sentence-transformers>=2.2.0" "numpy>=1.20.0"
 
-      - name: Build the local semantic index (~3 min on CPU)
-        run: python scripts/index_embeddings.py --backend local --name default --batch-size 128
+      - name: Build the local semantic index (~2 min on CPU at batch=64)
+        # batch=64 is empirically faster than 128 on shared CI runners.
+        # The CI build is the slowest phase of the eval-regression job,
+        # so this matters.
+        run: python scripts/index_embeddings.py --backend local --name default --batch-size 64
 
       - name: Run sister-script test suite (CI also runs the 83-test gate here)
         run: python tests/run_all.py

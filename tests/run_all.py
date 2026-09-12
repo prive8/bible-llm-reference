@@ -2438,6 +2438,40 @@ def t_semantic_cli_missing_index_graceful():
 
 
 # ---------------------------------------------------------------------------
+# scripts/run_eval.py eval harness flags (ADR-015)
+# ---------------------------------------------------------------------------
+
+@_register("t_eval_cli_has_index_flag")
+def t_eval_cli_has_index_flag():
+    """The --index NAME flag must be present on scripts/run_eval.py argparse;
+    needed for cross-embedder comparisons (ADR-015)."""
+    import subprocess
+    p = subprocess.run(
+        [sys.executable, "scripts/run_eval.py", "--help"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    out = (p.stdout + p.stderr)
+    _assert("--index" in out, "scripts/run_eval.py must accept --index NAME")
+    _assert("default" in out.lower(), "--index help should document default value")
+
+
+@_register("t_eval_cli_has_backend_flag")
+def t_eval_cli_has_backend_flag():
+    """The --backend BACKEND flag must be present on scripts/run_eval.py argparse
+    with at least the 'local' and 'openrouter' choices (ADR-015).
+    """
+    import subprocess
+    p = subprocess.run(
+        [sys.executable, "scripts/run_eval.py", "--help"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    out = (p.stdout + p.stderr)
+    _assert("--backend" in out, "scripts/run_eval.py must accept --backend BACKEND")
+    _assert("openrouter" in out, "--backend must include 'openrouter' choice")
+    _assert("local" in out, "--backend must include 'local' choice")
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -2464,3 +2498,4 @@ if __name__ == "__main__":
                 print(f"  [{status}] {name}: {detail}")
         sys.exit(1)
     sys.exit(0)
+

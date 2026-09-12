@@ -133,3 +133,32 @@ python scripts/run_eval.py --csv /tmp/eval.csv
 # Quick iteration on a subset
 python scripts/run_eval.py --limit 5 --paths semantic
 ```
+
+## Cross-embedder comparison (2026-09-11, v0.15.0 follow-up)
+
+ADR-015 documents the OpenRouter vs local face-off. Same 33-query
+benchmark, same top-k=10:
+
+| Embedder | dim | Recall@K | MRR | nDCG@K | Primary@1 |
+|----------|-----|----------|-----|--------|-----------|
+| **Local** `all-MiniLM-L6-v2` | 384 | **0.279** | 0.165 | **0.222** | 0.151 |
+| **OpenRouter** `text-embedding-3-small` | 1536 | 0.189 | **0.199** | 0.184 | 0.121 |
+
+**Local wins on recall@K (+47%), nDCG@K (+21%), and throughput (0.3 q/s
+vs 0.1 q/s). OpenRouter wins only on MRR (+21%).** This vindicates
+ADR-001's local-first principle. The OpenRouter path remains available
+via `scripts/index_embeddings.py --backend openrouter` for any future
+need (paid-tier corpus, different model) but the production default
+stays local.
+
+Reproduce:
+
+```bash
+# Local baseline (need sentence-transformers installed)
+/home/pierce/.hermes/hermes-agent/venv/bin/python scripts/run_eval.py \
+    --paths semantic --index default --backend local
+
+# OpenRouter baseline (~$0.0001 per query)
+python3 scripts/run_eval.py --paths semantic --index openrouter-default \
+    --backend openrouter
+```

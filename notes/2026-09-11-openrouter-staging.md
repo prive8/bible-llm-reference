@@ -147,3 +147,29 @@ If user is comfortable with paid OpenRouter:
 If user wants zero-spend:
 - Skip OpenRouter for now; the local `default` index is already validated
 - Document ADR-013 as "OpenRouter path validated but not committed; local sentence-transformers default per ADR-001 stands"
+
+## Final benchmark result (2026-09-11, 18:46)
+
+With credits added, the full 66K OpenRouter index was built:
+- Block 4 wall time: 22 min (1310s); 50.9 vec/s
+- Block 4 actual cost: $0.1093 (vs $0.10 projected — 10% over)
+- Index saved: `data/embeddings/openrouter-default_{meta.json, vectors.bin}` (410 MB)
+- Cumulative spend: $0.31 (Block 4 + eval)
+
+`scripts/run_eval.py` got `--index` and `--backend` flags for cross-embedder
+evaluation. Side-by-side on the full 33-query benchmark:
+
+| Embedder | Recall@K | MRR | nDCG@K | Primary@1 | q/s |
+|----------|----------|-----|--------|-----------|-----|
+| Local `all-MiniLM-L6-v2` (384d) | **0.279** | 0.165 | **0.222** | 0.151 | 0.3 |
+| OpenRouter `text-embedding-3-small` (1536d) | 0.189 | **0.199** | 0.184 | 0.121 | 0.1 |
+
+**Local wins on recall@K, nDCG@K, and throughput.** OpenRouter wins
+only on MRR. Net assessment: local is the measurable default. The
+OpenRouter path stays available via `scripts/index_embeddings.py
+--backend openrouter` but is no longer the recommendation.
+
+Documents:
+- ADR-014: local-first reaffirmed — the "Negative" section now
+  resolved by measurement.
+- ADR-015: new ADR documenting the comparison and its conclusions.

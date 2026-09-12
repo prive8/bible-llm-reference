@@ -422,9 +422,7 @@ end-to-end. Concretely:
 ### Sign-off
 
 This ADR is signed off by the acting chair (Pierce) on 2026-09-11
-under the single-contributor convening from `COUNCIL.md` §3.1. Council
-review pending per the dormant-by-default position.
-
+under the single-contributor convening from `COUNCIL.md` §3.1.
 ## ADR-014 — Local sentence-transformers is the production embedder (v0.15.0)
 
 **Date:** 2026-09-11
@@ -469,9 +467,19 @@ optional alternates. To use them:
   remains unvalidated.
 
 **Negative:**
-- Default 0.279 recall@10 unchallenged. If the user *does* later fund
-  the OpenRouter path, we may discover the swap yields <5% improvement
-  (not worth the spend) — at that point, ADR-013 can be retired.
+- ~~Default 0.279 recall@10 unchallenged.~~ **RESOLVED (v0.15.0 follow-up):**
+  measured 0.279 (local, `all-MiniLM-L6-v2`) vs 0.189 (OpenRouter,
+  `text-embedding-3-small`) on the same 33-query benchmark in
+  `tests/benchmark.py`. **Local wins by 47% on recall@K, 21% on nDCG@K**.
+  OpenRouter wins only on MRR (0.199 vs 0.165; the top result lands a
+  *primary* hit more often but misses more expected verses overall).
+
+This single measurement retires the "what if OpenRouter would be
+better?" open question. The local default is **the measurable best**.
+ADR-013 stays as the validation record (Block 1-4 staged run + full
+corpus build + eval) but the production-default switch is no longer
+on the table absent a different embedder (NIM `llama-3.2-nv-embedqa-1b-v1`
+is the next candidate per ADR-010).
 
 ### Related
 
@@ -481,6 +489,85 @@ optional alternates. To use them:
   a production-default swap)
 - `docs/evaluation.md` — recall@10 baseline (v0.10.0)
 - `notes/2026-09-11-openrouter-staging.md` — measured cost/speed/quality
+
+### Sign-off
+
+This ADR is signed off by the acting chair (Pierce) on 2026-09-11
+under the single-contributor convening from `COUNCIL.md` §3.1.
+
+## ADR-015 — OpenRouter vs local recall comparison: local wins 0.279 vs 0.189
+
+**Date:** 2026-09-11
+**Status:** Accepted
+**Deciders:** Pierce (acting chair per `COUNCIL.md` §6.1)
+**Supersedes:** Closes the open question in ADR-014's "Negative" section
+**Closes:** HANDOFF §8 #10 fully
+
+### Context
+
+With OpenRouter credits purchased on 2026-09-11, the full 66K-passage
+OpenRouter index was built (Block 4 of the staged run completed after
+the prior 402). To make a fair apples-to-apples comparison against
+the local default, `scripts/run_eval.py` gained two new flags: `--index`
+(to point at a pre-built index) and `--backend` (to choose the embedder
+for query encoding). Both flags now thread through to `search_semantic`.
+
+### Decision
+
+**Documented comparison, no production-default swap.** The OpenRouter
+path is **available** (and statistically MRR-better) but **not
+recommended** as a default given the recall gap.
+
+### Measured comparison (2026-09-11, 33-query benchmark)
+
+Same `tests/benchmark.py` queries, top-k=10, 1 batch per query:
+
+| Embedder | dim | Recall@K | MRR | Primary-in-top1 | nDCG@K |
+|----------|-----|----------|-----|----------------|--------|
+| **Local** `all-MiniLM-L6-v2` | 384 | **0.279** | 0.165 | 0.151 | **0.222** |
+| **OpenRouter** `text-embedding-3-small` | 1536 | 0.189 | **0.199** | 0.121 | 0.184 |
+
+- **Recall@K gap: +47% for local.** Local finds more expected verses
+  in its top-10.
+- **MRR gap: +21% for OpenRouter.** When OpenRouter *does* find a
+  primary, it tends to be the top hit.
+- **nDCG@K gap: +21% for local.** Higher-quality ranking overall.
+- **Throughput gap: 0.3 q/s local vs 0.1 q/s OpenRouter.** Local is
+  3× faster (no network roundtrip).
+
+### Consequences
+
+**Positive:**
+- ADR-001 (local-first) confirmed by measurement, not just by principle.
+- ADR-014 stays stable — no production-default swap needed.
+- OpenRouter path remains useful as a *second opinion* or for queries
+  where MRR matters more than recall@10.
+
+**Negative:**
+- $0.31 spent (Block 4 partial + full run + eval) on validation that
+  *disproves* the original "$0.02 with potentially better recall"
+  hypothesis. That's the cost of measurement — worth it.
+- The `openrouter-default_*` files (410 MB) consume `data/embeddings/`
+  budget the gitignore already handles. No action needed.
+
+### When to revisit this ADR
+
+- When a different OpenRouter-hosted embedder is benchmarked (e.g.
+  `voyage-3`, `qwen3-embedding`, a hosted NIM model).
+- When the corpus grows past 66K such that the local embedder starts
+  losing context (the local model's 256-token context limit becomes
+  a real issue for long verses around 8x-12x the current corpus size).
+- When a meaningful quality lift on cross-tradition retrieval is the
+  blocker for shipping a front-end feature.
+
+### Related
+
+- ADR-001 — Local-first principle (now vindicated by measurement)
+- ADR-010 — Pluggable embedder factory (enables this comparison)
+- ADR-013 — OpenRouter validation record (provides Block-4 cost)
+- ADR-014 — Local-first reaffirmed (now with measurement backing)
+- `scripts/run_eval.py` — `--index` and `--backend` flags added
+- `notes/2026-09-11-openrouter-staging.md` — staged cost/quality data
 
 ### Sign-off
 

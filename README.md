@@ -17,32 +17,41 @@ A public-domain Bible dataset and reference tool for LLM training, retrieval, an
 
 ## What this is
 
-A structured reference tool over the Christian Bible — 14 translations, Strong's Hebrew/Greek lexicon, Okapi BM25 keyword search, and 605K cross-references — that any LLM agent or RAG pipeline can query locally without cloud dependencies.
+A structured reference tool over the **Abrahamic scriptural canon** —
+13 Bible translations + Strong's Hebrew/Greek lexicon, 6 Quran editions,
+the full Tanakh (Torah + Nevi'im + Ketuvim) in Hebrew-with-nikkud and
+modernized JPS 1917 English — paired with BM25/semantic/hybrid
+retrieval, 605K cross-references, and a strict runtime contract for any
+downstream agent.
 
 Built for:
 
 - **LLM training pipelines** — corpus prep, JSONL export
-- **RAG / retrieval workflows** — exact-reference lookup, keyword search, semantic parallels
-- **Scholarly research** — parallel passage lookup across translations, original-language gloss, citation-graph traversal
-- **Local-first inference** — no mandatory cloud dependency; runs offline on a laptop
+- **RAG / retrieval workflows** — exact-reference lookup, keyword search, semantic parallels across **three traditions** (Christianity, Islam, Judaism)
+- **Scholarly research** — parallel passage lookup across translations and traditions, original-language gloss, citation-graph traversal
+- **Local-first inference** — base runtime is 100% stdlib; OpenRouter/NIM are available but optional
+- **Front-end substrate** — the same CLI is the substrate for the planned Reader / Scholar / Comparative web UIs (see `docs/audience-similarities.md`)
 
-**Not a chatbot.** This is a structured reference tool. Every output is grounded in a citation. See [`HANDOFF.md` §11](./HANDOFF.md#11-runtime-contract-for-any-agent-using-this-data) for the runtime contract that governs any agent using this data.
+**Not a chatbot.** This is a structured reference tool. Every output is grounded in a citation. See [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) for the contract that governs any agent using this data — five rules including *never impersonate Scripture* and *never paraphrase citations*.
 
 ---
 
 ## Highlights
 
-- **14 translations** in normalized JSON: KJV (with Strong's tags), YLT, WEB, GNV, DRB, RSV, LUT, SYNOD, RV1960, CUV, UKRK, TISCH, LXX, WLCa
+- **66K indexed passages** across three traditions:
+  - **Bible (Christianity)** — 37K verses in 13 translations: KJV (with Strong's tags inline), YLT, WEB, GNV, DRB, RSV, LUT, SYNOD, RV1960, CUV, UKRK, TISCH, LXX, WLCa
+  - **Quran (Islam)** — 6K verses in 6 editions: Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, Uthmani Arabic Hafs
+  - **Tanakh (Judaism)** — 23K verses across all 39 books (Torah + Nevi'im + Ketuvim), 2 editions: Modernized JPS 1917 (English, CC-BY) and Hebrew-with-nikkud (Public Domain via Sefaria)
 - **Strong's Concordance** for Hebrew (H1–H8674) and Greek (G1–G5624), via Open Scriptures
-- **Exact reference parsing** — `John 3:16`, ranges (`John 3:16-18`), abbreviations (`1 Cor`, `Ps`, `jn`, `1jn`)
-- **Parallel view** across all translations, with optional Strong's enrichment and JSON output
-- **Okapi BM25 keyword search** — multilingual (Latin, Hebrew, Greek, Cyrillic, CJK), diacritic-insensitive, translation-pluggable
+- **Exact reference parsing** across all three traditions — `John 3:16`, ranges (`John 3:16-18`), abbreviations (`1 Cor`, `Ps`, `jn`), Hebrew-with-nikkud aliases (`בְּרֵאשִׁית 1:1`), Roman-numeral prefixes (`I Samuel`)
+- **Parallel view** across translations and editions, with optional Strong's enrichment and JSON output
+- **Okapi BM25 keyword search** — multilingual (Latin, Hebrew, Arabic, Greek, Cyrillic, CJK), diacritic-insensitive, translation-pluggable
+- **Semantic search** — local `sentence-transformers/all-MiniLM-L6-v2` by default (free, offline); OpenRouter and NIM backends available with API keys
+- **Hybrid search** — BM25 + semantic fusion (default weight 0.1/0.7, tuned to maximize recall@10 in v0.10.0)
 - **Cross-reference engine** — 605K+ edges from openbible.info (CC-BY 4.0), with outgoing, reciprocal, and 1–3 hop traversal
-- **Quran multi-tradition adapter (Phase 3.1)** — 6 editions in `data/quran/` (5 English + Uthmani Arabic), citation parsing, and parallel lookup
-- **Torah adapter (Phase 3.2)** — 2 editions in `data/torah/` (Modernized JPS 1917 English CC-BY + Hebrew-with-nikkud Public Domain), citation parsing, Hebrew-with-nikkud alias support, and parallel lookup
-- **Tanakh adapter (Phase 3.3)** — 2 editions in `data/tanakh/` covering the full 39-book canon (Torah + Nevi'im + Ketuvim), same editions as Torah for internal consistency, full alias support including Roman-numeral prefixes
+- **Eval harness** — 33-query benchmark with recall@K / MRR / nDCG metrics and CI threshold gate
 - **JSON output** on every command for downstream pipelines
-- **100% local, zero new dependencies** — stdlib only (Python 3.9+)
+- **Base runtime 100% local, stdlib only** — optional embedder deps via `pip install -e ".[embeddings]"`
 
 ---
 
@@ -119,8 +128,10 @@ verses across Bible + Quran Saheeh International):
 | Path | Recall@10 | MRR | nDCG@10 |
 |------|----------|-----|---------|
 | BM25 | 0.093 | 0.030 | 0.068 |
-| Semantic | **0.279** | **0.165** | **0.222** |
-| **Hybrid** (default 0.1/0.7) | **0.258** | 0.162 | **0.219** |
+| **Semantic** | **0.279** | **0.165** | **0.222** |
+| **Hybrid** (default 0.1/0.7) | 0.258 | 0.162 | 0.219 |
+
+**Semantic is 3× better than BM25 on recall.** This is the headline finding.
 
 **Methodological note:** The v0.9.0 Semantic recall@10 (0.279) is a *benchmark
 expansion* result, not a model improvement over v0.8.0. The first version of
@@ -129,6 +140,22 @@ model run against the v0.9.0 benchmark would score ~0.081 (the same number
 v0.8.0 logged, just against a stricter yardstick). **Always compare
 like-for-like benchmarks across versions.** Full methodology and follow-on
 tasks in [`docs/evaluation.md`](./docs/evaluation.md).
+
+### OpenRouter vs local — verified in v0.15.0 (ADR-015)
+
+After credits were added in 2026-09-11, the same 33-query benchmark was
+run against the OpenRouter `text-embedding-3-small` embedder (1536-d,
+$0.10/full-corpus index build):
+
+| Embedder | dim | Recall@K | MRR | nDCG@K | Primary@1 | q/s |
+|----------|-----|----------|-----|--------|-----------|-----|
+| **Local** `all-MiniLM-L6-v2` | 384 | **0.279** | 0.165 | **0.222** | 0.151 | **0.3** |
+| OpenRouter `text-embedding-3-small` | 1536 | 0.189 | **0.199** | 0.184 | 0.121 | 0.1 |
+
+**Local wins on recall@K (+47%), nDCG@K (+21%), and throughput (0.3 q/s).**
+Local remains the production embedder per ADR-001. OpenRouter path
+remains available via `scripts/index_embeddings.py --backend openrouter`
+for any future need.
 
 ---
 
@@ -259,27 +286,29 @@ Verify licensing for your specific use case before building commercial applicati
 
 ## Project vision
 
-The full vision (per [`COUNCIL.md`](./COUNCIL.md) §1) is "every living and historical human religion, spiritual path, indigenous tradition, new religious movement, and non-theistic worldview." Christian Bible is the first shippable rung.
+The full vision (per [`COUNCIL.md`](./COUNCIL.md) §1) is "every living and historical human religion, spiritual path, indigenous tradition, new religious movement, and non-theistic worldview." Christian Bible is the first shippable rung; the Abrahamic slice is the next.
 
 ### Phase 1 — retrieval-only study tool ✅ SHIPPED (v0.5.0)
 
-A user can ask "What does Genesis 1:1 say across translations?" and see all 14 translations side-by-side, with Hebrew lemma + Strong's number for בָּרָא (H1254 bara', "to create") expanded, and Westminster Leningrad Codex original Hebrew next to English translations. They can find verses by exact reference, by keyword search (BM25, multilingual), by cross-reference (outgoing, reciprocal, or N-hop), and they can layer Strong's enrichment onto any result.
+A user can ask "What does Genesis 1:1 say across translations?" and see all 13 Bible translations side-by-side, with Hebrew lemma + Strong's number for בָּרָא (H1254 bara', "to create") expanded, and Westminster Leningrad Codex original Hebrew next to English translations. They can find verses by exact reference, by keyword search (BM25, multilingual), by cross-reference (outgoing, reciprocal, or N-hop), and they can layer Strong's enrichment onto any result.
 
 Milestones:
 
 - ✅ **M1** — multi-translation lookup (`python -m bible parallel`)
 - ✅ **M2** — Strong's integration (`python -m bible strongs`)
 - ✅ **M3A** — BM25 keyword search (`python -m bible search`)
+- ✅ **M3B** — semantic search (default = local `sentence-transformers/all-MiniLM-L6-v2`)
+- ✅ **M3C** — hybrid BM25/semantic fusion with recall@10 baseline 0.279 / eval-regression CI gate
 - ✅ **M4** — cross-reference engine (`python -m bible references`)
 - ✅ **M5** — packaging + sister-script tests + docs
 
 ### Phase 2 — generative voice (deferred)
 
-A tool that takes a question and writes a response in the voice of the tradition — the way a pastor would cite Romans, or a rabbi would cite Rashi on Genesis, or a qari would cite tafsir on a verse. Always grounded in the corpus, always with citations, never inventing doctrine. **Distill-only.** Compute decision deferred until the data shape is final.
+A tool that takes a question and writes a response in the voice of the tradition — the way a pastor would cite Romans, or a rabbi would cite Rashi on Genesis, or a qari would cite tafsir on a verse. Always grounded in the corpus, always with citations, never inventing doctrine. **Distill-only.** Compute decision deferred until the data shape is final. The runtime contract in v0.10.0 explicitly bounds what Phase 2 can produce: caption generation, translation comparison summarization, and cross-reference type classification are allowed; pure chat is not.
 
-### Phase 3 — multi-tradition (designed, not dated)
+### Phase 3 — multi-tradition (Abrahamic slice shipped; non-Abrahamic pending)
 
-Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. Each tradition gets parallel structure (same canonical schema, same citation format, same cross-reference API, tradition-specific lexicon). The Phase 1 data layer is designed so this is a **config change, not a code rebuild**.
+Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. Each tradition gets parallel structure (same canonical schema, same citation format, same cross-reference API, tradition-specific lexicon). The Phase 1 data layer was designed so this is a **config change, not a code rebuild**.
 
 **Phase 3.1 pilot: Quran (shipped in v0.6.0).** 6 editions in `data/quran/` (Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, and Arabic Uthmani Hafs) via [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (Unlicense). Accessible via `python3 -m bible quran` with citation parsing and parallel view. See [`docs/phase3-scope-quran.md`](./docs/phase3-scope-quran.md) and ADR-009.
 
@@ -287,7 +316,16 @@ Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, 
 
 **Phase 3.3: Full Tanakh (Torah + Nevi'im + Ketuvim, shipped in v0.14.0).** 2 editions in `data/tanakh/` — same Modernized JPS 1917 (English, CC-BY) and תנ״ך עם ניקוד (Hebrew with vowel points, Public Domain) as the Torah phase — sourced from the Sefaria API. 39 books, ~927 chapters, ~23,000 verses. Accessible via `python -m bible tanakh "Isaiah 53:5"` with full alias support (canonical English, short Latin, transliteration, Hebrew-with-nikkud, Roman-numeral prefix). See [`docs/phase3-scope-tanakh.md`](./docs/phase3-scope-tanakh.md).
 
-Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md).
+**Phase 3.4: OpenRouter-hosted embedding backend (shipped in v0.13.0; benchmarked in v0.15.0).** Added `OpenRouterEmbedder` as a fourth pluggable embedder backend alongside local, NIM, and mock. The full-corpus OpenRouter index was built in v0.15.0 ($0.11 actual cost). Per the v0.15.0 cross-embedder benchmark documented in [`ADR-015`](./docs/design-decisions.md#adr-015--openrouter-vs-local-recall-comparison-local-wins-0279-vs-0189) and [`docs/evaluation.md`](./docs/evaluation.md#cross-embedder-comparison-2026-09-11-v0150-follow-up), **local remains the production embedder** (recall@K=0.279 vs OpenRouter 0.189). The OpenRouter path is wired and available for any future swap-in, but the local-first principle (ADR-001) is vindicated by measurement.
+
+### Phase 4+ — non-Abrahamic corpora + front-end (planning)
+
+- **Reader Layer 1** front-end (Bundle 9 in `audience-similarities.md`): thin FastAPI + HTMX web UI wrapping the CLI. Defaults to a no-AI-sermon reading mode. Estimated 1 week of work.
+- **Concordance** (Bundle 1): Strong's-indexed "every occurrence of lemma X" search across Bible + Tanakh. 1-2 days.
+- **Non-Abrahamic corpora** (Vedas, Upanishads, Dhammapada, Tao Te Ching) — roadmap items per `audience-similarities.md` P2 tier. Each adds another tradition with the same canonical-schema discipline.
+- **Typed cross-reference edges** (Bundle 7): the current 605K openbible.info edges have votes but no type labels. A typed dataset would enable Phase 2 inference on cross-reference classification.
+
+Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md), [`docs/audience-similarities.md`](./docs/audience-similarities.md), and the curated daily notes under `notes/`.
 
 ---
 
@@ -321,7 +359,7 @@ lives in [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) (extracted
 from `HANDOFF.md` §11 in v0.10.0 so downstream consumers don't have
 to scroll past project archaeology to find the rules).
 
-Architectural decisions are tracked as ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md). Currently twelve ADRs covering stdlib-only baseline, Strong's sourcing, hybrid fusion defaults, NIM backend, and the Quran-as-Phase-3-pilot decision.
+Architectural decisions are tracked as ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md). Currently fifteen ADRs covering stdlib-only baseline, Strong's sourcing, hybrid fusion defaults, NIM + OpenRouter pluggable embedder backends, Quran / Torah / Tanakh / OpenRouter benchmark decisions, and the local-first reaffirmed decision (ADR-014, ADR-015).
 
 ---
 
@@ -341,22 +379,24 @@ See [`SECURITY.md`](./SECURITY.md). This is a public repo with no secrets in the
 
 ## Use cases
 
-Three user personas drove the v0.14.0 design center — see [`docs/use-cases.md`](./docs/use-cases.md) for the full write-up:
+Six user personas drive the front-end design (see [`docs/use-cases.md`](./docs/use-cases.md) for the full write-up, [`docs/audience_expectations.md`](./docs/audience_expectations.md) for the building-reference version, and [`docs/audience-similarities.md`](./docs/audience-similarities.md) for the cross-persona roadmap):
 
-- **Academic** — original-language + critical apparatus + reproducible queries (the biblical studies scholar persona)
-- **Secular seeker** — easy entry, cross-tradition comparison, plain-English summaries clearly marked as such (the wisdom-seeker persona)
-- **Comparative researcher** — cross-tradition parallel display, source transparency, non-Abrahamic primary corpora (the religious-studies researcher persona)
+- **Academic** — original-language + critical apparatus + reproducible queries (the biblical studies scholar persona, Persona 1)
+- **Secular seeker** — easy entry, cross-tradition comparison, plain-English summaries clearly marked as such (the wisdom-seeker persona, Persona 2)
+- **Comparative researcher** — cross-tradition parallel display, source transparency, non-Abrahamic primary corpora (the religious-studies researcher persona, Persona 3)
+- **Lay-faithful reader** (Persona 4 — *the load-bearing persona*) — read the actual text, cross-references for study, original-language awareness with one-line gloss, *no AI sermon*. The runtime contract exists because of this persona. Sized at ~10-100× the academic audience, this is where harm-reduction from the contract pays off most.
+- **AI engineer / RAG builder** (Persona 5) — clean JSON API, stable schemas, clear licenses, pluggable backends. Determines whether the project has long-term downstream impact.
+- **Interfaith dialogue facilitator** (Persona 6) — mixed-audience materials; drives Phase 4+ non-Abrahamic corpus planning.
 
-The front-end roadmap is **three layers over the same CLI backend** — Reader / Scholar / Comparative — so each persona gets a tailored surface without rebuilding the data layer.
-
-For the **scannable, building-reference** version (per-persona core expectations + concrete request lists + Council role mapping), see [`docs/audience_expectations.md`](./docs/audience_expectations.md). Use that doc when building features, writing tests, or filling Council roles.
-
-For the **cross-persona similarity analysis** (what personas want in common, the 9-bundle next-level roadmap prioritized P0–P3, and what "inference is begging" means for the next layer), see [`docs/audience-similarities.md`](./docs/audience-similarities.md).
+The front-end roadmap is **three layers over the same CLI backend** — Reader (default for Persona 2 + 4), Scholar (Persona 1), Comparative (Persona 3 + 6) — so each persona gets a tailored surface without rebuilding the data layer. The Council role mapping per persona lives in `docs/audience_expectations.md`.
 
 ## Related projects
 
 - **[`prive8/llm-from-scratch`](https://github.com/prive8/llm-from-scratch)** — a Karpathy-style workshop on building a GPT from scratch. Used as a reference when Phase 2 lands.
 - **[`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api)** — the canonical public-domain Quran source identified for Phase 3.1 (Unlicense, 492 editions).
+- **[`Open Scriptures / Strong's Hebrew/Greek dictionaries`](https://github.com/openscriptures/strongs)** — the source for our Strong's Concordance (CC-BY-SA).
+- **[`scrollmapper/bible_databases`](https://github.com/scrollmapper/bible_databases)** — the openbible.info cross-reference mirror we use.
+- **[`Sefaria`](https://www.sefaria.org/)** — primary source for the Torah + full Tanakh JSON we ingest.
 
 ## Acknowledgments
 

@@ -56,3 +56,39 @@ If the CI eval-regression build keeps approaching the timeout:
   timeout pressure.
 
 Decided not to do these now since Run #47 succeeded and CI is green.
+
+## Second pass: paths-ignore for docs-only commits (2026-09-12 ~12:20 ET)
+
+Two doc-only commits after Run #47 still triggered full CI:
+- Run #48 (`145a7181` "notes: 2026-09-12-ci-cleanup.md") — cancelled after 15 min
+- Run #49 (`71a6cf0c` "README: full refresh for v0.15.0...") — cancelled after 15 min
+
+**Root cause:** all changes (`.md`, `docs/`, `notes/`) were non-code;
+the workflow had no `paths-ignore` filter, so every push re-ran the
+full 10-15 min CI gate. Two pushes × ~15 min = ~30 min of CI budget
+burned on doc edits.
+
+**Fix:** added `paths-ignore` block to `.github/workflows/ci.yml`:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'notes/**'
+  pull_request:
+    branches: [main]
+```
+
+Now pushes that change only `*.md`/`docs/`/`notes/` files skip CI.
+Workflow file changes (`.github/workflows/ci.yml`) still trigger CI
+since they're not in the ignore list — this validates CI changes.
+
+**PR behavior unchanged:** PRs to main still run the full test
+matrix + eval-regression (paths-ignore only affects push events).
+
+**Expected savings:** ~30 min CI per docs-only push sequence.
+Future doc commits like the README refresh will skip the CI trigger
+entirely.

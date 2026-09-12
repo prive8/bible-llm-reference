@@ -3,6 +3,17 @@ name: CI
 on:
   push:
     branches: [main]
+    # Skip CI on docs-only changes to save the ~10-15 min CI budget
+    # when only markdown / docs / notes are touched. PRs targeting
+    # these paths still run the full test/eval gate (the paths-ignore
+    # only applies on push to main, not on PR).
+    #
+    # Note: workflow file changes (.github/workflows/*.yml) are NOT
+    # in the ignore list — they still trigger CI to validate the change.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'notes/**'
   pull_request:
     branches: [main]
 

@@ -6,7 +6,7 @@ Usage:
     python -m bible strongs "Genesis 1:1"
     python -m bible search "faith without works" [-t WEB] [-n 10] [--strongs] [--json]
     python -m bible references "John 3:16" [--hops N] [--min-votes V] [--direction out|in|both]
-    python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--top-k 10]
+    python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [-n 10]
 """
 
 import sys
@@ -71,7 +71,7 @@ Flags:
     -t, --translations  Comma-separated list of translations (parallel, quran)
     -t, --translation   Translation to search (search, default: KJV)
     -n, --limit         Result limit (search, default: 10)
-    --top-k             Result limit (semantic, default: 10)
+    --top-k, -n         Result limit (semantic, hybrid, default: 10)
     --tradition         Filter tradition: all|bible|islam (semantic, default: all)
     --hops              Multi-hop depth (references, 1-3, default: 1)
     --min-votes         Vote threshold (references, default: 3)

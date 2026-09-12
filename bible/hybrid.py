@@ -22,7 +22,7 @@ result set. Two key design choices:
    battle-tested.
 
 CLI:
-    python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--top-k 10] [--json]
+    python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--top-k 10] [-n 5] [--json]
 """
 from __future__ import annotations
 
@@ -269,8 +269,8 @@ def main():
         help=f"Multiplier for verses appearing in only one source (default {DEFAULT_SOLO_WEIGHT})",
     )
     parser.add_argument(
-        "--top-k", type=int, default=10,
-        help="Number of results to return (default 10)",
+        "--top-k", "-n", type=int, default=10,
+        help="Number of results to return (default 10; alias for parity with `bible search -n`)",
     )
     parser.add_argument(
         "--translation", default="KJV",

@@ -368,6 +368,49 @@ domain) and surface it through the lookup API.
   than fighting urllib's internal connection state. Full story in
   `notes/2026-09-11-tanakh-infrastructure.md`.
 
+### Phase 4 — Front-end (Reader / Scholar / Comparative layers) ⏸ SCOPED (2026-09-12, v0.16.0 polish session)
+
+Scope doc: [`docs/phase4-scope-frontend.md`](./docs/phase4-scope-frontend.md)
+(written 2026-09-12 from a 6-persona / 8-question / 6-single-sentence
+session; cold-start anchor for the next agent).
+
+**Pattern under everything:** the tool stays out of the interpretive act.
+The human reads; the human decides; the tool grounds. **Sarah (Persona 4)
+is the load-bearing persona; the runtime contract exists for her.**
+
+**MVP scope (2-3 weeks backend + 1 week frontend):**
+- **Backend (4 HIGH-priority features):** stable JSON API at `/api/<cmd>`
+  with `schema_version` + ETag + OpenAPI; concordance CLI
+  (`bible concordance H2617 --translation KJV`); reverse citation lookup
+  (paste-text → confidence-ranked verse candidates via `bible search
+  --json`); sister-script tests for no-theological-language UI lint +
+  3-word gloss cap.
+- **Frontend (3 surfaces):** Reader landing page (single search box,
+  citation chips, no signup, no tradition picker, URL-stable queries);
+  verse view (multi-edition parallel columns, Strong's-per-verse with
+  3-word glosses, "Other places this idea appears" cross-reference panel);
+  concordance view (sortable table of lemma occurrences with per-edition
+  translations, CSV download).
+- **Tech stack:** FastAPI + Jinja2 + HTMX. No npm, no React/Vue/Svelte,
+  no JS bundler. The frontend is HTML + CSS + a 14KB JS library.
+- **Cross-cutting constraints (ship-blockers):** `schema_version`
+  discipline; ETag caching; no AI synthesis (operationalized at the
+  template level); no theological language in Reader/Scholar templates
+  (sister-script test); 3-word gloss cap (sister-script test); citation
+  chip on every verse; URL-stable queries; no account, no signup, no
+  tracking.
+
+**Post-MVP roadmap (Phase 4.2+):** Docker + latency benchmark + batched
+queries (Jordan Q2); handout generator + reception notes dataset
+(Priya's flagship); Scholar layer features (Aisha); Comparative layer
+features (Yuki + Priya); non-Abrahamic corpora (Hadith → Dhammapada →
+Tao Te Ching → Rigveda subset → Upanishads / Gita / Book of Mormon).
+
+**Acceptance criterion that is load-bearing:** "no LLM-generated text
+appears anywhere in the UI" + "no theological verb appears in any
+Reader-layer template" — both enforced by sister-script tests that run
+on every CI push. If either fails, Phase 4 is not shipped.
+
 ### Daily note template
 
 ```
@@ -674,6 +717,13 @@ premise changed.
 - `COUNCIL.md` — governance constitution (short stub).
 - `docs/governance/council-design.md` — long-form Council spec.
 - `docs/data-schema.md` — parallel-structure schema examples.
+- `docs/phase4-scope-frontend.md` — **Phase 4 front-end scope** (scoped
+  2026-09-12, implementation pending; cold-start anchor for the next
+  agent working on the front-end layer).
+- `docs/audience_expectations.md` — distilled 6-persona building reference.
+- `docs/audience-similarities.md` — cross-persona roadmap (the 9-bundle matrix).
+- `docs/use-cases.md` — original 6-persona brainstorming session.
+- `docs/sample-questions.md` — quick per-persona question + front-end table.
 - `README.md` — user-facing.
 
 In `~/projects/llm-from-scratch`:

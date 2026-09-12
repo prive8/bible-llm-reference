@@ -2472,6 +2472,90 @@ def t_eval_cli_has_backend_flag():
 
 
 # ---------------------------------------------------------------------------
+# v0.16.0 regression tests
+# ---------------------------------------------------------------------------
+
+@_register("t_hybrid_cli_accepts_dash_n_alias")
+def t_hybrid_cli_accepts_dash_n_alias():
+    """Regression test for v0.16.0: `bible hybrid -n 5` must work.
+    Before the fix, only `--top-k 5` worked; `-n 5` was rejected with
+    "unrecognized arguments". This is CLI consistency parity with
+    `bible search -n 5` (which has had -n since v0.3.0).
+    """
+    import subprocess
+    # Use --json so output is deterministic (no Unicode noise); we only
+    # care that argparse doesn't reject -n.
+    p = subprocess.run(
+        [sys.executable, "-m", "bible", "hybrid", "mercy", "-n", "5", "--json"],
+        capture_output=True, text=True, cwd=ROOT, timeout=60,
+    )
+    _assert(p.returncode == 0,
+            f"`bible hybrid -n 5 --json` exited {p.returncode}: "
+            f"{p.stderr[:300] or p.stdout[:300]}")
+    _assert("unrecognized arguments" not in p.stderr,
+            f"argparse rejected -n: {p.stderr[:300]}")
+    # Sanity: JSON should have a results list of length <= 5.
+    data = None
+    try:
+        data = json.loads(p.stdout)
+    except json.JSONDecodeError as e:
+        _assert(False, f"output not JSON: {e}; stdout head: {p.stdout[:200]}")
+    _assert(isinstance(data, dict), "hybrid JSON should be a dict")
+    results = []  # default if neither key is present
+    if isinstance(data, dict):
+        if "results" in data and isinstance(data["results"], list):
+            results = data["results"]
+        elif "hybrid" in data and isinstance(data["hybrid"], list):
+            results = data["hybrid"]
+    _assert(isinstance(results, list), "results should be a list")
+    _assert(len(results) <= 5,
+            f"-n 5 should cap results at 5, got {len(results)}")
+
+
+@_register("t_hybrid_cli_top_k_still_works")
+def t_hybrid_cli_top_k_still_works():
+    """The long form --top-k must still work after adding -n alias.
+    Catches a regression where someone replaces --top-k entirely with -n.
+    """
+    import subprocess
+    p = subprocess.run(
+        [sys.executable, "-m", "bible", "hybrid", "mercy", "--top-k", "3", "--json"],
+        capture_output=True, text=True, cwd=ROOT, timeout=60,
+    )
+    _assert(p.returncode == 0,
+            f"`bible hybrid --top-k 3 --json` exited {p.returncode}: "
+            f"{p.stderr[:300]}")
+    _assert("unrecognized arguments" not in p.stderr,
+            f"argparse rejected --top-k: {p.stderr[:300]}")
+
+
+@_register("t_version_matches_pyproject_toml")
+def t_version_matches_pyproject_toml():
+    """Regression test for v0.16.0: bible.__version__ must match
+    pyproject.toml [project] version. Before the fix, __version__ was
+    stuck at '0.2.0' since v0.5.0 — drift across 11+ minor versions.
+    """
+    import re
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    m = re.search(r'^version\s*=\s*"([^"]+)"', pyproject, re.MULTILINE)
+    _assert(m is not None, "pyproject.toml must declare [project] version")
+    pyproject_version = m.group(1)
+
+    import bible
+    package_version = bible.__version__
+    _assert(package_version == pyproject_version,
+            f"version drift: bible.__version__={package_version!r} "
+            f"vs pyproject.toml={pyproject_version!r}")
+    # Sanity: should be at least v0.15.0 (the highest shipped as of v0.16.0).
+    parts = package_version.split(".")
+    _assert(len(parts) == 3, f"version must be semver X.Y.Z, got {package_version!r}")
+    major, minor, _patch = parts
+    _assert(int(major) == 0 and int(minor) >= 15,
+            f"package version {package_version!r} pre-dates v0.15.0; "
+            "either the drift is back or pyproject.toml is wrong")
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 

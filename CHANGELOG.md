@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-09-12
+
+### Fixed
+- **`bible hybrid -n 5` was rejected with "unrecognized arguments".** The CLI accepted `--top-k 5` but not `-n 5`, even though `bible search -n 5` has supported `-n` since v0.3.0. Added `-n` as a short alias for `--top-k` in `bible/hybrid.py`. README quickstart updated to use the short form. Regression test: `t_hybrid_cli_accepts_dash_n_alias`.
+- **`bible.__version__` was stuck at `0.2.0`.** The `bible/__init__.py` `__version__` string drifted from `pyproject.toml` since v0.5.0 — 11 minor versions of drift. Bumped to `0.15.0` to match `pyproject.toml`. Regression test: `t_version_matches_pyproject_toml` (asserts the two stay in sync and guards against ≥ v0.15.0 baseline).
+- **Submodule docstring in `bible/__init__.py` listed only 3 submodules** (lookup, parallel, strongs). Added the 7 additional modules shipped since v0.2.0: search, semantic, hybrid, references, quran, torah, tanakh.
+
+### Tests
+- 3 new sister-script regression tests (`t_hybrid_cli_accepts_dash_n_alias`, `t_hybrid_cli_top_k_still_works`, `t_version_matches_pyproject_toml`). Suite: 126 → 129 tests, all passing.
+- `t_hybrid_cli_top_k_still_works` guards against accidentally removing the long form `--top-k` when adding `-n`.
+
+### Notes
+- The `-n` alias exists for CLI ergonomics only — no semantic difference from `--top-k`.
+- The `__version__` regression test asserts the **pyproject.toml** version is the source of truth (matching ADR on packaging decisions); `bible/__init__.py` should never lead.
+
 ## [0.15.0] — 2026-09-11
 
 ### Added

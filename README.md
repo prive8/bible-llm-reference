@@ -85,7 +85,7 @@ python3 -m bible semantic "finding peace in suffering"
 python3 -m bible semantic "verses about mercy" --tradition all --json
 
 # Hybrid search — BM25 + semantic fusion (Milestone 3C; requires local index)
-python3 -m bible hybrid "comfort in grief" --bm25-weight 0.5 --top-k 10
+python -m bible hybrid "comfort in grief" --bm25-weight 0.5 -n 10
 
 # Retrieval evaluation (Milestone 3C+ baseline; ~3 min on CPU)
 python3 scripts/run_eval.py          # report

@@ -7,49 +7,56 @@ All notable changes to this project are documented here. The format is based on 
 ## [0.15.0] — 2026-09-11
 
 ### Added
-- **OpenRouterEmbedder measured data** — `scripts/stage_openrouter_benchmark.py`
-  staged Blocks 1→4 (5/200/2000/66000 passages) on the OpenAI
-  `text-embedding-3-small` model via OpenRouter. Block 4 hit HTTP 402
-  at 69% because the OpenRouter free tier requires credit purchase
-  at https://openrouter.ai/settings/credits. Per user decision
-  (2026-09-11), the local `all-MiniLM-L6-v2` embedder remains the
-  production default. See `notes/2026-09-11-openrouter-staging.md`
-  for measured cost ($0.10/full index), speed (12-22 min wall),
-  and quality (10/10 conceptual queries hit semantically).
-- **New sister-script test** `t_openrouter_resolves_key_from_hermes_env_fallback`
-  locks the new env-var resolution path.
+- **OpenRouter embedding path fully validated.** Staged Blocks 1→4
+  (5/200/2000/66000 passages) on `openai/text-embedding-3-small`.
+  Block 4 ran cleanly after credits were added: 66,689 passages
+  embedded in 22 min, $0.1093 actual cost (within 10% of $0.10
+  projection). Index saved as
+  `data/embeddings/openrouter-default_{meta.json,vectors.bin}`.
+- **scripts/run_eval.py cross-embedder flags** — `--index NAME` and
+  `--backend BACKEND` let the harness measure any pre-built index
+  with any embedder backend (dimensions must match: local=384,
+  OpenRouter=1536).
+- **Side-by-side 33-query benchmark** (ADR-015) settles the local-vs-
+  hosted question with measurement:
+  - Local `all-MiniLM-L6-v2` (384d): **recall@K=0.279, MRR=0.165,
+    nDCG@K=0.222**, 0.3 q/s.
+  - OpenRouter `text-embedding-3-small` (1536d): recall@K=0.189,
+    MRR=0.199, nDCG@K=0.184, 0.1 q/s.
+  - **Local wins by 47% on recall@K, 21% on nDCG@K.** OpenRouter only
+    beats local on MRR (+21%). ADR-001 (local-first) vindicated by data.
+- **New sister-script tests** `t_eval_cli_has_index_flag` +
+  `t_eval_cli_has_backend_flag` lock the eval flag surface.
+- **`t_openrouter_resolves_key_from_hermes_env_fallback`** locks the
+  new env-var resolution path.
 - **ADR-013** (OpenRouter validation record) appended to
   `docs/design-decisions.md`.
 - **ADR-014** (local-first reaffirmed) added to
   `docs/design-decisions.md`.
-- **docs/use-cases.md** (105 lines): three-persona front-end
-  brainstorming — academic scholar, secular wisdom-seeker,
-  non-Abrahamic researcher.
+- **ADR-015** (OpenRouter vs local: local wins 0.279 vs 0.189) added.
+- **docs/use-cases.md** (305 lines): six-persona front-end brainstorming.
 - **docs/audience_expectations.md** (364 lines): six-persona compiled
-  reference with Council-role mapping (the load-bearing persona is
-  Sarah, the lay-faithful reader).
-- **docs/audience-similarities.md** (427 lines): cross-persona
-  analysis + 9-bundle next-level roadmap (P0 = Layer 1 Reader MVP).
+  reference with Council-role mapping (Sarah, the lay-faithful reader,
+  is the load-bearing persona).
+- **docs/audience-similarities.md** (427 lines): cross-persona analysis
+  + 9-bundle next-level roadmap (P0 = Layer 1 Reader MVP).
 
 ### Changed
 - **`bible/semantic.py`** — both `NIMEmbedder` and `OpenRouterEmbedder`
   now fall back to `~/.hermes/.env` after the shell env lookup,
   matching the Hermes convention of centralized credential storage.
-  Without this patch, scripts in a fresh terminal could not see keys
-  the user added via Hermes gateway restart.
-- **HANDOFF.md §8 #10** is now RESOLVED (was PARTIAL) — user confirmed
-  local-first production path; OpenRouter path is wired but
-  unprovisioned.
+- **HANDOFF.md §8 #10** is now RESOLVED (was PARTIAL) — local-first
+  production path confirmed; OpenRouter path is wired but unprovisioned
+  in production by default.
 - **tests/run_all.py** — existing "missing-key raises AuthError" tests
-  patched with hermetic mocks for the `~/.hermes/.env` fallback so
-  they don't depend on the user's actual `.env`.
+  patched with hermetic mocks; two new tests for eval-flag coverage.
+  Test count: 124 → 126.
+- **bible/semantic.py** — `get_embedder("auto")` ordering updated to
+  prefer OpenRouter over NIM when both keys are present.
 
 ### Notes
-- **`docs/use-cases.md`** was originally drafted 2026-09-10 but
-  errored mid-stream; the working draft was committed in v0.14.0's
-  same-day thread and the companion docs
-  (`audience_expectations.md`, `audience-similarities.md`) are
-  v0.15.0 additions.
+- ADR-014's "Negative" section now reads "Default 0.279 recall@10
+  unchallenged — RESOLVED by measurement."
 
 ## [0.14.0] — 2026-09-10
 

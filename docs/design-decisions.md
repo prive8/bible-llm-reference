@@ -535,6 +535,34 @@ Same `tests/benchmark.py` queries, top-k=10, 1 batch per query:
 - **Throughput gap: 0.3 q/s local vs 0.1 q/s OpenRouter.** Local is
   3× faster (no network roundtrip).
 
+### Follow-up: text-embedding-3-large (2026-09-19)
+
+`text-embedding-3-large` (3072-dim, $0.13/M tokens) was the natural
+next test. Full 66K index built in 26 min at 42.3 vec/s; cost ~$0.74.
+Eval on the same 33-query benchmark:
+
+| Embedder | dim | Recall@K | MRR | Primary@1 | nDCG@K | q/s |
+|----------|-----|----------|-----|-----------|--------|-----|
+| Local `all-MiniLM-L6-v2` | 384 | **0.279** | 0.165 | 0.151 | 0.222 | **0.3** |
+| OR `text-embedding-3-small` | 1536 | 0.189 | 0.199 | 0.121 | 0.184 | 0.1 |
+| OR `text-embedding-3-large` | 3072 | 0.245 | **0.294** | **0.212** | **0.234** | 0.1 |
+
+**3-large is a real step up from 3-small** on every quality metric
+(+30% Recall@K, +48% MRR, +75% Primary@1, +27% nDCG). But local still
+wins Recall@K (+14% over 3-large) at 3× the query throughput. The
+trade-off is now precision-vs-recall:
+
+- **Local → recall-focused.** Best for Sarah (Persona 4, lay-faithful)
+  use cases where comprehensive results matter more than the single
+  top hit.
+- **3-large → precision-focused.** Best for Yuki/Marcus use cases
+  where Primary@1 matters more than Recall@K. Costs $0.74 per full
+  rebuild and 3× slower at query time.
+
+**Production default stays local.** 3-large is wired and available as
+an alternate for any future feature that needs ranking precision over
+raw recall. Full details in `notes/2026-09-19-3large-benchmark.md`.
+
 ### Consequences
 
 **Positive:**
@@ -552,13 +580,20 @@ Same `tests/benchmark.py` queries, top-k=10, 1 batch per query:
 
 ### When to revisit this ADR
 
-- When a different OpenRouter-hosted embedder is benchmarked (e.g.
-  `voyage-3`, `qwen3-embedding`, a hosted NIM model).
+- ~~When a different OpenRouter-hosted embedder is benchmarked (e.g.
+  `voyage-3`, `qwen3-embedding`, a hosted NIM model).~~ **Partially
+  satisfied 2026-09-19:** `text-embedding-3-large` benchmarked (see
+  follow-up above); `qwen3-embedding-8b` reached endpoint but
+  OpenRouter free-tier unreliability blocked full build. `voyage-3`
+  not available on this OpenRouter account.
 - When the corpus grows past 66K such that the local embedder starts
   losing context (the local model's 256-token context limit becomes
   a real issue for long verses around 8x-12x the current corpus size).
 - When a meaningful quality lift on cross-tradition retrieval is the
   blocker for shipping a front-end feature.
+- When the precision-over-recall framing changes (e.g., the Reader
+  layer in Phase 4 ships and we learn that Sarah actually wants the
+  top hit, not a top-10).
 
 ### Related
 
@@ -568,6 +603,7 @@ Same `tests/benchmark.py` queries, top-k=10, 1 batch per query:
 - ADR-014 — Local-first reaffirmed (now with measurement backing)
 - `scripts/run_eval.py` — `--index` and `--backend` flags added
 - `notes/2026-09-11-openrouter-staging.md` — staged cost/quality data
+- `notes/2026-09-19-3large-benchmark.md` — 3-large follow-up + qwen3 endpoint failure mode
 
 ### Sign-off
 

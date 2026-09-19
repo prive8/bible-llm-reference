@@ -690,8 +690,13 @@ premise changed.
     a spending cap, not a credit balance.
     **User decision (2026-09-11):** "the local sentence transformer is
     fine." Production stays on `all-MiniLM-L6-v2` (recall@10 = 0.279).
-    **Closed:** ADR-013 (OpenRouter validation record) and ADR-014
-    (local-first reaffirmed) capture the decision.
+    **2026-09-19 follow-up:** `text-embedding-3-large` (3072-dim,
+    ~$0.74/full build) benchmarked on the same 33-query set; wins
+    MRR / Primary@1 / nDCG over local but loses Recall@K (0.245 vs
+    0.279). Production default still local — the precision-over-recall
+    framing is documented in ADR-015 and `notes/2026-09-19-3large-benchmark.md`.
+    The OpenRouter path remains wired for anyone who wants to opt in
+    for precision-focused features (Yuki / Marcus personas).
     **The OpenRouter path remains wired:** anyone with a paid
     OpenRouter account can run `python scripts/index_embeddings.py
     --backend openrouter --name openrouter-default` and re-validate

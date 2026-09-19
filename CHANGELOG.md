@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Added
+- **`text-embedding-3-large` backend benchmarked.** Full 66,689-passage index built (3072-dim, 26 min, ~$0.74) and evaluated against the same 33-query benchmark used for ADR-015. 3-large wins on MRR / Primary@1 / nDCG over the local default; loses on Recall@K. Production default stays local — see ADR-015 follow-up + `notes/2026-09-19-3large-benchmark.md` for the precision-vs-recall framing.
+- **`scripts/stage_openrouter_model.py`** — generalized Stage 1 harness that accepts `--model` (the existing `stage_openrouter_benchmark.py` hardcodes the default model). Useful for benchmarking any OpenRouter-hosted embedder.
+
+### Notes
+- `data/embeddings/openrouter-3large_{meta.json,vectors.bin}` (22 MB + 370 MB) shipped on disk so anyone with a paid OpenRouter account can re-validate the comparison.
+- `qwen/qwen3-embedding-8b` (4096-dim, ~free on OpenRouter) endpoint reached but free-tier connection-state unreliability blocked full corpus build (same pathology that bit the Tanakh ingest on 2026-09-11). Doc'd in `notes/2026-09-19-3large-benchmark.md` for the record.
+
 ## [0.16.0] — 2026-09-12
 
 ### Fixed

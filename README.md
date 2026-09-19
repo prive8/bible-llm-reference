@@ -39,7 +39,7 @@ Built for:
 ## Highlights
 
 - **66K indexed passages** across three traditions:
-  - **Bible (Christianity)** — 37K verses in 13 translations: KJV (with Strong's tags inline), YLT, WEB, GNV, DRB, RSV, LUT, SYNOD, RV1960, CUV, UKRK, TISCH, LXX, WLCa
+  - **Bible (Christianity)** — 37K verses in 14 translations: KJV (with Strong's tags inline, at `kjv.json`), YLT, WEB, GNV, DRB, RSV, LUT, SYNOD, RV1960, CUV, UKRK, TISCH, LXX, WLCa (the last 13 in `translations/`)
   - **Quran (Islam)** — 6K verses in 6 editions: Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, Uthmani Arabic Hafs
   - **Tanakh (Judaism)** — 23K verses across all 39 books (Torah + Nevi'im + Ketuvim), 2 editions: Modernized JPS 1917 (English, CC-BY) and Hebrew-with-nikkud (Public Domain via Sefaria)
 - **Strong's Concordance** for Hebrew (H1–H8674) and Greek (G1–G5624), via Open Scriptures
@@ -112,7 +112,7 @@ python3 make_flat_training.py              # Output: kjv_training.jsonl
 # Convert Strong's .js files to clean JSON (faster startup)
 python3 convert_strongs_to_json.py
 
-# Run the sister-script test suite (83 tests, stdlib-only)
+# Run the sister-script test suite (129 tests, stdlib-only)
 python3 tests/run_all.py
 
 # Evaluate retrieval quality against the 33-query benchmark
@@ -256,7 +256,7 @@ bible-llm-reference/
 │       └── controversies/              # (Controversy Register — when the Council forms)
 │
 ├── tests/
-│   └── run_all.py                      # 38 sister-script tests, stdlib-only
+│   └── run_all.py                      # 129 sister-script tests, stdlib-only
 │
 └── .github/
     ├── ISSUE_TEMPLATE/
@@ -308,7 +308,7 @@ A tool that takes a question and writes a response in the voice of the tradition
 
 ### Phase 3 — multi-tradition (Abrahamic slice shipped; non-Abrahamic pending)
 
-Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. Each tradition gets parallel structure (same canonical schema, same citation format, same cross-reference API, tradition-specific lexicon). The Phase 1 data layer was designed so this is a **config change, not a code rebuild**.
+Add Quran, Torah, Tanakh, then Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, Tao Te Ching, Book of Mormon, etc. Each tradition gets parallel structure (same canonical schema, same citation format, same cross-reference API, tradition-specific lexicon). The Phase 1 data layer was designed so this is a **config change, not a code rebuild**.
 
 **Phase 3.1 pilot: Quran (shipped in v0.6.0).** 6 editions in `data/quran/` (Saheeh International, Yusuf Ali, Pickthall, Mufti Taqi Usmani, Arberry, and Arabic Uthmani Hafs) via [`fawazahmed0/quran-api`](https://github.com/fawazahmed0/quran-api) (Unlicense). Accessible via `python3 -m bible quran` with citation parsing and parallel view. See [`docs/phase3-scope-quran.md`](./docs/phase3-scope-quran.md) and ADR-009.
 
@@ -316,13 +316,25 @@ Add Torah, Talmud, Quran, Hadith, Vedas, Upanishads, Bhagavad Gita, Dhammapada, 
 
 **Phase 3.3: Full Tanakh (Torah + Nevi'im + Ketuvim, shipped in v0.14.0).** 2 editions in `data/tanakh/` — same Modernized JPS 1917 (English, CC-BY) and תנ״ך עם ניקוד (Hebrew with vowel points, Public Domain) as the Torah phase — sourced from the Sefaria API. 39 books, ~927 chapters, ~23,000 verses. Accessible via `python -m bible tanakh "Isaiah 53:5"` with full alias support (canonical English, short Latin, transliteration, Hebrew-with-nikkud, Roman-numeral prefix). See [`docs/phase3-scope-tanakh.md`](./docs/phase3-scope-tanakh.md).
 
-**Phase 3.4: OpenRouter-hosted embedding backend (shipped in v0.13.0; benchmarked in v0.15.0).** Added `OpenRouterEmbedder` as a fourth pluggable embedder backend alongside local, NIM, and mock. The full-corpus OpenRouter index was built in v0.15.0 ($0.11 actual cost). Per the v0.15.0 cross-embedder benchmark documented in [`ADR-015`](./docs/design-decisions.md#adr-015--openrouter-vs-local-recall-comparison-local-wins-0279-vs-0189) and [`docs/evaluation.md`](./docs/evaluation.md#cross-embedder-comparison-2026-09-11-v0150-follow-up), **local remains the production embedder** (recall@K=0.279 vs OpenRouter 0.189). The OpenRouter path is wired and available for any future swap-in, but the local-first principle (ADR-001) is vindicated by measurement.
+**Phase 3.4: OpenRouter-hosted embedding backend (shipped in v0.13.0; benchmarked in v0.15.0 + the [Unreleased] 3-large follow-up).** Added `OpenRouterEmbedder` as a fourth pluggable embedder backend alongside local, NIM, and mock. The full-corpus OpenRouter `text-embedding-3-small` index was built in v0.15.0 ($0.11 actual cost). The full-corpus `text-embedding-3-large` index was built in [Unreleased] follow-up work ($0.74 actual cost). Per the cross-embedder benchmark documented in [`ADR-015`](./docs/design-decisions.md#adr-015--openrouter-vs-local-recall-comparison-local-wins-0279-vs-0189) and `notes/2026-09-19-3large-benchmark.md`, **local remains the production embedder** (recall@K=0.279 vs `text-embedding-3-large` 0.245), but `text-embedding-3-large` wins on MRR / Primary@1 / nDCG — useful as a precision-focused alternate for any future feature that needs ranking precision over raw recall. The OpenRouter path is wired and available; the local-first principle (ADR-001) is vindicated by measurement for the Sarah persona's recall-focused use case.
 
-### Phase 4+ — non-Abrahamic corpora + front-end (planning)
+### Phase 4 — front-end scope (Reader / Scholar / Comparative layers) [scoped]
 
-- **Reader Layer 1** front-end (Bundle 9 in `audience-similarities.md`): thin FastAPI + HTMX web UI wrapping the CLI. Defaults to a no-AI-sermon reading mode. Estimated 1 week of work.
+Phase 4 is **scope complete** per [`docs/phase4-scope-frontend.md`](./docs/phase4-scope-frontend.md); implementation pending. MVP backend (4 HIGH-priority features: stable JSON API, concordance CLI, reverse citation lookup, UI theological-language lint) estimated at 2-3 weeks. MVP frontend (3 surfaces: Reader landing, verse view, concordance view) estimated at 1 week. Tech stack: FastAPI + Jinja2 + HTMX. No npm, no React/Vue/Svelte, no JS bundler. The Reader layer ships first because Sarah (Persona 4, lay-faithful) is the load-bearing persona per `COUNCIL.md` §3.
+
+### Phase 4.6+ — non-Abrahamic corpora (post-MVP)
+
+- **Hadith** (2-3 weeks) — completes the Abrahamic trio
+- **Dhammapada** (1-2 weeks) — unlocks Marcus's "Quran + Dhammapada on anger" question
+- **Tao Te Ching** (1-2 weeks) — same scale as Dhammapada
+- **Rigveda (Nasadiya sukta subset first)** (4-6 weeks) — unlocks Yuki's "Genesis + Quran + Rigveda" question
+- **Upanishads, Bhagavad Gita, Book of Mormon** — roadmap items per `audience-similarities.md` P2 tier; not in MVP scope
+
+Each new tradition gets the same canonical-schema discipline — same `data/<tradition>/` layout, same `bible/<tradition>.py` adapter pattern, same per-tradition scope doc.
+
+### Cross-cutting roadmap (any phase)
+
 - **Concordance** (Bundle 1): Strong's-indexed "every occurrence of lemma X" search across Bible + Tanakh. 1-2 days.
-- **Non-Abrahamic corpora** (Vedas, Upanishads, Dhammapada, Tao Te Ching) — roadmap items per `audience-similarities.md` P2 tier. Each adds another tradition with the same canonical-schema discipline.
 - **Typed cross-reference edges** (Bundle 7): the current 605K openbible.info edges have votes but no type labels. A typed dataset would enable Phase 2 inference on cross-reference classification.
 
 Read more in [`HANDOFF.md` §1–§2](./HANDOFF.md), [`docs/audience-similarities.md`](./docs/audience-similarities.md), and the curated daily notes under `notes/`.

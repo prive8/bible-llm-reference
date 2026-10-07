@@ -61,8 +61,22 @@ number says "BM25 is bad for the *people who actually use this tool*,
 and the people who find BM25 OK are the people who use it least
 (RAG builders testing interface edge cases)."
 
-Semantic and hybrid numbers pending. Run the full eval against the
-local + 3-large indexes to fill in the rest.
+### Full per-persona results (local + 3-large, semantic path)
+
+| Persona | n  | Local recall | 3-large recall | Δ      | Trade-off |
+|---------|----|--------------|----------------|--------|-----------|
+| sarah   | 11 | 0.256        | 0.201          | -0.055 | Local wins (recall) |
+| marcus  |  6 | 0.250        | 0.183          | -0.067 | Local wins (recall) |
+| aisha   |  6 | 0.222        | 0.311          | +0.089 | 3-large wins (precision) |
+| jordan  |  5 | 0.387        | 0.313          | -0.074 | Local wins (recall) |
+| yuki    |  3 | 0.367        | 0.217          | -0.150 | Local wins (n=3, noisy) |
+| priya   |  2 | 0.267        | 0.350          | +0.083 | 3-large wins (n=2, very noisy) |
+
+**The 3-large vs local trade-off is persona-shaped.** 3-large wins
+on the doctrinal / cross-tradition personas (Aisha, Priya) and loses
+on the pastoral / philosophical personas (Sarah, Marcus). This is
+a routing decision, not a default-flip. Full interpretation in
+`notes/2026-10-07-adr-015-followup-per-persona.md`.
 
 ## What I am NOT doing
 

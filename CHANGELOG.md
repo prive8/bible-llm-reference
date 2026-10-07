@@ -5,8 +5,16 @@ All notable changes to this project are documented here. The format is based on 
 ## [Unreleased]
 
 ### Added
-- **`text-embedding-3-large` backend benchmarked.** Full 66,689-passage index built (3072-dim, 26 min, ~$0.74) and evaluated against the same 33-query benchmark used for ADR-015. 3-large wins on MRR / Primary@1 / nDCG over the local default; loses on Recall@K. Production default stays local — see ADR-015 follow-up + `notes/2026-09-19-3large-benchmark.md` for the precision-vs-recall framing.
-- **`scripts/stage_openrouter_model.py`** — generalized Stage 1 harness that accepts `--model` (the existing `stage_openrouter_benchmark.py` hardcodes the default model). Useful for benchmarking any OpenRouter-hosted embedder.
+- **Phase 2 dataset: 7 new SAMPLE_EXAMPLES covering load-bearing voices.** Expanded the hand-curated sample set from 3 → 10 to demonstrate the 6 load-bearing (tradition, voice) pairs: `plain_reader` × 3 (Christianity / Islam / Judaism) and `academic_neutral` × 3 (same). The previous 3 samples showed only denominational voices (`pastor_evangelical`, `rabbi_orthodox`, `qari_sunni`); the new samples cover the voices that the actual user base (Sarah / Marcus / Priya per `docs/audience_expectations.md`) will trigger. New citations: Matthew 11:28, Quran 2:186, Deuteronomy 6:4 (Shema), James 2:24 (justification), Quran 4:34 (qawwamun), Exodus 34:6-7 (thirteen attributes), John 19:26-27. Sample set is now large enough that a future contributor can't accidentally remove all load-bearing-voice coverage without breaking the test suite.
+- **Phase 2 system-prompt fix.** `build_system_prompt()` was substituting the citation-style description into the "You are a X" role slot, producing nonsense like "You are a Cites Romans/Ephesians heavily; conversational; ends with application". The new template uses an explicit `voice_humanized` slot (e.g. "Pastor (Evangelical)") for the role and surfaces the citation-style description as a separate sentence. Article agreement ("a Christian" vs "an Islamic") is now handled by a `TRADITION_ARTICLE` map; the citation-style description is capitalized so it reads as a proper sentence.
+
+### Fixed
+- **Phase 2 sample-count floor bumped to ≥8 (was ≥3).** Pinned via `t_phase2_sample_examples_validate_schema`. The old floor would have allowed the sample set to be cut to just the 3 denominational voices; the new floor requires 8+ which (with the new coverage test below) means the 6 load-bearing voices can't be silently dropped.
+
+### Tests
+- `t_phase2_sample_examples_cover_load_bearing_voices` — asserts at least one `SAMPLE_EXAMPLES` entry per `(tradition, voice)` pair in the 6 load-bearing combinations. Pins the new sample coverage.
+- `t_phase2_system_prompt_reads_grammatically` — asserts the system prompt starts with "You are ", the role slot doesn't leak the citation-style description, and the citation-style sentence starts with a capital. Pins the system-prompt fix so a future contributor can't reintroduce the bug.
+- Suite: 129 → 131 tests, all passing.
 
 ### Notes
 - `data/embeddings/openrouter-3large_{meta.json,vectors.bin}` (22 MB + 370 MB) shipped on disk so anyone with a paid OpenRouter account can re-validate the comparison.

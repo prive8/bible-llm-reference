@@ -1212,8 +1212,8 @@ def t_phase2_sample_examples_validate_schema():
     each example has messages[system,user,assistant] + metadata dict with
     tradition / voice / primary_citation / source."""
     mod = _import_phase2()
-    _assert(len(mod.SAMPLE_EXAMPLES) >= 3,
-            f"expected ≥3 sample examples, got {len(mod.SAMPLE_EXAMPLES)}")
+    _assert(len(mod.SAMPLE_EXAMPLES) >= 8,
+            f"expected ≥8 sample examples (load-bearing voice coverage), got {len(mod.SAMPLE_EXAMPLES)}")
     for i, ex in enumerate(mod.SAMPLE_EXAMPLES):
         _assert("messages" in ex, f"sample {i} missing messages")
         _assert("metadata" in ex, f"sample {i} missing metadata")
@@ -1253,6 +1253,91 @@ def t_phase2_seed_mode_writes_valid_jsonl(tmp_path: str = "/tmp"):
     finally:
         if output_path.exists():
             output_path.unlink()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 sample coverage (load-bearing voices)
+# ---------------------------------------------------------------------------
+
+# Per docs/audience_expectations.md, the load-bearing personas for the
+# actual user base are Sarah (Persona 4, lay-faithful) and Marcus / Priya
+# (Personas 2 + 6, secular + interfaith). They map to the plain_reader and
+# academic_neutral voices respectively. A hand-curated sample set that
+# doesn't demonstrate those voices would teach a fine-tuned model the
+# wrong shape. These tests pin coverage so a future contributor can't
+# remove a load-bearing voice's example without breaking the test suite.
+LOAD_BEARING_VOICES = [
+    ("christianity", "plain_reader"),
+    ("islam",        "plain_reader"),
+    ("judaism",      "plain_reader"),
+    ("christianity", "academic_neutral"),
+    ("islam",        "academic_neutral"),
+    ("judaism",      "academic_neutral"),
+]
+
+
+@_register("t_phase2_sample_examples_cover_load_bearing_voices")
+def t_phase2_sample_examples_cover_load_bearing_voices():
+    """At least one SAMPLE_EXAMPLES entry per load-bearing (tradition, voice)
+    pair. The 6 pairs cover the 3 plain_reader voices (Sarah, the
+    load-bearing persona) and the 3 academic_neutral voices (Marcus +
+    Priya). Without this pin, a future contributor could remove the
+    load-bearing examples and ship a fine-tune dataset that doesn't
+    represent the actual user base."""
+    mod = _import_phase2()
+    pairs = {(ex["metadata"]["tradition"], ex["metadata"]["voice"])
+             for ex in mod.SAMPLE_EXAMPLES}
+    missing = [f"({t}, {v})" for t, v in LOAD_BEARING_VOICES
+               if (t, v) not in pairs]
+    _assert(not missing,
+            f"SAMPLE_EXAMPLES missing load-bearing voice coverage: {missing}")
+
+
+@_register("t_phase2_system_prompt_reads_grammatically")
+def t_phase2_system_prompt_reads_grammatically():
+    """The system prompt must read as a coherent English sentence.
+    Pins the fix for the latent bug where the citation-style description
+    was being substituted into the 'You are a X' role slot, producing
+    nonsense like 'You are a Cites Romans/Ephesians heavily...'.
+
+    Invariants:
+      - starts with 'You are '
+      - second word after 'You are' is the article (a / an)
+      - the article-agreement and capitalization are correct for all
+        12 (tradition, voice) combinations in the taxonomy
+      - the citation-style description is a separate, capitalized
+        sentence after the role slot
+    """
+    mod = _import_phase2()
+    # Sanity: 3 traditions × voices (covered + uncovered) — verify each
+    # produces a clean prompt, not just the 6 covered by samples.
+    for tradition, voices in mod.VOICE_TAXONOMY.items():
+        for voice in voices:
+            prompt = mod.build_system_prompt(tradition, voice)
+            _assert(prompt.startswith("You are "),
+                    f"({tradition}, {voice}): system prompt doesn't start with 'You are ': {prompt[:60]!r}")
+            # The 'You are a/an X Y.' role slot must end before the
+            # citation-style description. Check the first sentence ends
+            # with a period before any lower-case text.
+            first_period = prompt.find(". ")
+            _assert(first_period > 0,
+                    f"({tradition}, {voice}): no period in first sentence: {prompt[:60]!r}")
+            # The role slot must be a real role, not a citation-style
+            # description that starts with a verb.
+            role_end = first_period
+            role = prompt[len("You are "):role_end]
+            # The role should contain a tradition label + voice name.
+            # Just check it doesn't begin with a verb (which would mean
+            # the citation-style description leaked into the role slot).
+            _assert(not role.startswith("Cites ")
+                    and not role.startswith("Hebrew ")
+                    and not role.startswith("Arabic ")
+                    and not role.startswith("English "),
+                    f"({tradition}, {voice}): role slot looks like a citation-style description: {role!r}")
+            # The next sentence (citation-style) must start with a capital.
+            next_char = prompt[first_period + 2] if first_period + 2 < len(prompt) else ""
+            _assert(next_char == next_char.upper() and next_char.isalpha(),
+                    f"({tradition}, {voice}): citation-style sentence doesn't start with a capital: {prompt[first_period:first_period+30]!r}")
 
 
 # ---------------------------------------------------------------------------

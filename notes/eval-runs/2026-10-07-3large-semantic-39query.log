@@ -1,0 +1,46 @@
+# Bible LLM Reference — Retrieval Evaluation Report
+
+**Top-k:** 10
+**Benchmark queries:** 39
+
+## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| semantic | 0.214 | 0.275 | 0.205 | 0.211 | 0.1 |
+
+## Per-path detail
+
+### SEMANTIC
+_39 queries in 634.58s_
+
+**5 lowest-scoring queries:**
+
+- `fear and anxiety about the future` → recall=0.00, mrr=0.00, ndcg=0.00, top: Lamentations 3:47, Isaiah 24:17, Luke 21:26
+- `hope when things seem hopeless` → recall=0.00, mrr=0.00, ndcg=0.00, top: Job 17:15, Proverbs 13:12, Romans 8:24
+- `guidance for making wise decisions` → recall=0.00, mrr=0.00, ndcg=0.00, top: Proverbs 19:20, Proverbs 1:4, Proverbs 23:19
+- `how to treat the poor and needy` → recall=0.00, mrr=0.00, ndcg=0.00, top: Isaiah 58:7, Deuteronomy 15:11, Proverbs 14:21
+- `what does the Bible say about Moses leading the Israelites` → recall=0.00, mrr=0.00, ndcg=0.00, top: Numbers 33:1, Exodus 13:18, Exodus 6:26
+
+
+## Per-persona detail
+
+Benchmark covers 6 personas across 39 queries (Sarah / Marcus / Yuki / Priya / Aisha / Jordan per `docs/audience_expectations.md`):
+
+- `sarah`: 11 queries
+- `marcus`: 6 queries
+- `yuki`: 6 queries
+- `priya`: 5 queries
+- `aisha`: 6 queries
+- `jordan`: 5 queries
+
+_n=1 or n=2 slices are directional only; a 6-query slice is the minimum for a stable mean. The per-persona numbers reveal where the retrieval system serves which user type; the aggregate Summary table above hides that. For the 3-large vs local comparison (2026-09-19 ADR-015 + follow-up), the aggregate showed 3-large wins on precision (MRR, Primary@1, nDCG) and loses on recall. The per-persona view surfaces whether that trade-off has a persona shape._
+
+| Path | Persona | n | Recall@K | MRR | Primary@1 | nDCG@K |
+|------|---------|---|----------|-----|-----------|---------|
+| semantic | sarah | 11 | 0.201 | 0.273 | 0.182 | 0.199 |
+| semantic | marcus | 6 | 0.183 | 0.264 | 0.167 | 0.200 |
+| semantic | yuki | 6 | 0.150 | 0.250 | 0.167 | 0.208 |
+| semantic | priya | 5 | 0.140 | 0.250 | 0.200 | 0.142 |
+| semantic | aisha | 6 | 0.311 | 0.350 | 0.333 | 0.275 |
+| semantic | jordan | 5 | 0.313 | 0.256 | 0.200 | 0.241 |

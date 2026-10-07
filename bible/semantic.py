@@ -71,25 +71,84 @@ def save_vector_index(
     metadata: list[dict],
     vectors: list[list[float]],
     dim: int,
+    append: bool = False,
 ) -> None:
-    """Serialize metadata and float32 vectors to disk."""
+    """Serialize metadata and float32 vectors to disk.
+
+    When append=False (default): overwrites any existing index.
+    When append=True: reads existing meta.json + .bin, appends to
+    both, and rewrites meta.json. Used by scripts/index_embeddings.py
+    for checkpointing during long-running builds — see
+    notes/2026-10-07-qwen3-build-handoff.md for the rationale.
+
+    The on-disk format is the same in both modes; the difference
+    is only in how the write interacts with pre-existing files.
+    """
     dir_path.mkdir(parents=True, exist_ok=True)
     meta_path = dir_path / f"{name}_meta.json"
     bin_path = dir_path / f"{name}_vectors.bin"
 
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "name": name,
-            "count": len(metadata),
-            "dim": dim,
-            "entries": metadata,
-        }, f, ensure_ascii=False, indent=2)
+    # Build the new meta block (always full)
+    new_meta = {
+        "name": name,
+        "count": len(metadata),
+        "dim": dim,
+        "entries": metadata,
+    }
 
-    with open(bin_path, "wb") as f:
-        for vec in vectors:
-            if len(vec) != dim:
-                raise ValueError(f"Vector length {len(vec)} != expected dim {dim}")
-            f.write(struct.pack(f"{dim}f", *vec))
+    if append and meta_path.exists() and bin_path.exists():
+        # Append mode: read existing, concatenate, write back.
+        # Load existing meta to get the prior count + dim
+        with open(meta_path, "r", encoding="utf-8") as f:
+            existing_meta = json.load(f)
+        existing_count = existing_meta.get("count", 0)
+        existing_dim = existing_meta.get("dim")
+        if existing_dim is not None and existing_dim != dim:
+            raise ValueError(
+                f"Cannot append: existing index has dim={existing_dim}, "
+                f"new batch has dim={dim}"
+            )
+        # Combined entries: existing first, then new
+        combined_meta = list(existing_meta.get("entries", [])) + metadata
+        # Combined vector count
+        combined_count = existing_count + len(metadata)
+        # Sanity check on combined dim
+        if vectors and len(vectors[0]) != dim:
+            raise ValueError(
+                f"Cannot append: new vector dim {len(vectors[0])} != expected {dim}"
+            )
+        # Open bin in append mode; if any vector has wrong dim, fail
+        with open(bin_path, "ab") as f:
+            for vec in vectors:
+                if len(vec) != dim:
+                    raise ValueError(
+                        f"Vector length {len(vec)} != expected dim {dim}"
+                    )
+                f.write(struct.pack(f"{dim}f", *vec))
+        new_meta = {
+            "name": name,
+            "count": combined_count,
+            "dim": dim,
+            "entries": combined_meta,
+        }
+    else:
+        # Overwrite mode: write both files fresh
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(new_meta, f, ensure_ascii=False, indent=2)
+        with open(bin_path, "wb") as f:
+            for vec in vectors:
+                if len(vec) != dim:
+                    raise ValueError(
+                        f"Vector length {len(vec)} != expected dim {dim}"
+                    )
+                f.write(struct.pack(f"{dim}f", *vec))
+        return
+
+    # If we reach here, we're in append mode and need to rewrite
+    # meta.json with the combined metadata. The bin was already
+    # appended above.
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(new_meta, f, ensure_ascii=False, indent=2)
 
 
 def load_vector_index(

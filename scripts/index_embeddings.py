@@ -183,6 +183,12 @@ def main():
     parser.add_argument("--no-bible", action="store_true", help="Exclude Bible from index")
     parser.add_argument("--no-quran", action="store_true", help="Exclude Quran from index")
     parser.add_argument("--no-torah", action="store_true", help="Exclude Torah from index")
+    parser.add_argument("--resume", action="store_true",
+                        help="Resume from an existing partial index. Skips already-embedded corpus entries. "
+                             "The last batch is assumed complete; if a partial batch was in flight, those "
+                             "passages are lost.")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Delete any existing index with this name before building.")
 
     args = parser.parse_args()
 
@@ -201,27 +207,81 @@ def main():
         print("No passages to index. Exiting.")
         sys.exit(1)
 
-    print(f"Generating vectors in batches of {args.batch_size}...")
+    # Handle existing partial index
+    meta_path = EMBEDDINGS_DIR / f"{args.name}_meta.json"
+    bin_path = EMBEDDINGS_DIR / f"{args.name}_vectors.bin"
+    existing_partial = meta_path.exists() and bin_path.exists()
+
+    if existing_partial:
+        if args.overwrite:
+            print(f"  --overwrite: removing existing partial index at {EMBEDDINGS_DIR}/{args.name}_*")
+            meta_path.unlink()
+            bin_path.unlink()
+            existing_partial = False
+        elif not args.resume:
+            print(f"ERROR: partial index exists at {EMBEDDINGS_DIR}/{args.name}_*",
+                  file=sys.stderr)
+            print("  Pass --resume to continue from where it left off, or --overwrite to start fresh.",
+                  file=sys.stderr)
+            sys.exit(1)
+
+    # Detect resume state
+    start_index = 0
+    if existing_partial and args.resume:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            existing_meta = json.load(f)
+        existing_count = existing_meta.get("count", 0)
+        existing_max_id = max(
+            (e.get("id", -1) for e in existing_meta.get("entries", [])),
+            default=-1,
+        )
+        # The corpus is built sequentially with id 0, 1, 2, ...; we
+        # can skip the first `existing_max_id + 1` corpus entries.
+        start_index = existing_max_id + 1
+        print(f"  --resume: existing partial index has {existing_count} vectors "
+              f"(max id {existing_max_id}); resuming from corpus index {start_index}.")
+        if start_index >= len(corpus):
+            print("  Resume index is past end of corpus; nothing to do.")
+            return
+
+    print(f"Generating vectors in batches of {args.batch_size} "
+          f"({len(corpus) - start_index:,} to embed)...")
     start_time = time.time()
-    vectors: list[list[float]] = []
 
-    texts = [e["text"] for e in corpus]
-    for i in range(0, len(texts), args.batch_size):
-        batch = texts[i:i + args.batch_size]
+    # The texts we still need to embed (resume-aware)
+    pending_corpus = corpus[start_index:]
+    pending_texts = [e["text"] for e in pending_corpus]
+
+    for i in range(0, len(pending_texts), args.batch_size):
+        batch = pending_texts[i:i + args.batch_size]
+        batch_meta = pending_corpus[i:i + args.batch_size]
         batch_vecs = embedder.embed_texts(batch)
-        for vec in batch_vecs:
-            vectors.append(l2_normalize(vec))
+        normalized = [l2_normalize(v) for v in batch_vecs]
 
-        if (i // args.batch_size) % 20 == 0 or (i + len(batch)) == len(texts):
-            pct = ((i + len(batch)) / len(texts)) * 100
-            print(f"  Processed {i + len(batch):,}/{len(texts):,} passages ({pct:.1f}%)...")
+        # Append this batch to the on-disk index
+        # (no-op for the first batch in a fresh build since the
+        # files were just removed by --overwrite or never existed)
+        first_batch = (not existing_partial) and (i == 0)
+        save_vector_index(
+            EMBEDDINGS_DIR, args.name,
+            metadata=batch_meta, vectors=normalized, dim=len(normalized[0]),
+            append=not first_batch,
+        )
+
+        batch_num = (i // args.batch_size)
+        is_checkpoint = batch_num % 20 == 0
+        is_last = (i + len(batch)) == len(pending_texts)
+        if is_checkpoint or is_last:
+            global_done = start_index + i + len(batch)
+            pct = (global_done / len(corpus)) * 100
+            print(f"  Processed {global_done:,}/{len(corpus):,} passages "
+                  f"({pct:.1f}%)...")
 
     elapsed = time.time() - start_time
-    dim = len(vectors[0]) if vectors else 0
-    print(f"Generated {len(vectors):,} vectors (dim={dim}) in {elapsed:.2f}s ({len(vectors)/max(elapsed, 0.001):.1f} vec/s)")
-
-    print(f"Saving vector index to {EMBEDDINGS_DIR}/{args.name}...")
-    save_vector_index(EMBEDDINGS_DIR, args.name, corpus, vectors, dim)
+    total_now = json.load(open(meta_path))["count"]
+    print(f"Indexed {len(pending_corpus):,} new vectors in {elapsed:.2f}s "
+          f"({len(pending_corpus)/max(elapsed, 0.001):.1f} vec/s). "
+          f"Index now has {total_now:,} total entries.")
     print("Vector indexing complete.")
 
 

@@ -1556,6 +1556,101 @@ def t_eval_benchmark_cross_tradition_queries_exist():
 
 
 # ---------------------------------------------------------------------------
+# Index embedding checkpointing (prevents build loss on process death)
+# ---------------------------------------------------------------------------
+# Per notes/2026-10-07-qwen3-build-handoff.md, the index script used
+# to save only at the very end. If the process was killed mid-build
+# (parent shell exit, OOM, SIGTERM), the entire build was lost.
+# Two real builds died this way: 2026-09-19 3-large at 97%, and
+# 2026-10-07 qwen3-8b at 75% (~$0.02 wasted).
+#
+# The fix: save_vector_index got an `append=True` mode and
+# scripts/index_embeddings.py got --resume / --overwrite flags.
+# These tests pin the contract so a future contributor can't
+# silently regress it.
+
+
+@_register("t_save_vector_index_supports_append")
+def t_save_vector_index_supports_append(tmp_path: str = "/tmp"):
+    """save_vector_index with append=True must concatenate to an
+    existing on-disk index without losing the prior entries.
+
+    The on-disk format (flat float32 .bin + JSON .meta) is
+    unchanged; the append mode is purely additive.
+    """
+    import os as _os
+    import shutil as _sh
+    from pathlib import Path as _P
+    from bible.semantic import save_vector_index, load_vector_index
+
+    work = _P(tmp_path) / f"t_save_append_{_os.getpid()}"
+    work.mkdir(parents=True, exist_ok=True)
+    try:
+        # First batch
+        meta1 = [{"id": 0, "text": "a"}, {"id": 1, "text": "b"}]
+        vecs1 = [[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]]
+        save_vector_index(work, "ix", meta1, vecs1, dim=4)
+
+        # Second batch (append)
+        meta2 = [{"id": 2, "text": "c"}, {"id": 3, "text": "d"}]
+        vecs2 = [[0.9, 1.0, 1.1, 1.2], [1.3, 1.4, 1.5, 1.6]]
+        save_vector_index(work, "ix", meta2, vecs2, dim=4, append=True)
+
+        # Load and verify
+        meta, vecs, dim = load_vector_index(work, "ix")
+        _assert(len(meta) == 4, f"appended meta has {len(meta)} entries, expected 4")
+        _assert(len(vecs) == 4, f"appended vectors has {len(vecs)}, expected 4")
+        _assert(dim == 4, f"dim mismatch: {dim}")
+        # Spot-check: the first vector from batch1 and last from batch2
+        _assert(abs(vecs[0][0] - 0.1) < 1e-5,
+                f"vecs[0][0]={vecs[0][0]} expected ~0.1")
+        _assert(abs(vecs[-1][0] - 1.3) < 1e-5,
+                f"vecs[-1][0]={vecs[-1][0]} expected ~1.3")
+
+        # Append with mismatched dim should error
+        try:
+            save_vector_index(work, "ix", [{"id": 99}], [[0.0, 0.0]], dim=2, append=True)
+        except ValueError as e:
+            _assert("dim" in str(e).lower(),
+                    f"append dim-mismatch should mention dim: {e}")
+        else:
+            _assert(False, "append with mismatched dim should raise ValueError")
+    finally:
+        _sh.rmtree(work, ignore_errors=True)
+
+
+@_register("t_save_vector_index_overwrite_drops_existing")
+def t_save_vector_index_overwrite_drops_existing(tmp_path: str = "/tmp"):
+    """save_vector_index without append=True must overwrite any
+    existing on-disk index. This is the default behavior and the
+    checkpoint fix doesn't change it."""
+    import os as _os
+    import shutil as _sh
+    from pathlib import Path as _P
+    from bible.semantic import save_vector_index, load_vector_index
+
+    work = _P(tmp_path) / f"t_save_overwrite_{_os.getpid()}"
+    work.mkdir(parents=True, exist_ok=True)
+    try:
+        # First write
+        save_vector_index(work, "ix",
+                          [{"id": 0}, {"id": 1}, {"id": 2}],
+                          [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]], dim=2)
+
+        # Overwrite with smaller
+        save_vector_index(work, "ix",
+                          [{"id": 99}],
+                          [[0.9, 1.0]], dim=2)
+
+        meta, vecs, _ = load_vector_index(work, "ix")
+        _assert(len(meta) == 1, f"overwrite should leave 1 entry, got {len(meta)}")
+        _assert(meta[0]["id"] == 99, f"overwrite entry id should be 99, got {meta[0]['id']}")
+        _assert(len(vecs) == 1, f"overwrite should leave 1 vector, got {len(vecs)}")
+    finally:
+        _sh.rmtree(work, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
 # Hybrid BM25 + semantic fusion (Milestone 3C)
 # ---------------------------------------------------------------------------
 

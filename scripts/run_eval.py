@@ -142,7 +142,7 @@ def run_path(
     per_query: list[dict] = []
     t_start = time.time()
 
-    for query, expected in benchmark:
+    for query, persona, expected in benchmark:
         if path == "bm25":
             idx = get_bm25_index("KJV")
             hits = idx.search(query, limit=top_k)
@@ -186,7 +186,12 @@ def run_path(
         else:
             raise ValueError(f"unknown path: {path!r}")
 
-        per_query.append({"query": query, "expected": expected, **_metrics_for_query(expected, retrieved, top_k)})
+        per_query.append({
+            "query": query,
+            "persona": persona,
+            "expected": expected,
+            **_metrics_for_query(expected, retrieved, top_k),
+        })
 
     elapsed = time.time() - t_start
 
@@ -202,6 +207,25 @@ def run_path(
         "queries_per_second": round(n / elapsed, 2),
         "per_query": per_query,
     }
+    # Per-persona aggregation. The persona field on each benchmark
+    # entry comes from tests/benchmark.py; queries inherit the label
+    # of their benchmark entry. n=1 slices are still reported (with
+    # `n=1, directional` caveat) — a future contributor adding a new
+    # query for a persona will see a single-row slice.
+    per_persona: dict[str, list[dict]] = {}
+    for q in per_query:
+        per_persona.setdefault(q["persona"], []).append(q)
+    persona_summaries: dict[str, dict] = {}
+    for persona, qs in per_persona.items():
+        m = len(qs)
+        persona_summaries[persona] = {
+            "n_queries": m,
+            "mean_recall_at_k": round(sum(q["recall_at_k"] for q in qs) / m, 4),
+            "mrr": round(sum(q["mrr"] for q in qs) / m, 4),
+            "primary_in_top1_rate": round(sum(q["primary_in_top1"] for q in qs) / m, 4),
+            "mean_ndcg_at_k": round(sum(q["ndcg_at_k"] for q in qs) / m, 4),
+        }
+    aggregate["per_persona"] = persona_summaries
     return aggregate
 
 
@@ -253,6 +277,55 @@ def format_report(results: dict[str, dict], top_k: int) -> str:
                 f"mrr={q['mrr']:.2f}, ndcg={q['ndcg_at_k']:.2f}, top: {top5}"
             )
         lines.append("")
+
+    # Per-persona summary. Show persona distribution (how many queries
+    # per persona) once, then a table per path. n=1 slices are kept
+    # (a future contributor adding a new query for an under-tested
+    # persona will see a single-row slice) but flagged as directional
+    # since one-query means are noisy.
+    any_per_persona = any(r.get("per_persona") for r in results.values() if not r.get("skipped"))
+    if any_per_persona:
+        # Persona distribution from the first non-skipped path
+        first_r = next(r for r in results.values() if not r.get("skipped"))
+        persona_counts = {p: s["n_queries"] for p, s in first_r["per_persona"].items()}
+        total = sum(persona_counts.values())
+        lines.extend(["", "## Per-persona detail", ""])
+        lines.append(
+            f"Benchmark covers {len(persona_counts)} personas across "
+            f"{total} queries (Sarah / Marcus / Yuki / Priya / Aisha / Jordan "
+            f"per `docs/audience_expectations.md`):"
+        )
+        lines.append("")
+        for p in ["sarah", "marcus", "yuki", "priya", "aisha", "jordan"]:
+            if p in persona_counts:
+                lines.append(f"- `{p}`: {persona_counts[p]} queries")
+        lines.append("")
+        lines.append(
+            "_n=1 or n=2 slices are directional only; a 6-query slice is the "
+            "minimum for a stable mean. The per-persona numbers reveal "
+            "where the retrieval system serves which user type; the aggregate "
+            "Summary table above hides that. For the 3-large vs local "
+            "comparison (2026-09-19 ADR-015 + follow-up), the aggregate "
+            "showed 3-large wins on precision (MRR, Primary@1, nDCG) and "
+            "loses on recall. The per-persona view surfaces whether that "
+            "trade-off has a persona shape._"
+        )
+        lines.append("")
+        lines.append("| Path | Persona | n | Recall@K | MRR | Primary@1 | nDCG@K |")
+        lines.append("|------|---------|---|----------|-----|-----------|---------|")
+        for path in PATHS_ALL:
+            if path not in results or results[path].get("skipped"):
+                continue
+            r = results[path]
+            for persona in ["sarah", "marcus", "yuki", "priya", "aisha", "jordan"]:
+                if persona not in r["per_persona"]:
+                    continue
+                s = r["per_persona"][persona]
+                lines.append(
+                    f"| {path} | {persona} | {s['n_queries']} | "
+                    f"{s['mean_recall_at_k']:.3f} | {s['mrr']:.3f} | "
+                    f"{s['primary_in_top1_rate']:.3f} | {s['mean_ndcg_at_k']:.3f} |"
+                )
 
     return "\n".join(lines)
 
@@ -321,14 +394,15 @@ def main() -> int:
     if args.csv:
         with open(args.csv, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
-            w.writerow(["path", "query", "recall_at_k", "mrr", "primary_in_top1",
-                        "ndcg_at_k", "got_top5", "expected_count", "got_count"])
+            w.writerow(["path", "persona", "query", "recall_at_k", "mrr",
+                        "primary_in_top1", "ndcg_at_k", "got_top5",
+                        "expected_count", "got_count"])
             for path, r in results.items():
                 if r.get("skipped"):
                     continue
                 for q in r["per_query"]:
                     w.writerow([
-                        path, q["query"], q["recall_at_k"], q["mrr"],
+                        path, q["persona"], q["query"], q["recall_at_k"], q["mrr"],
                         int(q["primary_in_top1"]), q["ndcg_at_k"],
                         "|".join(q["got_top5"]), q["expected_count"], q["got_count"],
                     ])

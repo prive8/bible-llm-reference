@@ -16,6 +16,14 @@ All notable changes to this project are documented here. The format is based on 
 - `t_phase2_system_prompt_reads_grammatically` — asserts the system prompt starts with "You are ", the role slot doesn't leak the citation-style description, and the citation-style sentence starts with a capital. Pins the system-prompt fix so a future contributor can't reintroduce the bug.
 - Suite: 129 → 131 tests, all passing.
 
+### Added
+- **Per-persona labels on the 33-query benchmark.** Each `BENCHMARK` entry now carries a `persona` field mapped to the 6-persona roster in `docs/audience_expectations.md` (Sarah / Marcus / Yuki / Priya / Aisha / Jordan). The eval harness (`scripts/run_eval.py`) now reports per-persona recall@K, MRR, primary@1, and nDCG@K in a new "Per-persona detail" section. Sarah (the load-bearing persona) gets 11 queries; the other 5 personas get 2-6 each. The aggregate 33-query average is unchanged (no queries added or removed); this is additive, not a metric change. Re-eval against the on-disk `default` (local) and `openrouter-3large` (3-large) indexes pending — the on-disk indexes don't need a re-embed. See `notes/2026-10-07-option-b-v2-design.md` for the rationale and `notes/2026-10-07-per-persona-eval.md` (forthcoming) for the re-run numbers.
+
+### Tests
+- `t_eval_benchmark_entries_have_persona_labels` — asserts every BENCHMARK entry has the new 3-tuple shape `(query, persona, expected)` and a persona in the canonical 6-persona set. Pins the shape so a future contributor can't silently drop the persona field.
+- `t_eval_benchmark_covers_all_six_personas` — asserts all 6 personas are present in BENCHMARK. Without this, a future contributor could re-label queries to one persona and break the per-persona view of the eval.
+- Suite: 131 → 133 tests, all passing.
+
 ### Notes
 - `data/embeddings/openrouter-3large_{meta.json,vectors.bin}` (22 MB + 370 MB) shipped on disk so anyone with a paid OpenRouter account can re-validate the comparison.
 - `qwen/qwen3-embedding-8b` (4096-dim, ~free on OpenRouter) endpoint reached but free-tier connection-state unreliability blocked full corpus build (same pathology that bit the Tanakh ingest on 2026-09-11). Doc'd in `notes/2026-09-19-3large-benchmark.md` for the record.

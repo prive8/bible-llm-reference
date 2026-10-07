@@ -38,15 +38,16 @@ from pathlib import Path
 
 
 # Type alias for clarity (kept as a comment to avoid runtime cost)
-# BenchmarkItem = (query: str, [(citation: str, weight: int), ...])
+# BenchmarkItem = (query: str, persona: str, [(citation: str, weight: int), ...])
 
 
-BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
+BENCHMARK: list[tuple[str, str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     # Emotional / pastoral themes
     # ───────────────────────────────────────────────────────────────
     (
         "comfort in times of grief",
+        "sarah",  # persona
         [
             ("Matthew 5:4", 3),      # "Blessed are they that mourn"
             ("Psalms 23:4", 3),      # "thy rod and thy staff, they comfort me"
@@ -61,6 +62,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "fear and anxiety about the future",
+        "sarah",  # persona
         [
             ("Matthew 6:34", 3),     # "Take therefore no thought for the morrow"
             ("Philippians 4:6-7", 3),  # "Be careful for nothing"
@@ -72,6 +74,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "trust in God during hardship",
+        "sarah",  # persona
         [
             ("Proverbs 3:5-6", 3),   # "Trust in the LORD with all thine heart"
             ("Psalms 62:8", 3),      # "Trust in him at all times"
@@ -83,6 +86,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "hope when things seem hopeless",
+        "sarah",  # persona
         [
             ("Romans 8:28", 3),      # "All things work together for good"
             ("Jeremiah 29:11", 3),   # "I know the thoughts that I think toward you"
@@ -97,6 +101,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "mercy and forgiveness from God",
+        "sarah",  # persona
         [
             ("Ephesians 2:4-5", 3),  # "God, who is rich in mercy"
             ("Psalms 103:8-14", 3),  # "The LORD is merciful and gracious"
@@ -109,6 +114,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "God's judgment of the wicked",
+        "marcus",  # persona
         [
             ("Romans 2:5-6", 3),     # "treasurest up unto thyself wrath"
             ("Psalms 37:9-10", 3),   # "the wicked shall be cut off"
@@ -119,6 +125,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "creation of the world by God",
+        "marcus",  # persona
         [
             ("Genesis 1:1", 3),      # "In the beginning God created"
             ("John 1:1-3", 3),       # "All things were made by him"
@@ -130,6 +137,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "the nature of God's love for humanity",
+        "marcus",  # persona
         [
             ("John 3:16", 3),        # "God so loved the world"
             ("1 John 4:8", 3),       # "God is love"
@@ -145,6 +153,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "guidance for making wise decisions",
+        "marcus",  # persona
         [
             ("James 1:5", 3),        # "If any of you lack wisdom, let him ask of God"
             ("Proverbs 3:5-6", 3),
@@ -155,6 +164,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "how to treat the poor and needy",
+        "marcus",  # persona
         [
             ("Matthew 25:40", 3),    # "Inasmuch as ye have done it unto one of the least"
             ("Proverbs 19:17", 3),   # "He that hath pity upon the poor lendeth"
@@ -165,6 +175,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "anger and how to handle conflict",
+        "sarah",  # persona
         [
             ("James 1:19-20", 3),    # "let every man be swift to hear, slow to speak"
             ("Proverbs 15:1", 3),    # "A soft answer turneth away wrath"
@@ -175,6 +186,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "patience and perseverance under trial",
+        "sarah",  # persona
         [
             ("James 1:2-4", 3),      # "count it all joy when ye fall into divers temptations"
             ("Romans 5:3-4", 3),     # "tribulation worketh patience"
@@ -189,6 +201,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "the nature of faith and belief",
+        "aisha",  # persona
         [
             ("Hebrews 11:1", 3),     # "Faith is the substance of things hoped for"
             ("Romans 10:9-10", 3),   # "if thou shalt confess with thy mouth"
@@ -199,6 +212,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "prophecy about the coming of a Messiah",
+        "aisha",  # persona
         [
             ("Isaiah 9:6", 3),       # "For unto us a child is born"
             ("Isaiah 53:5", 3),      # "by his stripes we are healed"
@@ -210,6 +224,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "the resurrection of the dead",
+        "aisha",  # persona
         [
             ("1 Corinthians 15:4", 3),  # "rose again the third day"
             ("John 11:25-26", 3),      # "I am the resurrection, and the life"
@@ -220,6 +235,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "prayer and how to pray",
+        "marcus",  # persona
         [
             ("Matthew 6:9-13", 3),   # The Lord's Prayer
             ("Philippians 4:6-7", 2),
@@ -234,6 +250,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "what does the Bible say about feeling overwhelmed",
+        "sarah",  # persona
         [
             ("Psalms 55:22", 3),     # "Cast thy burden upon the LORD"
             ("Matthew 11:28-30", 3), # "Come unto me, all ye that labour"
@@ -245,6 +262,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "passages about feeling abandoned or alone",
+        "sarah",  # persona
         [
             ("Psalms 27:10", 3),     # "When my father and my mother forsake me"
             ("Hebrews 13:5", 3),     # "I will never leave thee, nor forsake thee"
@@ -255,6 +273,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "verses about finding strength when weak",
+        "sarah",  # persona
         [
             ("2 Corinthians 12:9-10", 3),  # "My strength is made perfect in weakness"
             ("Philippians 4:13", 3),       # "I can do all things through Christ"
@@ -270,6 +289,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "God's mercy on those who repent",
+        "priya",  # persona
         [
             ("Psalms 86:5", 3),      # "thou, Lord, art good, and ready to forgive"
             ("Luke 15:7", 3),       # "joy shall be in heaven over one sinner"
@@ -281,6 +301,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "the day of judgment and accountability",
+        "priya",  # persona
         [
             ("Matthew 25:31-33", 3),   # sheep and goats
             ("Revelation 20:11-12", 3),
@@ -291,6 +312,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "God as creator and sustainer of all life",
+        "yuki",  # persona
         [
             ("Genesis 1:1", 3),
             ("Acts 17:24-25", 3),   # "God that made the world and all things"
@@ -305,6 +327,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "the parable of the lost sheep being found",
+        "yuki",  # persona
         [
             ("Luke 15:3-7", 3),     # The parable itself
             ("Matthew 18:12-14", 3),  # Parallel in Matthew
@@ -315,6 +338,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "the good Samaritan helping a stranger",
+        "yuki",  # persona
         [
             ("Luke 10:30-37", 3),   # The parable itself
             ("Matthew 22:39", 2),   # "Thou shalt love thy neighbour"
@@ -324,6 +348,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "Joseph's story of betrayal and forgiveness",
+        "sarah",  # persona
         [
             ("Genesis 37:28", 3),   # sold into slavery
             ("Genesis 45:5", 3),    # "God did send me before you"
@@ -338,6 +363,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "what does the Bible say about Moses leading the Israelites",
+        "jordan",  # persona
         [
             ("Exodus 14:13-14", 3),  # "stand still, and see the salvation of the LORD"
             ("Deuteronomy 31:6", 3),  # "be strong and of a good courage"
@@ -348,6 +374,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "King David's psalms and repentance",
+        "jordan",  # persona
         [
             ("Psalms 51:1-2", 3),    # "Have mercy upon me, O God"
             ("2 Samuel 12:13", 3),   # "I have sinned against the LORD"
@@ -362,6 +389,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "light",
+        "jordan",  # persona
         [
             ("John 8:12", 3),        # "I am the light of the world"
             ("1 John 1:5", 2),       # "God is light"
@@ -373,6 +401,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "shepherd",
+        "jordan",  # persona
         [
             ("Psalms 23:1", 3),      # "The LORD is my shepherd"
             ("John 10:11", 3),      # "I am the good shepherd"
@@ -383,6 +412,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "water and living water",
+        "jordan",  # persona
         [
             ("John 4:14", 3),        # "the water that I shall give him"
             ("Revelation 22:1", 3), # "a pure river of water of life"
@@ -397,6 +427,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     # ───────────────────────────────────────────────────────────────
     (
         "grace",
+        "aisha",  # persona
         [
             ("Ephesians 2:8-9", 3),  # "by grace ye are saved"
             ("Romans 3:24", 3),      # "justified freely by his grace"
@@ -407,6 +438,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "eternal life",
+        "aisha",  # persona
         [
             ("John 3:16", 3),
             ("John 17:3", 3),        # "this is life eternal"
@@ -418,6 +450,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
     ),
     (
         "the Holy Spirit",
+        "aisha",  # persona
         [
             ("Acts 2:1-4", 3),       # Pentecost
             ("John 14:26", 3),       # "the Comforter, which is the Holy Ghost"
@@ -432,7 +465,7 @@ BENCHMARK: list[tuple[str, list[tuple[str, int]]]] = [
 def all_verses() -> set[str]:
     """Return the set of every citation referenced in the benchmark."""
     out: set[str] = set()
-    for _query, expected in BENCHMARK:
+    for _query, _persona, expected in BENCHMARK:
         for citation, _weight in expected:
             out.add(citation)
     return out
@@ -440,7 +473,7 @@ def all_verses() -> set[str]:
 
 def queries() -> list[str]:
     """Return just the query strings."""
-    return [q for q, _ in BENCHMARK]
+    return [q for q, _p, _e in BENCHMARK]
 
 
 if __name__ == "__main__":
@@ -450,7 +483,7 @@ if __name__ == "__main__":
 
     out_path = Path(sys.argv[1]) if len(sys.argv) > 1 else None
     rows: list[tuple[str, str, int]] = []
-    for query, expected in BENCHMARK:
+    for query, _persona, expected in BENCHMARK:
         for citation, weight in expected:
             rows.append((query, citation, weight))
 

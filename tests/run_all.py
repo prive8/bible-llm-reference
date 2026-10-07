@@ -1439,6 +1439,56 @@ def t_eval_threshold_gate_parses_real_report():
 
 
 # ---------------------------------------------------------------------------
+# Eval benchmark: per-persona labels
+# ---------------------------------------------------------------------------
+# Per docs/audience_expectations.md, the project serves 6 personas
+# (Sarah / Marcus / Yuki / Priya / Aisha / Jordan). The benchmark
+# covers all 6 so the eval harness can report per-persona numbers —
+# see notes/2026-10-07-option-b-v2-design.md and the Gap 1 design for
+# why this matters. Without these tests, a future contributor could
+# silently re-label queries (or break the tuple shape) and CI would
+# not catch it.
+
+# Canonical 6-persona set. Stable per docs/audience_expectations.md.
+PERSONAS = ("sarah", "marcus", "yuki", "priya", "aisha", "jordan")
+
+
+@_register("t_eval_benchmark_entries_have_persona_labels")
+def t_eval_benchmark_entries_have_persona_labels():
+    """Every BENCHMARK entry must carry a persona label so
+    run_eval.py can compute per-persona aggregates."""
+    from tests.benchmark import BENCHMARK
+    _assert(len(BENCHMARK) > 0, "BENCHMARK is empty")
+    for i, entry in enumerate(BENCHMARK):
+        # Shape: (query: str, persona: str, expected: list)
+        ok = isinstance(entry, tuple) and len(entry) == 3
+        _assert(ok,
+                f"benchmark entry {i} shape: expected 3-tuple, got {type(entry).__name__} of arity {len(entry) if isinstance(entry, tuple) else 'n/a'}")
+        if not ok:
+            continue  # avoid index-out-of-range; assertion already failed
+        query, persona, expected = entry
+        _assert(isinstance(query, str) and bool(query),
+                f"benchmark entry {i}: query is empty or not a string")
+        _assert(persona in PERSONAS,
+                f"benchmark entry {i} ({query!r}): persona {persona!r} not in {PERSONAS}")
+        _assert(isinstance(expected, list) and bool(expected),
+                f"benchmark entry {i} ({query!r}): expected is empty or not a list")
+
+
+@_register("t_eval_benchmark_covers_all_six_personas")
+def t_eval_benchmark_covers_all_six_personas():
+    """The benchmark must exercise every canonical persona. Without
+    every persona present, the per-persona view in run_eval.py is
+    incomplete and a future contributor can't see whether the
+    retrieval system serves a particular user type."""
+    from tests.benchmark import BENCHMARK
+    seen = {entry[1] for entry in BENCHMARK}
+    missing = [p for p in PERSONAS if p not in seen]
+    _assert(not missing,
+            f"BENCHMARK missing personas: {missing} (must cover all 6: {PERSONAS})")
+
+
+# ---------------------------------------------------------------------------
 # Hybrid BM25 + semantic fusion (Milestone 3C)
 # ---------------------------------------------------------------------------
 

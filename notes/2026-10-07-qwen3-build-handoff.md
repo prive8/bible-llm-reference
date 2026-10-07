@@ -1,21 +1,43 @@
 # 2026-10-07 — qwen3-8b build in progress (handoff)
 
-## Status (snapshot at 11:53 EDT)
+## Status (final, session-end 12:27 EDT)
 
-- **Background process** `proc_336e89275438` running the full 66K
-  passage build of `qwen/qwen3-embedding-8b` (4096-dim) on
-  OpenRouter.
-- **Progress:** 23,104 / 66,689 passages (34.6%) at 11:53 EDT.
-- **ETA:** ~22-25 more minutes (build started 11:35, full build
-  expected ~12:15-12:20 EDT).
-- **Cost:** open-ended; will land in OpenRouter credit usage when
-  complete. Started this hour at $1.06 used, $8.94 remaining
-  of the $10 budget.
-- **Log:** `/tmp/qwen3-build.log`
+- **Full 66K build** was attempted but killed at 75% (50,000 / 66,689
+  passages processed) around 12:19 EDT. No output files written —
+  the script only writes the index at the very end (line 224 of
+  `scripts/index_embeddings.py`), so the ~$0.02 of OpenRouter
+  embedding work done was lost. The previous 2026-09-19 attempt
+  had the same problem (see `notes/2026-09-19-3large-benchmark.md`).
+  This is a known fragility of the current index script.
+- **5K probe build** completed successfully (12:26 EDT, 5 min 27s
+  wall time, 15.3 vec/s). Two files written:
+  - `data/embeddings/openrouter-qwen3-8b-5k_meta.json` (1.4 MB)
+  - `data/embeddings/openrouter-qwen3-8b-5k_vectors.bin` (81 MB)
+- **256-passage probe** also completed (14.21s, 18 vec/s). Smoke
+  test on "creation account in the Quran" → Genesis 1:1 ranked
+  first. Endpoint works correctly at all sizes tested.
+
+## Throughput observed
+
+| Build | Throughput | Total time (66K equiv) |
+|-------|-----------|------------------------|
+| 256 passages | 18 vec/s | 61 min |
+| 5,000 passages | 15.3 vec/s | 72 min |
+| 50,000 passages (incomplete) | ~22 vec/s* | 50 min |
+| 3-large (prior session, 66K) | 42 vec/s | 26 min |
+
+*The 50K was a partial run, so the throughput is averaged over a
+mixed workload including ramp-up. Treat the 5K number (15.3
+vec/s) as the canonical "qwen3 is 3x slower than 3-large" number.
+
+**The full 66K qwen3 build is estimated at ~70 min wall time.**
+That's longer than my available session windows (30-60 min).
+Strategy: do it overnight or in a dedicated window.
 
 ## When it finishes
 
-The process will write two files to `data/embeddings/`:
+The full 66K build (if re-attempted) will write two files to
+`data/embeddings/`:
 - `openrouter-qwen3-8b_meta.json` (entries array)
 - `openrouter-qwen3-8b_vectors.bin` (4096-dim float32 vectors, ~1GB)
 
@@ -33,6 +55,32 @@ OPENROUTER_EMBED_MODEL=qwen/qwen3-embedding-8b \
 
 (Use the Hermes Python 3.14 — it has sentence-transformers 6.1.0;
 system python3.12 doesn't.)
+
+## Alternative: do the full build overnight
+
+The full 66K build is ~70 min. If you have a dedicated overnight
+window, kick it off before bed:
+
+```bash
+# Start as a background process
+nohup bash -c '
+  PYTHON_BIN=/home/pierce/.hermes/tools/python-3.14.7+202****0901-linux-x64/bin/python3
+  source /home/pierce/.hermes/.env
+  export OPENROUTER_API_KEY
+  export OPENROUTER_EMBED_MODEL=qwen/qwen3-embedding-8b
+  $PYTHON_BIN -u scripts/index_embeddings.py --backend openrouter \
+    --name openrouter-qwen3-8b 2>&1 > /tmp/qwen3-build.log
+' >/dev/null 2>&1 &
+
+# Check on it
+sleep 1800 && ls -la data/embeddings/openrouter-qwen3-8b_*
+```
+
+The 5K probe shows the endpoint is reliable at small scale; the
+issue with the full build is *only* that the script doesn't
+checkpoint, so any process death before the final write loses
+the work. Adding checkpointing to `scripts/index_embeddings.py`
+is a separate fix (one line per batch range would do it).
 
 ## What to do with the results
 

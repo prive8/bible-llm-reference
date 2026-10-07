@@ -1,0 +1,73 @@
+Running 33 queries × 2 path(s), top_k=10...
+
+[semantic] starting...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights:  56%|█████▋    | 58/103 [00:00<00:00, 444.86it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 741.09it/s]
+[semantic] recall@K=0.279 mrr=0.165 primary-in-top1=0.151 ndcg=0.222 (0.2 q/s)
+
+[hybrid] starting...
+[hybrid] recall@K=0.258 mrr=0.162 primary-in-top1=0.151 ndcg=0.219 (0.3 q/s)
+# Bible LLM Reference — Retrieval Evaluation Report
+
+**Top-k:** 10
+**Benchmark queries:** 66
+
+## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| semantic | 0.279 | 0.165 | 0.151 | 0.222 | 0.2 |
+| hybrid | 0.258 | 0.162 | 0.151 | 0.219 | 0.3 |
+
+## Per-path detail
+
+### SEMANTIC
+_33 queries in 141.27s_
+
+**5 lowest-scoring queries:**
+
+- `fear and anxiety about the future` → recall=0.00, mrr=0.00, ndcg=0.00, top: Sirach 1:18, Quran 87:10 (Al-A'la), Luke 21:9
+- `guidance for making wise decisions` → recall=0.00, mrr=0.00, ndcg=0.00, top: Quran 40:54 (Ghafir), Proverbs 23:23, Job 34:4
+- `anger and how to handle conflict` → recall=0.00, mrr=0.00, ndcg=0.00, top: Colossians 3:13, Proverbs 29:22, Jeremiah 7:19
+- `patience and perseverance under trial` → recall=0.00, mrr=0.00, ndcg=0.00, top: Romans 5:4, Quran 70:5 (Al-Ma'arij), Quran 31:3 (Luqman)
+- `prophecy about the coming of a Messiah` → recall=0.00, mrr=0.00, ndcg=0.00, top: 1 Maccabees 15:1, 3 Esdras 15:1, Matthew 11:13
+
+### HYBRID
+_33 queries in 103.63s_
+
+**5 lowest-scoring queries:**
+
+- `fear and anxiety about the future` → recall=0.00, mrr=0.00, ndcg=0.00, top: Sirach 1:18, Quran 87:10 (Al-A'la), Luke 21:9
+- `guidance for making wise decisions` → recall=0.00, mrr=0.00, ndcg=0.00, top: Quran 40:54 (Ghafir), Proverbs 23:23, Job 34:4
+- `anger and how to handle conflict` → recall=0.00, mrr=0.00, ndcg=0.00, top: Colossians 3:13, Proverbs 29:22, Jeremiah 7:19
+- `patience and perseverance under trial` → recall=0.00, mrr=0.00, ndcg=0.00, top: Romans 5:4, Quran 70:5 (Al-Ma'arij), 2 Peter 1:6
+- `prophecy about the coming of a Messiah` → recall=0.00, mrr=0.00, ndcg=0.00, top: 1 Maccabees 15:1, 3 Esdras 15:1, Revelation 22:7
+
+
+## Per-persona detail
+
+Benchmark covers 6 personas across 33 queries (Sarah / Marcus / Yuki / Priya / Aisha / Jordan per `docs/audience_expectations.md`):
+
+- `sarah`: 11 queries
+- `marcus`: 6 queries
+- `yuki`: 3 queries
+- `priya`: 2 queries
+- `aisha`: 6 queries
+- `jordan`: 5 queries
+
+_n=1 or n=2 slices are directional only; a 6-query slice is the minimum for a stable mean. The per-persona numbers reveal where the retrieval system serves which user type; the aggregate Summary table above hides that. For the 3-large vs local comparison (2026-09-19 ADR-015 + follow-up), the aggregate showed 3-large wins on precision (MRR, Primary@1, nDCG) and loses on recall. The per-persona view surfaces whether that trade-off has a persona shape._
+
+| Path | Persona | n | Recall@K | MRR | Primary@1 | nDCG@K |
+|------|---------|---|----------|-----|-----------|---------|
+| semantic | sarah | 11 | 0.256 | 0.182 | 0.182 | 0.210 |
+| semantic | marcus | 6 | 0.250 | 0.222 | 0.167 | 0.252 |
+| semantic | yuki | 3 | 0.367 | 0.000 | 0.000 | 0.247 |
+| semantic | priya | 2 | 0.267 | 0.000 | 0.000 | 0.103 |
+| semantic | aisha | 6 | 0.222 | 0.167 | 0.167 | 0.177 |
+| semantic | jordan | 5 | 0.387 | 0.220 | 0.200 | 0.297 |
+| hybrid | sarah | 11 | 0.226 | 0.182 | 0.182 | 0.201 |
+| hybrid | marcus | 6 | 0.283 | 0.222 | 0.167 | 0.265 |
+| hybrid | yuki | 3 | 0.367 | 0.000 | 0.000 | 0.245 |
+| hybrid | priya | 2 | 0.167 | 0.000 | 0.000 | 0.066 |
+| hybrid | aisha | 6 | 0.195 | 0.167 | 0.167 | 0.186 |
+| hybrid | jordan | 5 | 0.347 | 0.200 | 0.200 | 0.289 |

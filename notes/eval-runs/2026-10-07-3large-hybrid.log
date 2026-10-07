@@ -1,0 +1,46 @@
+# Bible LLM Reference — Retrieval Evaluation Report
+
+**Top-k:** 10
+**Benchmark queries:** 33
+
+## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| hybrid | 0.219 | 0.257 | 0.151 | 0.216 | 0.1 |
+
+## Per-path detail
+
+### HYBRID
+_33 queries in 517.99s_
+
+**5 lowest-scoring queries:**
+
+- `fear and anxiety about the future` → recall=0.00, mrr=0.00, ndcg=0.00, top: Lamentations 3:47, Isaiah 24:17, Luke 21:26
+- `hope when things seem hopeless` → recall=0.00, mrr=0.00, ndcg=0.00, top: Job 17:15, Proverbs 13:12, Romans 8:24
+- `God's judgment of the wicked` → recall=0.00, mrr=0.00, ndcg=0.00, top: Psalms 7:11, Job 21:30, Psalms 11:6
+- `guidance for making wise decisions` → recall=0.00, mrr=0.00, ndcg=0.00, top: Proverbs 19:20, Proverbs 1:4, Proverbs 23:19
+- `how to treat the poor and needy` → recall=0.00, mrr=0.00, ndcg=0.00, top: Isaiah 58:7, Deuteronomy 15:11, Proverbs 14:21
+
+
+## Per-persona detail
+
+Benchmark covers 6 personas across 33 queries (Sarah / Marcus / Yuki / Priya / Aisha / Jordan per `docs/audience_expectations.md`):
+
+- `sarah`: 11 queries
+- `marcus`: 6 queries
+- `yuki`: 3 queries
+- `priya`: 2 queries
+- `aisha`: 6 queries
+- `jordan`: 5 queries
+
+_n=1 or n=2 slices are directional only; a 6-query slice is the minimum for a stable mean. The per-persona numbers reveal where the retrieval system serves which user type; the aggregate Summary table above hides that. For the 3-large vs local comparison (2026-09-19 ADR-015 + follow-up), the aggregate showed 3-large wins on precision (MRR, Primary@1, nDCG) and loses on recall. The per-persona view surfaces whether that trade-off has a persona shape._
+
+| Path | Persona | n | Recall@K | MRR | Primary@1 | nDCG@K |
+|------|---------|---|----------|-----|-----------|---------|
+| hybrid | sarah | 11 | 0.186 | 0.217 | 0.091 | 0.180 |
+| hybrid | marcus | 6 | 0.150 | 0.264 | 0.167 | 0.186 |
+| hybrid | yuki | 3 | 0.217 | 0.167 | 0.000 | 0.246 |
+| hybrid | priya | 2 | 0.267 | 0.625 | 0.500 | 0.311 |
+| hybrid | aisha | 6 | 0.256 | 0.333 | 0.333 | 0.261 |
+| hybrid | jordan | 5 | 0.313 | 0.153 | 0.000 | 0.219 |

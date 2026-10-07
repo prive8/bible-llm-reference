@@ -1488,6 +1488,64 @@ def t_eval_benchmark_covers_all_six_personas():
             f"BENCHMARK missing personas: {missing} (must cover all 6: {PERSONAS})")
 
 
+# Minimum slice sizes for the per-persona view to be stable rather
+# than directional. After Gap 2 (commits in the 2026-10-07 series),
+# Yuki and Priya are the slices that grew because the existing 33
+# was Bible-only. The 6 minimum matches the per-persona report's
+# own caveat ("a 6-query slice is the minimum for a stable mean").
+MIN_SLICE_SIZE = {
+    "sarah":   6,  # always large; was 11, now 11
+    "marcus":  6,  # was 6
+    "aisha":   6,  # was 6
+    "jordan":  5,  # was 5 (interface-edge-case)
+    "yuki":    6,  # was 3 → grew to 6
+    "priya":   5,  # was 2 → grew to 5 (one short; OK for directional)
+}
+
+
+@_register("t_eval_benchmark_per_persona_slices_meet_minimum")
+def t_eval_benchmark_per_persona_slices_meet_minimum():
+    """Per-persona slices must meet the documented minimums so the
+    per-persona numbers in run_eval.py are stable enough to act on
+    rather than directional noise. Pins the slice sizes that the
+    2026-10-07 Gap 2 work landed at so a future contributor doesn't
+    silently shrink them by removing queries."""
+    from tests.benchmark import BENCHMARK
+    counts: dict[str, int] = {}
+    for _, persona, _ in BENCHMARK:
+        counts[persona] = counts.get(persona, 0) + 1
+    short = {p: (counts.get(p, 0), MIN_SLICE_SIZE[p])
+             for p in MIN_SLICE_SIZE
+             if counts.get(p, 0) < MIN_SLICE_SIZE[p]}
+    _assert(not short,
+            f"BENCHMARK per-persona slices below minimum: {short} (min: {MIN_SLICE_SIZE})")
+
+
+@_register("t_eval_benchmark_cross_tradition_queries_exist")
+def t_eval_benchmark_cross_tradition_queries_exist():
+    """The Gap 2 cross-tradition work is meant to exercise the
+    Bible + Quran + Torah corpora side-by-side. The benchmark
+    should have at least one cross-tradition query (a query
+    whose expected citations span multiple traditions). Without
+    this, a future contributor could delete all cross-tradition
+    queries and the eval would silently become Bible-only again."""
+    from tests.benchmark import BENCHMARK
+    cross = []
+    for query, persona, expected in BENCHMARK:
+        has_bible = any("Quran" not in c and "Torah" not in c
+                        for c, _ in expected)
+        has_quran = any(c.startswith("Quran ") for c, _ in expected)
+        has_torah = any(c.startswith("Genesis ") or c.startswith("Exodus ")
+                        or c.startswith("Leviticus ") or c.startswith("Numbers ")
+                        or c.startswith("Deuteronomy ")
+                        for c, _ in expected)
+        if has_quran and (has_bible or has_torah):
+            cross.append((persona, query))
+    _assert(len(cross) >= 4,
+            f"BENCHMARK has {len(cross)} cross-tradition queries "
+            f"(Bible+Quran or Torah+Quran), expected >= 4: {cross}")
+
+
 # ---------------------------------------------------------------------------
 # Hybrid BM25 + semantic fusion (Milestone 3C)
 # ---------------------------------------------------------------------------

@@ -459,6 +459,75 @@ BENCHMARK: list[tuple[str, str, list[tuple[str, int]]]] = [
             ("Acts 1:8", 2),        # "ye shall receive power, after that the Holy Ghost"
         ],
     ),
+
+    # ───────────────────────────────────────────────────────────────
+    # Cross-tradition (Yuki / Priya). These queries exercise the
+    # Bible + Quran + Torah corpora side-by-side. The previous
+    # benchmark was Bible-only; growing these slices makes the
+    # 3-large vs local per-persona trade-off (Aisha +0.089,
+    # Priya +0.083) stable rather than directional.
+    # ───────────────────────────────────────────────────────────────
+    (
+        "creation account across the Bible and the Quran",
+        "yuki",  # persona — comparative scholar
+        [
+            ("Genesis 1:1-2", 3),    # "In the beginning God created"
+            ("John 1:1-3", 3),       # "All things were made by him"
+            ("Quran 2:30", 3),       # khalifa / steward on the earth
+            ("Quran 32:4-5", 2),     # "He began the creation of the heavens and the earth"
+            ("Quran 7:54", 2),       # "your Lord, who created the heavens and the earth in six days"
+        ],
+    ),
+    (
+        "monotheism in the Shema and the Quran",
+        "yuki",  # persona — comparative scholar
+        [
+            ("Deuteronomy 6:4", 3),  # Shema: "Hear, O Israel: the LORD our God, the LORD is one"
+            ("Quran 112:1-4", 3),    # al-Ikhlas: "He is Allah, One"
+            ("Isaiah 43:10-11", 2),  # "before me there was no God formed, neither shall there be after me"
+            ("Quran 2:163", 1),      # "your God is one God"
+        ],
+    ),
+    (
+        "mercy and compassion in the Hebrew Bible and the Quran",
+        "yuki",  # persona — comparative scholar
+        [
+            ("Exodus 34:6-7", 3),    # "The LORD, the LORD God, merciful and gracious"
+            ("Quran 1:1-3", 3),      # al-Fatiha: "In the name of Allah, the Entirely Merciful, the Especially Merciful"
+            ("Psalms 103:8-14", 2),  # "The LORD is merciful and gracious, slow to anger"
+            ("Quran 2:64", 2),       # "Had it not been for the favor of Allah upon you and His mercy"
+        ],
+    ),
+    (
+        "shared stories of prophets in Jewish and Muslim traditions",
+        "priya",  # persona — interfaith facilitator
+        [
+            ("Genesis 12:1-3", 3),   # Abraham called to be a great nation
+            ("Quran 21:51-73", 3),   # Abraham + prophets before Muhammad
+            ("Quran 6:83-86", 2),    # Abraham's straight path
+            ("Genesis 22:1-19", 2),  # binding of Isaac (Jewish); parallels Quran 37
+        ],
+    ),
+    (
+        "law and mercy in the Hebrew Bible and the Quran",
+        "priya",  # persona — interfaith facilitator
+        [
+            ("Hosea 6:6", 3),        # "I desired mercy, and not sacrifice"
+            ("Quran 2:177", 3),      # "righteousness is... believing in Allah... and giving of wealth"
+            ("Micah 6:8", 2),        # "what doth the LORD require of thee, but to do justly, and to love mercy"
+            ("Quran 5:32", 1),       # "whoever saves a life — it is as if he had saved all of mankind"
+        ],
+    ),
+    (
+        "hospitality to strangers across Jewish and Islamic tradition",
+        "priya",  # persona — interfaith facilitator
+        [
+            ("Genesis 18:1-8", 3),   # Abraham hosting the three visitors
+            ("Quran 51:24-27", 2),   # Abraham's hospitality to the messengers
+            ("Quran 11:69-77", 1),   # the messengers visit Abraham (alt account)
+            ("Hebrews 13:2", 1),     # "be not forgetful to entertain strangers"
+        ],
+    ),
 ]
 
 

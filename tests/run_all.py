@@ -889,8 +889,13 @@ def t_openrouter_embed_roundtrip_with_mock_transport():
     parsing, and the per-index ordering defense.
     """
     import os as _os
-    saved = _os.environ.get("OPENROUTER_API_KEY")
-    _os.environ["OPENROUTER_API_KEY"] = "sk-or-fake-test-key"
+    saved_key = _os.environ.get("OPENROUTER_API_KEY")
+    saved_model = _os.environ.get("OPENROUTER_EMBED_MODEL")
+    _os.environ["OPENROUTER_API_KEY"] = "sk-or-...-key"
+    # Clear OPENROUTER_EMBED_MODEL so the embedder uses the default
+    # (the test asserts model == DEFAULT_OPENROUTER_MODEL).
+    if "OPENROUTER_EMBED_MODEL" in _os.environ:
+        del _os.environ["OPENROUTER_EMBED_MODEL"]
     captured_requests: list[dict] = []
     global_index = [0]
 
@@ -929,10 +934,14 @@ def t_openrouter_embed_roundtrip_with_mock_transport():
             _assert(req["url"].endswith("/embeddings"), f"url must end with /embeddings: {req['url']}")
             _assert("openrouter.ai" in req["url"], f"url must hit openrouter.ai: {req['url']}")
     finally:
-        if saved is None:
+        if saved_key is None:
             _os.environ.pop("OPENROUTER_API_KEY", None)
         else:
-            _os.environ["OPENROUTER_API_KEY"] = saved
+            _os.environ["OPENROUTER_API_KEY"] = saved_key
+        if saved_model is not None:
+            _os.environ["OPENROUTER_EMBED_MODEL"] = saved_model
+        elif "OPENROUTER_EMBED_MODEL" in _os.environ:
+            del _os.environ["OPENROUTER_EMBED_MODEL"]
 
 
 @_register("t_openrouter_embed_query_is_one_element_embed_texts")

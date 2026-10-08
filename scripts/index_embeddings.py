@@ -52,7 +52,12 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
-def collect_corpus(include_bible: bool = True, include_quran: bool = True, limit: int = 0) -> list[dict]:
+def collect_corpus(
+    include_bible: bool = True,
+    include_quran: bool = True,
+    limit: int = 0,
+    judaism_edition: str = "jps1917-modernized",
+) -> list[dict]:
     """Gather flat list of scripture passages across traditions."""
     entries: list[dict] = []
     curr_id = 0
@@ -101,13 +106,26 @@ def collect_corpus(include_bible: bool = True, include_quran: bool = True, limit
         except FileNotFoundError:
             print("  Warning: data/quran/saheeh-international.json not found, skipping Quran.")
 
-    # Torah (Phase 3.2) — use the Hebrew nikkud edition as the index source
-    # since it's structurally clean (no English translation in same file).
-    # If you want English-text indexing, also iterate hebrew-nikkud.json and
-    # swap text for jps1917-modernized.json.
+    # Judaism (Torah + Tanakh) — default to the English edition
+    # (jps1917-modernized) so the local English-only embedder indexes
+    # English text. Hebrew-nikkud is still available as an opt-in via
+    # --judaism-edition. The "use first available edition" semantics
+    # are preserved: if the requested edition is missing, fall back to
+    # the other one rather than dropping Judaism from the index.
+    # (F0a fix, 2026-10-08; the F1–F4 tradition registry will subsume
+    # this flag with proper per-edition index management.)
+    if _has_torah or _has_tanakh:
+        if judaism_edition == "jps1917-modernized":
+            judaism_editions_to_try = ["jps1917-modernized", "hebrew-nikkud"]
+        else:
+            judaism_editions_to_try = ["hebrew-nikkud", "jps1917-modernized"]
+    else:
+        judaism_editions_to_try = []
+
+    # Torah (Phase 3.2) — Pentateuch
     if _has_torah:
         torah_tried = False
-        for torah_key in ("hebrew-nikkud", "jps1917-modernized"):
+        for torah_key in judaism_editions_to_try:
             try:
                 torah = load_torah_edition(torah_key)
                 for div in torah.get("divisions", []):
@@ -138,7 +156,7 @@ def collect_corpus(include_bible: bool = True, include_quran: bool = True, limit
     # Uses the same Sefaria editions as Torah for internal consistency.
     if _has_tanakh:
         tanakh_tried = False
-        for tanakh_key in ("hebrew-nikkud", "jps1917-modernized"):
+        for tanakh_key in judaism_editions_to_try:
             try:
                 tanakh = load_tanakh_edition(tanakh_key)
                 # Only ingest Nevi'im + Ketuvim here; Torah was ingested above.
@@ -183,6 +201,12 @@ def main():
     parser.add_argument("--no-bible", action="store_true", help="Exclude Bible from index")
     parser.add_argument("--no-quran", action="store_true", help="Exclude Quran from index")
     parser.add_argument("--no-torah", action="store_true", help="Exclude Torah from index")
+    parser.add_argument("--judaism-edition",
+                        choices=["jps1917-modernized", "hebrew-nikkud"],
+                        default="jps1917-modernized",
+                        help="Which Judaism edition to index (default: jps1917-modernized, "
+                             "English; F0a fix). The non-default edition is used as a "
+                             "fallback if the requested one is missing.")
     parser.add_argument("--resume", action="store_true",
                         help="Resume from an existing partial index. Skips already-embedded corpus entries. "
                              "The last batch is assumed complete; if a partial batch was in flight, those "
@@ -200,6 +224,7 @@ def main():
         include_bible=not args.no_bible,
         include_quran=not args.no_quran,
         limit=args.limit,
+        judaism_edition=args.judaism_edition,
     )
     print(f"Total passages collected: {len(corpus):,}")
 

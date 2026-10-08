@@ -11,9 +11,10 @@
 >   what's in the repo, conventions, milestones. The runtime
 >   contract for any agent using this data lives in §11 of this file.
 
-**Last updated:** 2026-07-31 (v0.4 — absorbed the `agents.md`
-runtime contract into §11; added etiquette files (CONTRIBUTING,
-SECURITY, CHANGELOG, .github/); README rewritten)
+**Last updated:** 2026-10-08 (direction review + foundation plan;
+see "Current priorities" below. §4–§6 below are historical snapshots
+from v0.4 / 2026-07-31 and are known to be stale — README and
+`CHANGELOG.md` are the source of truth for what shipped.)
 **Repo:** `github.com/prive8/bible-llm-reference` (public)
 **Vision (father's words, 2026-07-31):**
 A working LLM that can represent all religions and belief structures
@@ -30,6 +31,36 @@ actual text. Not a "Text with Jesus" avatar. Not a self-help
 aphorism generator. The first product is a study / reflection tool,
 not a chat surface. See §11 below for the runtime contract that
 guarantees this framing.
+
+---
+
+## Current priorities (2026-10-08)
+
+A whole-project review checked the code and every commit through
+`0a4df0e` against the vision. Full write-up and plan:
+[`docs/foundation-plan.md`](./docs/foundation-plan.md). Summary:
+
+- **Principles on track** (citation-first, no impersonation, local-first, neutral).
+- **Multi-tradition foundation not real yet.** Core commands are
+  Bible-only; Quran/Torah/Tanakh are separate modules; no shared
+  passage IDs or Bible↔Tanakh versification map. §7.1's "config change,
+  not code" promise is unmet.
+- **Bug:** Judaism slice is indexed as pointed Hebrew in an
+  English-only embedder (`scripts/index_embeddings.py`).
+- **Licences:** several translations are labelled public domain but
+  probably aren't; audit pending.
+- **Process:** most recent work was embedder/eval tuning on small
+  slices (n=5–11). Paused.
+
+**Order of work:** F0a index fix → F0b licence audit → F1–F4
+(tradition registry, canonical IDs, versification map, route core
+commands through registry) → Phase 4 Reader MVP → Hadith + one
+non-Abrahamic text. No new embedder bake-offs, traditions, or Phase 2
+training before F4.
+
+**Pending chair decisions:** LLM-vs-reference-tool sequencing,
+breadth-vs-depth, copyrighted translations policy, `bible` package
+rename (see foundation-plan §6).
 
 ---
 

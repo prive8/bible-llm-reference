@@ -5,8 +5,10 @@
 A public-domain Bible dataset and reference tool for LLM training, retrieval, and research. This repository is the **canonical data + retrieval substrate** for the Abrahamic / Christian slice of the larger Religion & Spirituality AI project.
 
 > **Read first:** if you're an AI agent or new contributor, start with
-> [`HANDOFF.md`](./HANDOFF.md). It captures the project's vision,
-> current state, conventions, and the milestone roadmap.
+> [`AGENTS.md`](./AGENTS.md), then [`HANDOFF.md`](./HANDOFF.md). They
+> capture the project's vision, current state, conventions, and the
+> milestone roadmap. The active plan is
+> [`docs/foundation-plan.md`](./docs/foundation-plan.md).
 > [`COUNCIL.md`](./COUNCIL.md) is the constituted governance
 > constitution (v0.4 — active single-contributor body, project owner
 > as acting chair).
@@ -112,7 +114,7 @@ python3 make_flat_training.py              # Output: kjv_training.jsonl
 # Convert Strong's .js files to clean JSON (faster startup)
 python3 convert_strongs_to_json.py
 
-# Run the sister-script test suite (129 tests, stdlib-only)
+# Run the sister-script test suite (137 tests, stdlib-only)
 python3 tests/run_all.py
 
 # Evaluate retrieval quality against the 33-query benchmark
@@ -256,7 +258,7 @@ bible-llm-reference/
 │       └── controversies/              # (Controversy Register — when the Council forms)
 │
 ├── tests/
-│   └── run_all.py                      # 129 sister-script tests, stdlib-only
+│   └── run_all.py                      # 137 sister-script tests, stdlib-only
 │
 └── .github/
     ├── ISSUE_TEMPLATE/
@@ -282,7 +284,28 @@ bible-llm-reference/
 
 Verify licensing for your specific use case before building commercial applications.
 
+> **Licence audit pending (foundation plan F0b).** Several translations
+> are labelled public domain / fair use (e.g. RSV, RV1960, Saheeh
+> International, Mufti Taqi Usmani, Arberry) but are likely still under
+> copyright, and the compilation licence of the ingest sources does not
+> cover the underlying translations. Treat those editions as **local
+> research use only** until the audit completes.
+
 ---
+
+## Status & direction (2026-10-08)
+
+A whole-project review (see [`docs/foundation-plan.md`](./docs/foundation-plan.md))
+found that the project's principles are on track but the multi-tradition
+foundation is not yet real:
+
+- **Bible-only core.** `parallel`, `search`, `references`, and `strongs` only know the Bible. Quran, Torah, and Tanakh are separate modules; only `semantic`/`hybrid` span them. BM25 has no Quran/Tanakh passages.
+- **No shared passage IDs or versification map** across traditions (`1 Samuel` vs `Samuel I`; Malachi 4 vs 3:19–24).
+- **Known indexing bug:** the Judaism slice of the semantic index is built from pointed Hebrew, which the English-only default embedder can't match. Cross-tradition recall numbers should be treated as a lower bound until it is fixed.
+- **No end-user interface yet** — Phase 4 is scoped, not built.
+- Embedder bake-offs are on hold; the benchmark (39 queries, slices of 5–11 per persona) is too small to support further tuning.
+
+**Next:** fix the indexing bug and licence labels, then build a tradition registry, canonical passage IDs, and a Bible↔Tanakh versification map so a new tradition really is "a config change" — before adding Hadith or any non-Abrahamic text.
 
 ## Project vision
 

@@ -1,0 +1,44 @@
+{
+  "description": "Versification and book alignment map between Christian Bible (Protestant/KJV) and Jewish Tanakh (Masoretic/Sefaria).",
+  "book_name_mappings": {
+    "1 Samuel": "Samuel I",
+    "2 Samuel": "Samuel II",
+    "1 Kings": "Kings I",
+    "2 Kings": "Kings II",
+    "1 Chronicles": "Chronicles I",
+    "2 Chronicles": "Chronicles II",
+    "Samuel I": "1 Samuel",
+    "Samuel II": "2 Samuel",
+    "Kings I": "1 Kings",
+    "Kings II": "2 Kings",
+    "Chronicles I": "1 Chronicles",
+    "Chronicles II": "2 Chronicles"
+  },
+  "alignments": [
+    {
+      "comment": "Malachi chapter 4 in Christian canon is chapter 3 verses 19-24 in Hebrew Masoretic canon",
+      "christian": { "book": "Malachi", "chapter": 4, "verse_start": 1, "verse_end": 6 },
+      "hebrew": { "book": "Malachi", "chapter": 3, "verse_start": 19, "verse_end": 24 }
+    },
+    {
+      "comment": "Joel 2:28-32 in Christian canon is Joel 3:1-5 in Hebrew Masoretic canon",
+      "christian": { "book": "Joel", "chapter": 2, "verse_start": 28, "verse_end": 32 },
+      "hebrew": { "book": "Joel", "chapter": 3, "verse_start": 1, "verse_end": 5 }
+    },
+    {
+      "comment": "Joel chapter 3 in Christian canon is Joel chapter 4 in Hebrew Masoretic canon",
+      "christian": { "book": "Joel", "chapter": 3, "verse_start": 1, "verse_end": 21 },
+      "hebrew": { "book": "Joel", "chapter": 4, "verse_start": 1, "verse_end": 21 }
+    },
+    {
+      "comment": "Hosea 1:10-11 in Christian canon is Hosea 2:1-2 in Hebrew Masoretic canon",
+      "christian": { "book": "Hosea", "chapter": 1, "verse_start": 10, "verse_end": 11 },
+      "hebrew": { "book": "Hosea", "chapter": 2, "verse_start": 1, "verse_end": 2 }
+    },
+    {
+      "comment": "Jonah 1:17 in Christian canon is Jonah 2:1 in Hebrew Masoretic canon",
+      "christian": { "book": "Jonah", "chapter": 1, "verse_start": 17, "verse_end": 17 },
+      "hebrew": { "book": "Jonah", "chapter": 2, "verse_start": 1, "verse_end": 1 }
+    }
+  ]
+}

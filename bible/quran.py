@@ -224,8 +224,10 @@ def parse_quran_ref(raw: str) -> Optional[tuple[int, Union[int, tuple[int, int]]
     if norm_named in NAMED_VERSES:
         return NAMED_VERSES[norm_named]
 
-    # Strip leading "quran", "surah", "surat"
+    # Strip leading "quran", "surah", "surat" and brackets/parentheticals
     clean = re.sub(r"^(?:quran|surah|surat)\s+", "", clean, flags=re.IGNORECASE).strip()
+    clean = re.sub(r"\(.*?\)", "", clean).strip()
+    clean = re.sub(r"^(\d+)\s+(\1:\d+)", r"\2", clean)
 
     # Pattern 1: Name SurahNum:Ayah[-AyahEnd] (e.g. Al-Baqarah 2:255 or Al-Baqarah 2:255-256)
     m1 = re.match(r"^([A-Za-z0-9\'\- ]+?)\s+(\d+):(\d+)(?:[-–—](\d+))?$", clean)

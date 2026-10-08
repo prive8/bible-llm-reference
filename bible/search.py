@@ -207,12 +207,92 @@ class BM25Index:
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=16)
-def get_bm25_index(translation: str = "KJV") -> BM25Index:
-    """Build or retrieve a cached BM25 index for the specified translation."""
+def get_bm25_index(translation: str = "KJV", tradition: Optional[str] = None) -> BM25Index:
+    """Build or retrieve a cached BM25 index for the specified translation and/or tradition."""
     norm_name = translation.strip().upper()
+    norm_trad = tradition.strip().lower() if tradition else None
+    if norm_trad in ("bible", "christianity"):
+        norm_trad = "christianity"
+    elif norm_trad in ("quran", "islam"):
+        norm_trad = "islam"
+    elif norm_trad in ("tanakh", "torah", "judaism"):
+        norm_trad = "judaism"
+
     docs: list[VerseDoc] = []
     idx = 0
 
+    # Multi-tradition 'all' index
+    if norm_trad == "all":
+        # 1. Bible (KJV)
+        kjv = load_kjv()
+        for book in kjv["books"]:
+            bname = book["name"]
+            for ch in book["chapters"]:
+                cnum = ch["chapter"]
+                for v in ch["verses"]:
+                    docs.append(VerseDoc(idx, bname, cnum, v["verse"], v["text"]))
+                    idx += 1
+        # 2. Quran (Saheeh International)
+        try:
+            from bible.quran import load_quran_edition
+            q_data = load_quran_edition("saheeh-international")
+            for div in q_data.get("divisions", []):
+                s_id = div["id"]
+                s_name = div.get("name", f"Surah {s_id}")
+                for ayah in div.get("ayahs", []):
+                    docs.append(VerseDoc(idx, f"Quran {s_id} ({s_name})", s_id, ayah["ayah"], ayah["text"]))
+                    idx += 1
+        except Exception:
+            pass
+        # 3. Tanakh (JPS 1917 Modernized)
+        try:
+            from bible.tanakh import load_tanakh_edition, _group_verses_by_chapter
+            t_data = load_tanakh_edition("jps1917-modernized")
+            for div in t_data.get("divisions", []):
+                bname = div["name"]
+                grouped = _group_verses_by_chapter(div)
+                for ch_num in sorted(grouped.keys()):
+                    for v in grouped[ch_num]:
+                        docs.append(VerseDoc(idx, bname, ch_num, v["verse"], v["text"]))
+                        idx += 1
+        except Exception:
+            pass
+        return BM25Index("all", docs)
+
+    # Quran tradition
+    if norm_trad == "islam" or norm_name in ("QURAN", "SAHEEH-INTERNATIONAL", "UTHMANI", "PICKTHALL"):
+        ed_key = "saheeh-international" if norm_name in ("KJV", "QURAN") else translation.strip().lower()
+        try:
+            from bible.quran import load_quran_edition
+            q_data = load_quran_edition(ed_key)
+            for div in q_data.get("divisions", []):
+                s_id = div["id"]
+                s_name = div.get("name", f"Surah {s_id}")
+                for ayah in div.get("ayahs", []):
+                    docs.append(VerseDoc(idx, f"Quran {s_id} ({s_name})", s_id, ayah["ayah"], ayah["text"]))
+                    idx += 1
+            return BM25Index(ed_key, docs)
+        except Exception as e:
+            raise ValueError(f"Failed to load Quran edition '{ed_key}': {e}")
+
+    # Judaism tradition
+    if norm_trad == "judaism" or norm_name in ("TANAKH", "TORAH", "JPS1917-MODERNIZED", "HEBREW-NIKKUD"):
+        ed_key = "jps1917-modernized" if norm_name in ("KJV", "TANAKH", "TORAH") else translation.strip().lower()
+        try:
+            from bible.tanakh import load_tanakh_edition, _group_verses_by_chapter
+            t_data = load_tanakh_edition(ed_key)
+            for div in t_data.get("divisions", []):
+                bname = div["name"]
+                grouped = _group_verses_by_chapter(div)
+                for ch_num in sorted(grouped.keys()):
+                    for v in grouped[ch_num]:
+                        docs.append(VerseDoc(idx, bname, ch_num, v["verse"], v["text"]))
+                        idx += 1
+            return BM25Index(ed_key, docs)
+        except Exception as e:
+            raise ValueError(f"Failed to load Tanakh edition '{ed_key}': {e}")
+
+    # Christian Bible KJV
     if norm_name == "KJV":
         kjv = load_kjv()
         for book in kjv["books"]:
@@ -224,8 +304,7 @@ def get_bm25_index(translation: str = "KJV") -> BM25Index:
                     idx += 1
         return BM25Index("KJV", docs)
 
-    # Other translations from translations/*.json
-    # Find matching translation file stem (case-insensitive)
+    # Other Christian translations from translations/*.json
     avail = list_translations()
     matched_stem = next((stem for stem in avail if stem.upper() == norm_name), None)
     if not matched_stem:
@@ -251,12 +330,13 @@ def get_bm25_index(translation: str = "KJV") -> BM25Index:
 def run_search(
     query: str,
     translation: str = "KJV",
+    tradition: Optional[str] = None,
     limit: int = 10,
     as_json: bool = False,
     with_strongs: bool = False,
 ) -> list[dict[str, Any]]:
     """Execute a BM25 search and print or return results."""
-    idx = get_bm25_index(translation)
+    idx = get_bm25_index(translation, tradition=tradition)
     results = idx.search(query, limit=limit)
 
     if with_strongs:
@@ -312,6 +392,12 @@ def main():
         help="Translation to search (default: KJV; e.g. WEB, YLT, RSV)",
     )
     parser.add_argument(
+        "--tradition",
+        choices=["all", "christianity", "islam", "judaism", "bible", "quran", "tanakh"],
+        default=None,
+        help="Filter tradition (default: christianity / matches translation)",
+    )
+    parser.add_argument(
         "-n", "--limit",
         type=int,
         default=10,
@@ -332,6 +418,7 @@ def main():
     run_search(
         args.query,
         translation=args.translation,
+        tradition=args.tradition,
         limit=args.limit,
         as_json=args.json,
         with_strongs=args.strongs,

@@ -32,9 +32,49 @@ from .lookup import (
 
 
 def run_parallel(query: str, translations: list[str] | None = None,
-                  want_strongs: bool = False, want_json: bool = False) -> None:
+                  want_strongs: bool = False, want_json: bool = False,
+                  tradition: str | None = None) -> None:
+    norm_trad = tradition.strip().lower() if tradition else None
+
+    # Cross-tradition or non-Christian parallel lookup
+    if norm_trad in ("all", "judaism", "tanakh", "islam", "quran"):
+        from bible.registry import get_registry
+        reg = get_registry()
+        trads = ["all"] if norm_trad == "all" else [norm_trad]
+        passages = reg.get_passages(query, traditions=trads, editions=translations)
+        if not passages:
+            print(f"No passages found across traditions for: {query!r}")
+            sys.exit(1)
+
+        if want_json:
+            out = {
+                "query": query,
+                "tradition": norm_trad,
+                "passages": [p.to_dict() for p in passages]
+            }
+            print(json.dumps(out, indent=2, ensure_ascii=False))
+            return
+
+        print(f"\n{'='*70}")
+        print(f"  Parallel: {query} (Traditions: {norm_trad})")
+        print(f"{'='*70}\n")
+        for p in passages:
+            print(f"  [{p.tradition.title()} | {p.translation_name} | {p.citation}] {p.text}")
+            print()
+        print(f"{'='*70}")
+        print("NOTE: This is a reference tool. Treat as structured text, not spiritual authority.")
+        print(f"{'='*70}\n")
+        return
+
     ref = parse_ref(query)
     if not ref:
+        # Check if query can be resolved via registry before failing
+        from bible.registry import get_registry
+        reg = get_registry()
+        parsed = reg.parse_reference(query)
+        if parsed and parsed["tradition"] != "christianity":
+            return run_parallel(query, translations=translations, want_strongs=want_strongs,
+                                want_json=want_json, tradition=parsed["tradition"])
         print(f"Could not parse reference: {query!r}")
         print("Examples: 'Genesis 1:1', 'John 3:16', 'Psalm 23:1-6'")
         sys.exit(1)
@@ -156,6 +196,12 @@ def main():
         help="Include Strong's concordance enrichment (requires KJV)",
     )
     parser.add_argument(
+        "--tradition",
+        choices=["all", "christianity", "islam", "judaism", "bible", "quran", "tanakh"],
+        default=None,
+        help="Filter tradition or 'all' for cross-tradition view (default: christianity / auto)",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Output as JSON",
@@ -168,6 +214,7 @@ def main():
         translations=translations,
         want_strongs=args.strongs,
         want_json=args.json,
+        tradition=args.tradition,
     )
 
 

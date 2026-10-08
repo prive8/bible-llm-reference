@@ -762,6 +762,7 @@ def search_semantic(
     tradition: Optional[str] = None,
     backend: str = "auto",
     custom_index: Optional[tuple[list[dict], list[list[float]], int]] = None,
+    resolve_verses: bool = False,
 ) -> list[dict]:
     """Search vector index for semantically similar verses.
 
@@ -824,15 +825,53 @@ def search_semantic(
     scored.sort(key=lambda x: x[0], reverse=True)
     results = []
     for sim, entry in scored[:top_k]:
-        results.append({
+        item = {
             "citation": entry.get("citation", ""),
             "text": entry.get("text", ""),
             "score": round(sim, 4),
             "tradition": entry.get("tradition", ""),
             "translation": entry.get("translation", ""),
-        })
+        }
+        if "verses" in entry:
+            item["constituent_verses"] = entry["verses"]
+        results.append(item)
 
+    if resolve_verses:
+        return expand_passage_chunks(results, top_k=top_k)
     return results
+
+
+def expand_passage_chunks(results: list[dict], top_k: Optional[int] = None) -> list[dict]:
+    """Expand passage chunk hits into individual constituent verse hits.
+
+    For each hit with 'constituent_verses', produces one entry per verse
+    sharing the passage chunk's similarity score, tradition, and translation,
+    while recording the source passage chunk citation in 'passage_citation'.
+    """
+    expanded: list[dict] = []
+    seen_citations: set[str] = set()
+    for r in results:
+        verses = r.get("constituent_verses")
+        if verses and len(verses) > 1:
+            for v_cite in verses:
+                if v_cite not in seen_citations:
+                    seen_citations.add(v_cite)
+                    expanded.append({
+                        "citation": v_cite,
+                        "text": r.get("text", ""),
+                        "score": r.get("score", 0.0),
+                        "tradition": r.get("tradition", ""),
+                        "translation": r.get("translation", ""),
+                        "passage_citation": r.get("citation", ""),
+                    })
+        else:
+            cite = r.get("citation", "")
+            if cite not in seen_citations:
+                seen_citations.add(cite)
+                expanded.append(r)
+    if top_k is not None:
+        return expanded[:top_k]
+    return expanded
 
 
 # ---------------------------------------------------------------------------
@@ -846,6 +885,7 @@ def run_semantic(
     tradition: Optional[str] = None,
     backend: str = "auto",
     as_json: bool = False,
+    resolve_verses: bool = False,
 ) -> None:
     """CLI runner for semantic search."""
     if hasattr(sys.stdout, "reconfigure"):
@@ -860,6 +900,7 @@ def run_semantic(
         top_k=top_k,
         tradition=tradition,
         backend=backend,
+        resolve_verses=resolve_verses,
     )
 
     if as_json:
@@ -905,6 +946,8 @@ def main():
                         help="Filter tradition (default: all)")
     parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default="auto",
                         help="Embedder backend (default: auto — local if available, else OpenRouter if OPENROUTER_API_KEY set, else NIM if NVIDIA_API_KEY set, else mock)")
+    parser.add_argument("--resolve-verses", action="store_true",
+                        help="Resolve multi-verse passage chunks to individual constituent verses")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()
@@ -915,6 +958,7 @@ def main():
         tradition=args.tradition,
         backend=args.backend,
         as_json=args.json,
+        resolve_verses=args.resolve_verses,
     )
 
 

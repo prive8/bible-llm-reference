@@ -1650,6 +1650,31 @@ def t_save_vector_index_overwrite_drops_existing(tmp_path: str = "/tmp"):
         _sh.rmtree(work, ignore_errors=True)
 
 
+@_register("t_index_embeddings_judaism_defaults_to_english")
+def t_index_embeddings_judaism_defaults_to_english():
+    """F0a regression: collect_corpus must default Judaism slice to English (JPS 1917)."""
+    from scripts.index_embeddings import collect_corpus
+
+    # Test default (English)
+    corpus_en = collect_corpus(include_bible=False, include_quran=False, limit=3)
+    _assert(len(corpus_en) >= 1, "Should collect at least 1 Judaism entry")
+    _assert(corpus_en[0]["tradition"] == "judaism")
+    # Verify English text presence
+    first_text_en = corpus_en[0]["text"]
+    _assert(any(c.isascii() and c.isalpha() for c in first_text_en),
+            f"Default Judaism text should be English, got: {first_text_en[:30]}")
+
+    # Test opt-in hebrew-nikkud
+    corpus_he = collect_corpus(
+        include_bible=False, include_quran=False, limit=3,
+        judaism_edition="hebrew-nikkud"
+    )
+    _assert(len(corpus_he) >= 1, "Should collect Hebrew Judaism entry")
+    first_text_he = corpus_he[0]["text"]
+    _assert(any('\u0590' <= c <= '\u05ff' for c in first_text_he),
+            f"Hebrew Judaism text should contain Hebrew chars, got: {first_text_he[:30]}")
+
+
 # ---------------------------------------------------------------------------
 # Hybrid BM25 + semantic fusion (Milestone 3C)
 # ---------------------------------------------------------------------------
@@ -2850,6 +2875,225 @@ def t_version_matches_pyproject_toml():
     _assert(int(major) == 0 and int(minor) >= 15,
             f"package version {package_version!r} pre-dates v0.15.0; "
             "either the drift is back or pyproject.toml is wrong")
+
+
+# ---------------------------------------------------------------------------
+# Foundation F1-F4 tests (Tradition Registry, Canonical IDs, Versification)
+# ---------------------------------------------------------------------------
+
+@_register("t_registry_editions_catalog_loads")
+def t_registry_editions_catalog_loads():
+    """Tradition registry must load editions catalog with valid licensing metadata."""
+    from bible.registry import get_registry
+    reg = get_registry()
+    editions = reg.list_editions()
+    _assert(len(editions) >= 20, f"Expected >=20 editions, got {len(editions)}")
+    for ed in editions:
+        _assert("id" in ed and "license" in ed and "source" in ed and "redistributable" in ed,
+                f"Edition missing required metadata fields: {ed.get('id')}")
+    # Verify redistributable filter
+    redist = reg.list_editions(redistributable_only=True)
+    _assert(len(redist) < len(editions), "Redistributable filter should exclude encumbered editions")
+    _assert(any(e["id"] == "kjv" for e in redist), "KJV must be marked redistributable")
+    _assert(not any(e["id"] == "rsv" for e in redist), "RSV must not be marked redistributable")
+
+
+@_register("t_registry_canonical_id_bidirectional")
+def t_registry_canonical_id_bidirectional():
+    """make_canonical_id and parse_canonical_id must be deterministic and reversible."""
+    from bible.registry import make_canonical_id, parse_canonical_id
+
+    # Bible
+    cid_bible = make_canonical_id("christianity", "Genesis", 1, 1)
+    _assert(cid_bible == "bible:Genesis.1.1", f"Unexpected cid: {cid_bible}")
+    p_bible = parse_canonical_id(cid_bible)
+    _assert(p_bible["prefix"] == "bible" and p_bible["book"] == "Genesis" and p_bible["chapter"] == 1 and p_bible["verse"] == 1)
+
+    # Quran
+    cid_quran = make_canonical_id("islam", 2, verse=255)
+    _assert(cid_quran == "quran:2.255", f"Unexpected cid: {cid_quran}")
+    p_quran = parse_canonical_id(cid_quran)
+    _assert(p_quran["prefix"] == "quran" and p_quran["surah"] == 2 and p_quran["ayah"] == 255)
+
+    # Tanakh
+    cid_tanakh = make_canonical_id("judaism", "Samuel I", 1, 1)
+    _assert(cid_tanakh == "tanakh:Samuel_I.1.1", f"Unexpected cid: {cid_tanakh}")
+    p_tanakh = parse_canonical_id(cid_tanakh)
+    _assert(p_tanakh["prefix"] == "tanakh" and p_tanakh["book"] == "Samuel I" and p_tanakh["chapter"] == 1 and p_tanakh["verse"] == 1)
+
+
+@_register("t_registry_versification_alignment")
+def t_registry_versification_alignment():
+    """align_canonical_id must correctly align book names and chapter/verse differences."""
+    from bible.registry import get_registry
+    reg = get_registry()
+
+    # Malachi 4:1 (Christian) -> Malachi 3:19 (Hebrew/Tanakh)
+    aligned_tanakh = reg.align_canonical_id("bible:Malachi.4.1", "judaism")
+    _assert(aligned_tanakh == "tanakh:Malachi.3.19", f"Expected tanakh:Malachi.3.19, got {aligned_tanakh}")
+
+    # Reverse: Malachi 3:19 (Tanakh) -> Malachi 4:1 (Christian)
+    aligned_bible = reg.align_canonical_id("tanakh:Malachi.3.19", "christianity")
+    _assert(aligned_bible == "bible:Malachi.4.1", f"Expected bible:Malachi.4.1, got {aligned_bible}")
+
+    # Book name mapping: 1 Samuel -> Samuel I
+    aligned_samuel = reg.align_canonical_id("bible:1_Samuel.1.1", "judaism")
+    _assert(aligned_samuel == "tanakh:Samuel_I.1.1", f"Expected tanakh:Samuel_I.1.1, got {aligned_samuel}")
+
+
+@_register("t_registry_cross_tradition_parallel")
+def t_registry_cross_tradition_parallel():
+    """get_passages must retrieve passages across traditions for shared scriptures."""
+    from bible.registry import get_registry
+    reg = get_registry()
+
+    passages = reg.get_passages("Genesis 1:1", traditions=["christianity", "judaism"])
+    _assert(len(passages) >= 10, f"Expected >=10 cross-tradition passages, got {len(passages)}")
+    trads = {p.tradition for p in passages}
+    _assert("christianity" in trads and "judaism" in trads, f"Both traditions must be present, got {trads}")
+    _assert(any(p.edition_id == "kjv" for p in passages))
+    _assert(any("jps1917" in p.edition_id for p in passages))
+
+
+@_register("t_search_multi_tradition_bm25")
+def t_search_multi_tradition_bm25():
+    """BM25 search engine must support querying Quran, Tanakh, or all traditions."""
+    from bible.search import run_search
+
+    # Search Quran
+    q_results = run_search("mercy", tradition="islam", limit=3)
+    _assert(len(q_results) >= 1, "Should find results in Quran for 'mercy'")
+    _assert("Quran" in q_results[0]["book"] or "Quran" in q_results[0]["reference"])
+
+    # Search Tanakh
+    t_results = run_search("beginning", tradition="judaism", limit=3)
+    _assert(len(t_results) >= 1, "Should find results in Tanakh for 'beginning'")
+    _assert(any(r["book"] in ("Genesis", "Job", "Proverbs") for r in t_results),
+            f"Expected Tanakh book in results, got: {[r['book'] for r in t_results]}")
+
+    # Search all traditions
+    all_results = run_search("heaven and earth", tradition="all", limit=5)
+    _assert(len(all_results) >= 1, "Should find results in multi-tradition search")
+
+
+@_register("t_benchmark_v2_structure_and_personas")
+def t_benchmark_v2_structure_and_personas():
+    """Benchmark V2 must contain 90 queries, all 6 personas >=15 queries, and valid splits."""
+    from tests.benchmark_v2 import BENCHMARK_V2
+    _assert(len(BENCHMARK_V2) == 90, f"Expected 90 queries in Benchmark V2, got {len(BENCHMARK_V2)}")
+
+    personas = {}
+    splits = {}
+    for item in BENCHMARK_V2:
+        _assert(len(item) == 4, f"Each item must be (query, persona, split, expected)")
+        q, p, s, expected = item
+        personas[p] = personas.get(p, 0) + 1
+        splits[s] = splits.get(s, 0) + 1
+        _assert(s in ("dev", "held_out"), f"Split must be 'dev' or 'held_out', got {s!r} for query {q!r}")
+        _assert(len(expected) >= 1, f"Expected non-empty citations list for query {q!r}")
+        for cite, weight in expected:
+            _assert(weight in (1, 2, 3), f"Relevance weight must be 1, 2, or 3, got {weight} for {cite}")
+
+    for required_p in ["sarah", "marcus", "yuki", "priya", "aisha", "jordan"]:
+        _assert(personas.get(required_p, 0) >= 15,
+                f"Persona {required_p} must have >=15 queries, got {personas.get(required_p, 0)}")
+    _assert("dev" in splits and "held_out" in splits, f"Both splits must exist")
+
+
+@_register("t_eval_citation_matches_range_and_chunks")
+def t_eval_citation_matches_range_and_chunks():
+    """citation_matches must correctly match verse ranges, chunks, and alignments."""
+    from scripts.run_eval import citation_matches
+
+    # Exact string match
+    _assert(citation_matches("Matthew 5:4", "Matthew 5:4"))
+
+    # Retrieved verse in expected range
+    _assert(citation_matches("2 Corinthians 1:3", "2 Corinthians 1:3-4"))
+    _assert(citation_matches("2 Corinthians 1:4", "2 Corinthians 1:3-4"))
+    _assert(not citation_matches("2 Corinthians 1:5", "2 Corinthians 1:3-4"))
+
+    # Retrieved multi-verse chunk covering expected verse
+    _assert(citation_matches("Matthew 5:3-5", "Matthew 5:4"))
+    _assert(citation_matches("Matthew 5:3-5", "Matthew 5:3"))
+    _assert(not citation_matches("Matthew 5:3-5", "Matthew 5:6"))
+
+    # Quran ayah range and parenthetical format
+    _assert(citation_matches("Quran 2:255", "Quran 2:255"))
+    _assert(citation_matches("Quran 70 (Al-Ma'arij) 70:19", "Quran 70:19"))
+    _assert(citation_matches("Quran 20:43", "Quran 20:43-44"))
+
+    # Cross-tradition versification alignment
+    _assert(citation_matches("Malachi 4:1", "tanakh:Malachi.3.19"))
+
+
+@_register("t_semantic_passage_chunking_collect_corpus")
+def t_semantic_passage_chunking_collect_corpus():
+    """collect_corpus with chunk_size > 1 must generate sliding-window passage chunks."""
+    from scripts.index_embeddings import collect_corpus
+
+    # Collect first 10 chunks with window size 3, step 2
+    chunks = collect_corpus(
+        include_bible=True,
+        include_quran=False,
+        limit=10,
+        chunk_size=3,
+        chunk_step=2,
+    )
+    _assert(len(chunks) == 10, f"Expected 10 chunks, got {len(chunks)}")
+    first = chunks[0]
+    _assert(first["chunk_size"] == 3, f"Expected chunk_size 3, got {first}")
+    _assert(first["citation"] == "Genesis 1:1-3", f"Expected 'Genesis 1:1-3', got {first['citation']}")
+    _assert(len(first["verses"]) == 3, f"Expected 3 verses in metadata, got {first['verses']}")
+    _assert(first["verses"] == ["Genesis 1:1", "Genesis 1:2", "Genesis 1:3"])
+
+    # Second chunk stepped by 2 -> Genesis 1:3-5
+    second = chunks[1]
+    _assert(second["citation"] == "Genesis 1:3-5", f"Expected 'Genesis 1:3-5', got {second['citation']}")
+    _assert(second["verses"] == ["Genesis 1:3", "Genesis 1:4", "Genesis 1:5"])
+
+
+@_register("t_semantic_passage_chunk_expansion_and_resolution")
+def t_semantic_passage_chunk_expansion_and_resolution():
+    """expand_passage_chunks and search_semantic resolve_verses must resolve chunk to constituent verses."""
+    from bible.semantic import expand_passage_chunks, search_semantic
+
+    raw_results = [{
+        "citation": "Genesis 1:1-3",
+        "text": "In the beginning... And God said...",
+        "score": 0.92,
+        "tradition": "christianity",
+        "translation": "KJV",
+        "constituent_verses": ["Genesis 1:1", "Genesis 1:2", "Genesis 1:3"],
+    }]
+
+    expanded = expand_passage_chunks(raw_results)
+    _assert(len(expanded) == 3, f"Expected 3 verses, got {len(expanded)}")
+    _assert(expanded[0]["citation"] == "Genesis 1:1")
+    _assert(expanded[1]["citation"] == "Genesis 1:2")
+    _assert(expanded[2]["citation"] == "Genesis 1:3")
+    _assert(expanded[0]["passage_citation"] == "Genesis 1:1-3")
+    _assert(expanded[0]["score"] == 0.92)
+
+    # Custom index with passage chunk verified through search_semantic
+    custom_meta = [{
+        "citation": "Psalms 23:1-3",
+        "text": "The Lord is my shepherd...",
+        "tradition": "christianity",
+        "translation": "KJV",
+        "verses": ["Psalms 23:1", "Psalms 23:2", "Psalms 23:3"],
+    }]
+    custom_vecs = [[1.0, 0.0]]
+    hits = search_semantic(
+        "shepherd",
+        backend="mock",
+        custom_index=(custom_meta, custom_vecs, 2),
+        resolve_verses=True,
+    )
+    _assert(len(hits) == 3, f"Expected 3 resolved verses, got {len(hits)}")
+    _assert(hits[0]["citation"] == "Psalms 23:1")
+    _assert(hits[1]["citation"] == "Psalms 23:2")
+    _assert(hits[2]["citation"] == "Psalms 23:3")
 
 
 # ---------------------------------------------------------------------------

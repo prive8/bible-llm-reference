@@ -56,12 +56,105 @@ from bible.semantic import (  # noqa: E402
     search_semantic,
 )
 from bible.hybrid import hybrid_search, DEFAULT_BM25_WEIGHT, DEFAULT_SOLO_WEIGHT  # noqa: E402
+from bible.registry import TraditionRegistry  # noqa: E402
 from tests.benchmark import BENCHMARK  # noqa: E402
+from tests.benchmark_v2 import BENCHMARK_V2  # noqa: E402
 
 
 # Reasonable default — semantic path is the slowest
 DEFAULT_TOP_K = 10
 PATHS_ALL = ("bm25", "semantic", "hybrid")
+
+_REGISTRY_CACHE: list[TraditionRegistry] = []
+
+
+def _get_registry() -> TraditionRegistry:
+    if not _REGISTRY_CACHE:
+        _REGISTRY_CACHE.append(TraditionRegistry())
+    return _REGISTRY_CACHE[0]
+
+
+def citation_matches(
+    retrieved: str,
+    expected: str,
+    registry: Optional[TraditionRegistry] = None,
+) -> bool:
+    """Check if a retrieved citation satisfies an expected citation.
+
+    Handles:
+      - Exact string matches (case-insensitive)
+      - Verse ranges (e.g. expected '2 Corinthians 1:3-4', retrieved '2 Corinthians 1:3')
+      - Passage chunks (e.g. expected 'Matthew 5:4', retrieved 'Matthew 5:3-5')
+      - Canonical ID formats (e.g. 'bible:Matthew.5.4', 'quran:2.255')
+      - Aliased book names (e.g. 'Psalms' vs 'Psalm')
+      - Cross-tradition versification alignments where applicable
+    """
+    ret_clean = retrieved.strip()
+    exp_clean = expected.strip()
+    if ret_clean.lower() == exp_clean.lower():
+        return True
+
+    reg = registry or _get_registry()
+    p_ret = reg.parse_reference(ret_clean)
+    p_exp = reg.parse_reference(exp_clean)
+
+    if not p_ret or not p_exp:
+        return False
+
+    # Quran citations
+    if p_ret.get("tradition") == "islam" and p_exp.get("tradition") == "islam":
+        if p_ret.get("surah") == p_exp.get("surah"):
+            r_s = p_ret.get("ayah_start", 0)
+            r_e = p_ret.get("ayah_end", r_s)
+            e_s = p_exp.get("ayah_start", 0)
+            e_e = p_exp.get("ayah_end", e_s)
+            return max(r_s, e_s) <= min(r_e, e_e)
+        return False
+
+    # Bible / Tanakh citations
+    if p_ret.get("tradition") in ("christianity", "judaism") and p_exp.get("tradition") in ("christianity", "judaism"):
+        b_ret = p_ret.get("book") or ""
+        b_exp = p_exp.get("book") or ""
+        b_ret_norm = reg._book_mappings.get(b_ret, b_ret)
+        b_exp_norm = reg._book_mappings.get(b_exp, b_exp)
+
+        ch_ret = p_ret.get("chapter")
+        ch_exp = p_exp.get("chapter")
+
+        r_s = p_ret.get("verse_start", 0)
+        r_e = p_ret.get("verse_end", r_s)
+        e_s = p_exp.get("verse_start", 0)
+        e_e = p_exp.get("verse_end", e_s)
+
+        if b_ret_norm.lower() == b_exp_norm.lower() and ch_ret == ch_exp:
+            return max(r_s, e_s) <= min(r_e, e_e)
+
+        # Cross-tradition versification alignment check
+        can_ret = p_ret.get("canonical_id")
+        can_exp = p_exp.get("canonical_id")
+        if can_ret and can_exp:
+            aligned_ret = reg.align_canonical_id(can_ret, p_exp.get("tradition", ""))
+            if aligned_ret == can_exp:
+                return True
+            aligned_exp = reg.align_canonical_id(can_exp, p_ret.get("tradition", ""))
+            if aligned_exp == can_ret:
+                return True
+
+    return False
+
+
+def _score_retrieved_verse(
+    ret_cite: str,
+    expected: list[tuple[str, int]],
+    registry: Optional[TraditionRegistry] = None,
+) -> int:
+    """Return highest relevance weight among matching expected citations, or 0."""
+    max_rel = 0
+    for exp_cite, weight in expected:
+        if citation_matches(ret_cite, exp_cite, registry):
+            if weight > max_rel:
+                max_rel = weight
+    return max_rel
 
 
 def _dcg(relavances: list[int]) -> float:
@@ -69,17 +162,24 @@ def _dcg(relavances: list[int]) -> float:
     return sum(rel / math.log2(rank + 2) for rank, rel in enumerate(relavances))
 
 
-def _ndcg_at_k(expected: dict[str, int], got: list[str], k: int) -> float:
+def _ndcg_at_k(
+    expected: Union[dict[str, int], list[tuple[str, int]]],
+    got: list[str],
+    k: int,
+    registry: Optional[TraditionRegistry] = None,
+) -> float:
     """Normalized DCG@k using the expected relevance weights as ideal DCG."""
     if not expected:
         return 0.0
     got_top = got[:k]
-    # Actual DCG: relevance of each retrieved verse (0 if not in expected)
-    actual_rels = [expected.get(c, 0) for c in got_top]
+    if isinstance(expected, dict):
+        actual_rels = [expected.get(c, 0) for c in got_top]
+        ideal_rels = sorted(expected.values(), reverse=True)[:k]
+    else:
+        actual_rels = [_score_retrieved_verse(c, expected, registry) for c in got_top]
+        ideal_rels = sorted([w for _, w in expected], reverse=True)[:k]
+
     actual_dcg = _dcg(actual_rels)
-    # Ideal DCG: top-k expected verses by weight
-    ideal_rels = sorted(expected.values(), reverse=True)[:k]
-    # Pad with 0s if fewer than k expected
     while len(ideal_rels) < k:
         ideal_rels.append(0)
     ideal_dcg = _dcg(ideal_rels)
@@ -92,31 +192,32 @@ def _metrics_for_query(
     expected: list[tuple[str, int]],
     retrieved: list[str],
     top_k: int,
+    registry: Optional[TraditionRegistry] = None,
 ) -> dict:
-    """Compute per-query metrics."""
-    expected_dict = {citation: weight for citation, weight in expected}
-    primary_citations = [c for c, w in expected if w == 3]
+    """Compute per-query metrics with range and passage match support."""
+    reg = registry or _get_registry()
 
-    # recall@10: how many expected verses appear in top-k?
-    got_set = set(retrieved[:top_k])
-    expected_set = set(c for c, _ in expected)
-    if expected_set:
-        recall = len(got_set & expected_set) / len(expected_set)
-    else:
-        recall = 0.0
+    # recall@k: fraction of expected citations matched by top-k
+    matched_expected_indices = set()
+    for idx, (exp_cite, _) in enumerate(expected):
+        for ret_cite in retrieved[:top_k]:
+            if citation_matches(ret_cite, exp_cite, reg):
+                matched_expected_indices.add(idx)
+                break
+    recall = len(matched_expected_indices) / len(expected) if expected else 0.0
 
     # MRR: reciprocal rank of first primary (weight=3) hit
     rr = 0.0
     for rank, citation in enumerate(retrieved, start=1):
-        if citation in primary_citations:
+        if _score_retrieved_verse(citation, expected, reg) == 3:
             rr = 1.0 / rank
             break
 
     # primary-in-top-1: any weight=3 in position 1?
-    primary_in_top1 = bool(retrieved and retrieved[0] in primary_citations)
+    primary_in_top1 = bool(retrieved and _score_retrieved_verse(retrieved[0], expected, reg) == 3)
 
-    # ndcg@10
-    ndcg = _ndcg_at_k(expected_dict, retrieved, top_k)
+    # ndcg@k
+    ndcg = _ndcg_at_k(expected, retrieved, top_k, registry=reg)
 
     return {
         "recall_at_k": round(recall, 4),
@@ -137,14 +238,16 @@ def run_path(
     solo_weight: float,
     index_name: str = "default",
     backend: str = "local",
+    tradition: Optional[str] = None,
 ) -> dict:
     """Run one retrieval path against the benchmark; return aggregate metrics."""
     per_query: list[dict] = []
     t_start = time.time()
+    reg = _get_registry()
 
     for query, persona, expected in benchmark:
         if path == "bm25":
-            idx = get_bm25_index("KJV")
+            idx = get_bm25_index("KJV", tradition=tradition)
             hits = idx.search(query, limit=top_k)
             retrieved = [h["reference"] for h in hits]
         elif path == "semantic":
@@ -156,23 +259,23 @@ def run_path(
                 return {"skipped": True, "reason": f"no semantic index '{index_name}' built"}
             hits = search_semantic(
                 query, index_name=index_name, top_k=top_k,
-                tradition=None, backend=backend,
+                tradition=tradition, backend=backend,
             )
             retrieved = [h["citation"] for h in hits]
         elif path == "hybrid":
             # Need both BM25 + semantic. If semantic missing, skip.
             if not (EMBEDDINGS_DIR / f"{index_name}_meta.json").exists():
                 return {"skipped": True, "reason": f"no semantic index '{index_name}' built"}
-            bm25_idx = get_bm25_index("KJV")
+            bm25_idx = get_bm25_index("KJV", tradition=tradition)
             bm25_hits = bm25_idx.search(query, limit=top_k)
             bm25_dicts = [
                 {"citation": h["reference"], "score": h["score"], "text": h["text"],
-                 "translation": "KJV", "tradition": "christianity"}
+                 "translation": h.get("translation", "KJV"), "tradition": tradition or "christianity"}
                 for h in bm25_hits
             ]
             sem_hits = search_semantic(
                 query, index_name=index_name, top_k=top_k,
-                tradition=None, backend=backend,
+                tradition=tradition, backend=backend,
             )
             fused = hybrid_search(
                 query=query,
@@ -190,7 +293,7 @@ def run_path(
             "query": query,
             "persona": persona,
             "expected": expected,
-            **_metrics_for_query(expected, retrieved, top_k),
+            **_metrics_for_query(expected, retrieved, top_k, registry=reg),
         })
 
     elapsed = time.time() - t_start
@@ -208,10 +311,7 @@ def run_path(
         "per_query": per_query,
     }
     # Per-persona aggregation. The persona field on each benchmark
-    # entry comes from tests/benchmark.py; queries inherit the label
-    # of their benchmark entry. n=1 slices are still reported (with
-    # `n=1, directional` caveat) — a future contributor adding a new
-    # query for a persona will see a single-row slice.
+    # entry comes from tests/benchmark.py or benchmark_v2.py.
     per_persona: dict[str, list[dict]] = {}
     for q in per_query:
         per_persona.setdefault(q["persona"], []).append(q)
@@ -229,13 +329,14 @@ def run_path(
     return aggregate
 
 
-def format_report(results: dict[str, dict], top_k: int) -> str:
+def format_report(results: dict[str, dict], top_k: int, benchmark_info: str = "v1") -> str:
     """Format the three-path results as a human-readable markdown report."""
     lines = [
         "# Bible LLM Reference — Retrieval Evaluation Report",
         "",
+        f"**Benchmark:** {benchmark_info}",
         f"**Top-k:** {top_k}",
-        f"**Benchmark queries:** {sum(r['n_queries'] for r in results.values() if not r.get('skipped'))}",
+        f"**Benchmark queries evaluated:** {sum(r['n_queries'] for r in results.values() if not r.get('skipped'))}",
         "",
         "## Summary",
         "",
@@ -278,14 +379,8 @@ def format_report(results: dict[str, dict], top_k: int) -> str:
             )
         lines.append("")
 
-    # Per-persona summary. Show persona distribution (how many queries
-    # per persona) once, then a table per path. n=1 slices are kept
-    # (a future contributor adding a new query for an under-tested
-    # persona will see a single-row slice) but flagged as directional
-    # since one-query means are noisy.
     any_per_persona = any(r.get("per_persona") for r in results.values() if not r.get("skipped"))
     if any_per_persona:
-        # Persona distribution from the first non-skipped path
         first_r = next(r for r in results.values() if not r.get("skipped"))
         persona_counts = {p: s["n_queries"] for p, s in first_r["per_persona"].items()}
         total = sum(persona_counts.values())
@@ -301,14 +396,7 @@ def format_report(results: dict[str, dict], top_k: int) -> str:
                 lines.append(f"- `{p}`: {persona_counts[p]} queries")
         lines.append("")
         lines.append(
-            "_n=1 or n=2 slices are directional only; a 6-query slice is the "
-            "minimum for a stable mean. The per-persona numbers reveal "
-            "where the retrieval system serves which user type; the aggregate "
-            "Summary table above hides that. For the 3-large vs local "
-            "comparison (2026-09-19 ADR-015 + follow-up), the aggregate "
-            "showed 3-large wins on precision (MRR, Primary@1, nDCG) and "
-            "loses on recall. The per-persona view surfaces whether that "
-            "trade-off has a persona shape._"
+            "_Per-persona slices reveal where the retrieval system serves each user type._"
         )
         lines.append("")
         lines.append("| Path | Persona | n | Recall@K | MRR | Primary@1 | nDCG@K |")
@@ -334,6 +422,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run the bible-llm-reference retrieval benchmark"
     )
+    parser.add_argument("--benchmark", choices=["v1", "v2"], default="v1",
+                        help="Benchmark version to run: 'v1' (30 queries) or 'v2' (90 queries, multi-tradition, dev/held-out)")
+    parser.add_argument("--split", choices=["all", "dev", "held_out"], default="all",
+                        help="Split filter for benchmark v2: 'all' (90 queries), 'dev' (48 queries), or 'held_out' (42 queries)")
+    parser.add_argument("--tradition", choices=["all", "christianity", "islam", "judaism"], default=None,
+                        help="Tradition filter for retrieval (default: 'all' for benchmark v2, None/KJV for v1)")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K,
                         help=f"Top-k results per query (default {DEFAULT_TOP_K})")
     parser.add_argument("--paths", default=",".join(PATHS_ALL),
@@ -367,8 +461,20 @@ def main() -> int:
             print(f"ERROR: unknown path {p!r}; valid: {PATHS_ALL}", file=sys.stderr)
             return 1
 
-    benchmark = BENCHMARK[:args.limit] if args.limit else BENCHMARK
-    print(f"Running {len(benchmark)} queries × {len(paths)} path(s), top_k={args.top_k}...",
+    if args.benchmark == "v2":
+        raw = BENCHMARK_V2
+        if args.split != "all":
+            raw = [item for item in raw if item[2] == args.split]
+        benchmark_items = [(item[0], item[1], item[3]) for item in raw]
+        trad = args.tradition or "all"
+        bench_info = f"v2 ({args.split} split, {len(benchmark_items)} queries)"
+    else:
+        benchmark_items = BENCHMARK
+        trad = args.tradition
+        bench_info = f"v1 ({len(benchmark_items)} queries)"
+
+    benchmark = benchmark_items[:args.limit] if args.limit else benchmark_items
+    print(f"Running {len(benchmark)} queries ({bench_info}) × {len(paths)} path(s), top_k={args.top_k}...",
           file=sys.stderr)
 
     results: dict[str, dict] = {}
@@ -382,6 +488,7 @@ def main() -> int:
             solo_weight=args.solo_weight,
             index_name=args.index,
             backend=args.backend,
+            tradition=trad,
         )
         if not results[path].get("skipped"):
             r = results[path]
@@ -408,7 +515,7 @@ def main() -> int:
                     ])
         print(f"\nWrote per-query CSV to {args.csv}", file=sys.stderr)
 
-    print(format_report(results, args.top_k))
+    print(format_report(results, args.top_k, benchmark_info=bench_info))
     return 0
 
 

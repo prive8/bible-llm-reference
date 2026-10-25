@@ -108,10 +108,16 @@ jobs:
           echo "hash=$(cat /tmp/corpus_hash.txt)" >> "$GITHUB_OUTPUT"
           echo "corpus hash: $(cat /tmp/corpus_hash.txt)"
 
-      - name: Cache the built semantic index
-        # Keyed on the corpus hash from the step above. A corpus or
-        # embedder change invalidates it; an unrelated code push reuses
-        # it. This turns a ~36 min build into a ~4 min cache restore.
+      - name: Restore the built semantic index
+        # EXACT key match only - no restore-keys.
+        #
+        # A restore-keys prefix match would restore a STALE index (one
+        # built from a different corpus) while reporting cache-hit=false,
+        # so the build step would run and then fail: index_embeddings.py
+        # refuses to overwrite an existing index without --overwrite.
+        # That would turn every corpus change into a red CI run. An
+        # exact match is the only case where the restored index is
+        # guaranteed to match the current corpus.
         id: index-cache
         uses: actions/cache@v4
         with:
@@ -119,23 +125,69 @@ jobs:
             data/embeddings/default_meta.json
             data/embeddings/default_vectors.bin
           key: ${{ runner.os }}-semantic-index-${{ steps.corpus.outputs.hash }}-all-MiniLM-L6-v2
-          restore-keys: |
-            ${{ runner.os }}-semantic-index-
 
       - name: Build the local semantic index (skipped on cache hit)
         # ~36 min on a 2-vCPU runner for the full 66,689-passage corpus
-        # (43,483 Bible + 6,236 Quran + 23,206 Tanakh). Only runs when
-        # the corpus cache misses.
+        # (37,247 Christianity + 6,236 Islam + 23,206 Judaism). Only
+        # runs when the corpus cache misses.
+        #
+        # --overwrite: the index is derived data that must match the
+        # current corpus exactly. If anything is already on disk it is
+        # stale, so replace it rather than failing.
         if: steps.index-cache.outputs.cache-hit != 'true'
-        run: python scripts/index_embeddings.py --backend local --name default --batch-size 64
+        run: python scripts/index_embeddings.py --backend local --name default --batch-size 64 --overwrite
 
-      - name: Verify the index is present
+      - name: Verify the index matches the current corpus
+        # The point of this step: run_eval.py SKIPS the semantic and
+        # hybrid paths silently when the index is missing, and the
+        # threshold gate would then pass on BM25 alone. So a missing or
+        # stale index has to fail loudly here, before the eval runs.
+        #
+        # The expected passage count is computed from the corpus itself
+        # (no embedder needed, ~0.4s) and compared against the index
+        # metadata. A mismatch means the cached index was built from a
+        # different corpus.
         run: |
-          if [ ! -f data/embeddings/default_meta.json ]; then
-            echo "::error::semantic index missing after build/cache step"
-            exit 1
-          fi
-          python -c "import json; d=json.load(open('data/embeddings/default_meta.json')); print(f\"index: {d['count']} passages, {d['dim']}-dim\")"
+          set -euo pipefail
+          python - <<'PYEOF'
+          import json
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "scripts")
+          from index_embeddings import collect_corpus
+
+          meta_path = Path("data/embeddings/default_meta.json")
+          bin_path = Path("data/embeddings/default_vectors.bin")
+
+          if not meta_path.exists() or not bin_path.exists():
+              print("::error::semantic index missing after build/cache step")
+              sys.exit(1)
+
+          meta = json.loads(meta_path.read_text())
+          count = meta["count"]
+          dim = meta["dim"]
+
+          expected = len(collect_corpus())
+          if count != expected:
+              print(
+                  f"::error::index is stale - it holds {count} passages "
+                  f"but the current corpus has {expected}"
+              )
+              sys.exit(1)
+
+          # The .bin must be exactly count * dim float32 values.
+          expected_bytes = count * dim * 4
+          actual_bytes = bin_path.stat().st_size
+          if actual_bytes != expected_bytes:
+              print(
+                  f"::error::index .bin is truncated - {actual_bytes} bytes, "
+                  f"expected {expected_bytes}"
+              )
+              sys.exit(1)
+
+          print(f"index verified: {count} passages, {dim}-dim, {actual_bytes} bytes")
+          PYEOF
 
       - name: Run sister-script test suite (CI also runs the 147-test gate here)
         run: python tests/run_all.py

@@ -42,7 +42,7 @@ jobs:
     # Runs the retrieval evaluation harness with a recall@10 threshold
     # gate. Only fires on push to main (not on PRs — PR contributors
     # don't ship a stable index, and the matrix would multiply the
-    # ~3-min index build by 8). If recall@10 drops below the baseline
+    # index build by 8). If recall@10 drops below the baseline
     # minus a small tolerance, the job fails.
     #
     # Baseline (v0.9.0): semantic=0.279, hybrid=0.233.
@@ -50,7 +50,13 @@ jobs:
     # the baseline so we catch regressions, not natural variance.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The index build dominates this job's wall time. The corpus grew
+    # from 43,483 to 66,689 passages when multi-tradition support
+    # landed (2026-10-08), and this runner has 2 vCPU, so a cold build
+    # is ~36 min. 60 leaves headroom for a cold build plus the eval.
+    # The cache below means the cold build only happens when the
+    # corpus or the embedder changes.
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
@@ -76,13 +82,62 @@ jobs:
           python -m pip install --upgrade pip
           pip install "sentence-transformers>=2.2.0" "numpy>=1.20.0"
 
-      - name: Build the local semantic index (~2 min on CPU at batch=64)
-        # batch=64 is empirically faster than 128 on shared CI runners.
-        # The CI build is the slowest phase of the eval-regression job,
-        # so this matters.
+      - name: Compute corpus hash for the index cache key
+        # The built index is a pure function of (corpus files, embedder
+        # model, indexer code). Hashing all three means the cache is
+        # reused across pushes that do not touch the corpus, and
+        # rebuilt automatically when any of them changes.
+        #
+        # Each file is hashed by CONTENT, and the path is included so
+        # a rename changes the hash too. The path must be printed with
+        # its own printf - putting several paths in one echo would make
+        # the shell see them as a single (nonexistent) filename.
+        id: corpus
+        run: |
+          set -euo pipefail
+          {
+            find kjv.json translations data/quran data/tanakh data/torah -type f -name '*.json' 2>/dev/null | sort
+            printf '%s\n' scripts/index_embeddings.py bible/semantic.py bible/lookup.py bible/quran.py bible/torah.py bible/tanakh.py
+          } | while read -r f; do
+            if [ -f "$f" ]; then
+              printf '%s  %s\n' "$(sha256sum "$f" | cut -d' ' -f1)" "$f"
+            else
+              printf 'MISSING  %s\n' "$f"
+            fi
+          done | sha256sum | cut -d' ' -f1 > /tmp/corpus_hash.txt
+          echo "hash=$(cat /tmp/corpus_hash.txt)" >> "$GITHUB_OUTPUT"
+          echo "corpus hash: $(cat /tmp/corpus_hash.txt)"
+
+      - name: Cache the built semantic index
+        # Keyed on the corpus hash from the step above. A corpus or
+        # embedder change invalidates it; an unrelated code push reuses
+        # it. This turns a ~36 min build into a ~4 min cache restore.
+        id: index-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/embeddings/default_meta.json
+            data/embeddings/default_vectors.bin
+          key: ${{ runner.os }}-semantic-index-${{ steps.corpus.outputs.hash }}-all-MiniLM-L6-v2
+          restore-keys: |
+            ${{ runner.os }}-semantic-index-
+
+      - name: Build the local semantic index (skipped on cache hit)
+        # ~36 min on a 2-vCPU runner for the full 66,689-passage corpus
+        # (43,483 Bible + 6,236 Quran + 23,206 Tanakh). Only runs when
+        # the corpus cache misses.
+        if: steps.index-cache.outputs.cache-hit != 'true'
         run: python scripts/index_embeddings.py --backend local --name default --batch-size 64
 
-      - name: Run sister-script test suite (CI also runs the 83-test gate here)
+      - name: Verify the index is present
+        run: |
+          if [ ! -f data/embeddings/default_meta.json ]; then
+            echo "::error::semantic index missing after build/cache step"
+            exit 1
+          fi
+          python -c "import json; d=json.load(open('data/embeddings/default_meta.json')); print(f\"index: {d['count']} passages, {d['dim']}-dim\")"
+
+      - name: Run sister-script test suite (CI also runs the 147-test gate here)
         run: python tests/run_all.py
 
       - name: Run retrieval evaluation with threshold gate
@@ -93,8 +148,18 @@ jobs:
         # Thresholds reflect the v0.10.0 baseline (after the bm25_weight
         # default tuning sweep). Lower the threshold a bit so we catch
         # regressions, not natural variance.
+        #
+        # --tradition christianity: the v1 benchmark's 204 expected
+        # citations are all Bible. Scoring it against the full
+        # 3-tradition index lets 29,442 non-Bible passages compete for
+        # the same top-10 slots and measures a scope mismatch rather
+        # than retrieval quality. Scoped, the same index scores 0.282
+        # semantic / 0.273 hybrid against a 0.279 / 0.258 baseline.
+        # Switch to --benchmark v2 --split dev once the index cache
+        # makes that affordable; benchmark v2 is the one with
+        # cross-tradition queries.
         run: |
-          python scripts/run_eval.py --paths bm25,semantic,hybrid > /tmp/eval_report.txt
+          python scripts/run_eval.py --paths bm25,semantic,hybrid --tradition christianity > /tmp/eval_report.txt
           python <<'PYEOF'
           import re
           import sys

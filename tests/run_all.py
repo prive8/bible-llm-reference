@@ -1423,12 +1423,14 @@ def t_eval_metrics_for_query_recall_partial():
 
 @_register("t_eval_threshold_gate_parses_real_report")
 def t_eval_threshold_gate_parses_real_report():
-    """Verify the regex used by CI's threshold gate parses a realistic report.
+    """Verify the gate used by CI parses a realistic report.
 
-    This is the same regex embedded in `.github/workflows/ci.yml`. If the
-    harness output format changes, both this test AND CI will need updates.
-    The test catches the change before CI does.
+    CI calls `scripts/eval_gate.py`. This test exercises that script's
+    real parsing code against a captured report, so a harness output
+    format change fails locally first instead of in CI.
     """
+    from scripts.eval_gate import extract_summary, parse_recall
+
     sample_report = """## Summary
 
 | Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
@@ -1437,14 +1439,257 @@ def t_eval_threshold_gate_parses_real_report():
 | semantic | 0.279 | 0.165 | 0.151 | 0.222 | 0.3 |
 | hybrid | 0.233 | 0.093 | 0.030 | 0.191 | 0.4 |
 """
-    import re
-    # Exact pattern from .github/workflows/ci.yml — keep in sync
-    for path_name in ["bm25", "semantic", "hybrid"]:
-        pattern = rf"\|\s*{path_name}\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|"
-        m = re.search(pattern, sample_report)
-        _assert(m is not None, f"CI regex doesn't match path {path_name!r}")
-        recall = float(m.group(1))
+    summary = extract_summary(sample_report)
+    for path_name, expected in [("bm25", 0.093), ("semantic", 0.279), ("hybrid", 0.233)]:
+        recall = parse_recall(summary, path_name)
+        _assert(recall is not None, f"gate doesn't parse path {path_name!r}")
+        _assert(abs(recall - expected) < 1e-9, f"{path_name} recall {recall} != {expected}")
         _assert(0.0 <= recall <= 1.0, f"recall out of range: {recall}")
+
+
+@_register("t_eval_gate_ignores_per_persona_rows")
+def t_eval_gate_ignores_per_persona_rows():
+    """The report has a per-persona table whose rows also start with a path
+    name. The gate must read the aggregate Summary row, never a per-persona
+    row — otherwise it would gate on one persona's slice."""
+    from scripts.eval_gate import extract_summary, parse_recall
+
+    report = """## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.119 | 0.172 | 0.125 | 0.167 | 2.6 |
+| semantic | 0.189 | 0.300 | 0.229 | 0.257 | 0.2 |
+| hybrid | 0.183 | 0.291 | 0.208 | 0.241 | 0.2 |
+
+## Per-persona detail
+
+| Path | Persona | n | Recall@K | MRR | Primary@1 | nDCG@K |
+|------|---------|---|----------|-----|-----------|---------|
+| bm25 | sarah | 8 | 0.025 | 0.000 | 0.000 | 0.031 |
+| bm25 | jordan | 8 | 0.325 | 0.573 | 0.500 | 0.570 |
+"""
+    summary = extract_summary(report)
+    _assert(abs(parse_recall(summary, "bm25") - 0.119) < 1e-9,
+            "gate read a per-persona bm25 row instead of the aggregate")
+
+
+@_register("t_eval_gate_missing_row_is_a_failure_not_a_pass")
+def t_eval_gate_missing_row_is_a_failure_not_a_pass():
+    """A path whose artifact was missing is SKIPPED by the harness and emits
+    no summary row. The gate must FAIL on that, not pass on the paths that
+    did run — otherwise the gate is vacuous exactly when something breaks."""
+    from scripts.eval_gate import extract_summary, parse_recall
+
+    report = """## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.119 | 0.172 | 0.125 | 0.167 | 2.6 |
+| hybrid | 0.183 | 0.291 | 0.208 | 0.241 | 0.2 |
+"""
+    summary = extract_summary(report)
+    _assert(parse_recall(summary, "semantic") is None,
+            "a skipped path must parse as None so the gate can fail on it")
+    _assert(parse_recall(summary, "bm25") is not None, "bm25 row should parse")
+
+
+@_register("t_eval_gate_exits_nonzero_on_regression")
+def t_eval_gate_exits_nonzero_on_regression():
+    """End-to-end: the gate script exits 0 on a passing report and 1 on a
+    regressed one. A gate that has never been seen to fail is decoration."""
+    import subprocess
+    import sys as _sys
+
+    passing = """## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.119 | 0.172 | 0.125 | 0.167 | 2.6 |
+| semantic | 0.189 | 0.300 | 0.229 | 0.257 | 0.2 |
+| hybrid | 0.183 | 0.291 | 0.208 | 0.241 | 0.2 |
+"""
+    regressed = passing.replace("| semantic | 0.189 |", "| semantic | 0.100 |")
+
+    with tempfile.TemporaryDirectory() as td:
+        ok_path = Path(td) / "ok.md"
+        ok_path.write_text(passing, encoding="utf-8")
+        bad_path = Path(td) / "bad.md"
+        bad_path.write_text(regressed, encoding="utf-8")
+
+        cmd = [_sys.executable, str(ROOT / "scripts" / "eval_gate.py"),
+               "--threshold", "bm25=0.08", "--threshold", "semantic=0.15",
+               "--threshold", "hybrid=0.14"]
+
+        p_ok = subprocess.run(cmd + ["--report", str(ok_path)],
+                              capture_output=True, text=True)
+        _assert(p_ok.returncode == 0,
+                f"gate should pass a good report, got {p_ok.returncode}: {p_ok.stderr}")
+
+        p_bad = subprocess.run(cmd + ["--report", str(bad_path)],
+                               capture_output=True, text=True)
+        _assert(p_bad.returncode == 1,
+                f"gate should fail a regressed report, got {p_bad.returncode}")
+
+
+@_register("t_eval_gate_fails_when_path_row_missing")
+def t_eval_gate_fails_when_path_row_missing():
+    """End-to-end: a report missing the semantic row must make the gate
+    exit non-zero, not silently pass on bm25 and hybrid alone."""
+    import subprocess
+    import sys as _sys
+
+    partial = """## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.119 | 0.172 | 0.125 | 0.167 | 2.6 |
+| hybrid | 0.183 | 0.291 | 0.208 | 0.241 | 0.2 |
+"""
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "partial.md"
+        p.write_text(partial, encoding="utf-8")
+        r = subprocess.run(
+            [_sys.executable, str(ROOT / "scripts" / "eval_gate.py"),
+             "--report", str(p),
+             "--threshold", "bm25=0.08", "--threshold", "semantic=0.15",
+             "--threshold", "hybrid=0.14"],
+            capture_output=True, text=True)
+        _assert(r.returncode == 1,
+                f"gate must fail when a path row is missing, got {r.returncode}")
+        _assert("no row" in r.stderr,
+                f"error should say the row is missing, got: {r.stderr[:200]}")
+
+
+@_register("t_eval_gate_rejects_malformed_threshold")
+def t_eval_gate_rejects_malformed_threshold():
+    """A malformed threshold is a usage error (exit 2), not a silent pass."""
+    import subprocess
+    import sys as _sys
+
+    report = """## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| semantic | 0.189 | 0.300 | 0.229 | 0.257 | 0.2 |
+"""
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "r.md"
+        p.write_text(report, encoding="utf-8")
+        r = subprocess.run(
+            [_sys.executable, str(ROOT / "scripts" / "eval_gate.py"),
+             "--report", str(p), "--threshold", "nonsense"],
+            capture_output=True, text=True)
+        _assert(r.returncode == 2,
+                f"malformed threshold should exit 2, got {r.returncode}")
+
+
+@_register("t_eval_gate_benchmark_v2_dev_has_cross_tradition_citations")
+def t_eval_gate_benchmark_v2_dev_has_cross_tradition_citations():
+    """The v2 dev split is the benchmark that matches the multi-tradition
+    corpus: its expected citations must span all three traditions. If a
+    future edit collapses them to one tradition, the v2 gate would silently
+    stop testing cross-tradition retrieval."""
+    from tests.benchmark_v2 import BENCHMARK_V2
+
+    dev = [i for i in BENCHMARK_V2 if i[2] == "dev"]
+    _assert(len(dev) == 48, f"expected 48 dev queries, got {len(dev)}")
+
+    cites = [c for _, _, _, exp in dev for c, _w in exp]
+    _assert(len(cites) == 229, f"expected 229 dev citations, got {len(cites)}")
+
+    islam = [c for c in cites if c.startswith("Quran ")]
+    _assert(len(islam) == 45, f"expected 45 Quran citations in dev, got {len(islam)}")
+
+    # Tanakh books: at least one expectation must name a Tanakh-only book.
+    tanakh_books = {"Joshua", "Judges", "Ruth", "Job", "Psalms", "Proverbs",
+                    "Ecclesiastes", "Isaiah", "Ezekiel", "Daniel", "Hosea",
+                    "Joel", "Amos", "Jonah", "Micah", "Nahum", "Habakkuk",
+                    "Zephaniah", "Haggai", "Zechariah", "Malachi"}
+    tanakh_hits = [c for c in cites
+                   if c.split(" ")[0].strip() in tanakh_books]
+    _assert(len(tanakh_hits) >= 30,
+            f"expected >=30 Tanakh citations in dev, got {len(tanakh_hits)}")
+
+
+@_register("t_eval_gate_benchmark_v2_dev_held_out_are_disjoint")
+def t_eval_gate_benchmark_v2_dev_held_out_are_disjoint():
+    """The dev/held_out split only prevents overfitting if the splits do not
+    share queries. CI gates on dev; held_out must stay untouched so it
+    remains an honest final measurement."""
+    from tests.benchmark_v2 import BENCHMARK_V2
+
+    dev = {i[0] for i in BENCHMARK_V2 if i[2] == "dev"}
+    held = {i[0] for i in BENCHMARK_V2 if i[2] == "held_out"}
+    _assert(len(dev) == 48, f"expected 48 dev queries, got {len(dev)}")
+    _assert(len(held) == 42, f"expected 42 held_out queries, got {len(held)}")
+    overlap = dev & held
+    _assert(not overlap, f"dev and held_out share queries: {sorted(overlap)[:3]}")
+
+
+@_register("t_eval_gate_benchmark_v2_dev_baseline_is_stable")
+def t_eval_gate_benchmark_v2_dev_baseline_is_stable():
+    """Every threshold the WORKFLOW actually passes to the gate must be
+    strictly below the measured baseline for the benchmark that step
+    scores. Raising a threshold above its baseline would make the gate
+    fail on the current code — or, worse, someone "fixing" a red gate by
+    raising the threshold instead of fixing the regression.
+
+    Baselines measured 2026-10-25 against the 66,689-passage
+    multi-tradition index:
+      v1 (scoped to Christianity): bm25 0.108, semantic 0.282, hybrid 0.273
+      v2 dev (unscoped)          : bm25 0.119, semantic 0.189, hybrid 0.183
+
+    This does NOT re-run the eval: the harness is deterministic (verified:
+    bm25 and semantic return identical numbers across repeated runs), so
+    the baselines are fixed values, not samples.
+    """
+    import re
+
+    BASELINES = {
+        "v1": {"bm25": 0.108, "semantic": 0.282, "hybrid": 0.273},
+        "v2": {"bm25": 0.119, "semantic": 0.189, "hybrid": 0.183},
+    }
+
+    workflow_path = ROOT / ".github" / "workflows" / "ci.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+
+    # Split the workflow into steps by their "- name:" markers, then find the
+    # retrieval-evaluation steps. Doing this by hand rather than with one
+    # greedy regex: a greedy pattern spans BOTH steps and collapses them into
+    # one, which silently checks only whichever step came last.
+    step_blocks = re.split(r"\n(?=\s+- name: )", workflow)
+    eval_steps = [b for b in step_blocks
+                  if re.match(r"\s+- name: Run retrieval evaluation - (v1|v2)\b", b)]
+    _assert(len(eval_steps) == 2,
+            f"expected 2 retrieval-evaluation steps (v1, v2), found {len(eval_steps)}")
+
+    for block in eval_steps:
+        m = re.match(r"\s+- name: Run retrieval evaluation - (v1|v2)\b", block)
+        bench = m.group(1)
+        baseline = BASELINES[bench]
+
+        found = dict(re.findall(r"--threshold\s+(\w+)=([0-9.]+)", block))
+        _assert(bool(found), f"no --threshold arguments found in the {bench} gate step")
+
+        for path_name, base in baseline.items():
+            _assert(path_name in found,
+                    f"{bench} gate has no threshold for {path_name!r}; found {found}")
+            threshold = float(found[path_name])
+            _assert(threshold < base,
+                    f"{bench} {path_name} threshold {threshold} is not below the "
+                    f"measured baseline {base} — the gate would fail on current code")
+            _assert(threshold > 0,
+                    f"{bench} {path_name} threshold {threshold} is not positive — the "
+                    f"gate would pass on any score, including zero")
+
+    note = ROOT / "notes" / "2026-10-25-ci-eval-regression-restored.md"
+    _assert(note.exists(), f"expected the baseline note at {note}")
+    text = note.read_text(encoding="utf-8")
+    for value in ("0.119", "0.189", "0.183"):
+        _assert(value in text,
+                f"baseline value {value} missing from the note — "
+                f"the v2 gate thresholds are calibrated against it")
 
 
 # ---------------------------------------------------------------------------

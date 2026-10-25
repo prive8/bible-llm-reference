@@ -45,15 +45,30 @@ jobs:
     # index build by 8). If recall@10 drops below the baseline
     # minus a small tolerance, the job fails.
     #
-    # Baseline (v0.9.0): semantic=0.279, hybrid=0.233.
-    # Threshold: 0.25 (semantic), 0.20 (hybrid). Set deliberately below
-    # the baseline so we catch regressions, not natural variance.
+    # Two gates run here, each scoring a different benchmark:
+    #
+    #   v1 (scoped to Christianity) — the historical gate. Baseline
+    #     v0.10.0: semantic 0.279, hybrid 0.258. Scoped to
+    #     --tradition christianity because the v1 benchmark's 204
+    #     expected citations are all Bible; scoring it against the
+    #     3-tradition index measures corpus dilution, not retrieval
+    #     quality (unscoped it reads 0.234).
+    #
+    #   v2 dev (unscoped) — the cross-tradition gate. This is the
+    #     benchmark that matches the corpus: 48 dev queries whose 229
+    #     expected citations span all three traditions (111 Christian,
+    #     73 Tanakh, 45 Quran). Baseline measured 2026-10-25 on the
+    #     66,689-passage index: bm25 0.119, semantic 0.189, hybrid
+    #     0.183.
+    #
+    # Both thresholds sit below their measured baseline so the gate
+    # catches a regression rather than natural variance.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # The index build dominates this job's wall time. The corpus grew
     # from 43,483 to 66,689 passages when multi-tradition support
     # landed (2026-10-08), and this runner has 2 vCPU, so a cold build
-    # is ~36 min. 60 leaves headroom for a cold build plus the eval.
+    # is ~14 min. 60 leaves headroom for a cold build plus both evals.
     # The cache below means the cold build only happens when the
     # corpus or the embedder changes.
     timeout-minutes: 60
@@ -127,7 +142,7 @@ jobs:
           key: ${{ runner.os }}-semantic-index-${{ steps.corpus.outputs.hash }}-all-MiniLM-L6-v2
 
       - name: Build the local semantic index (skipped on cache hit)
-        # ~36 min on a 2-vCPU runner for the full 66,689-passage corpus
+        # ~14 min on a 2-vCPU runner for the full 66,689-passage corpus
         # (37,247 Christianity + 6,236 Islam + 23,206 Judaism). Only
         # runs when the corpus cache misses.
         #
@@ -189,71 +204,57 @@ jobs:
           print(f"index verified: {count} passages, {dim}-dim, {actual_bytes} bytes")
           PYEOF
 
-      - name: Run sister-script test suite (CI also runs the 147-test gate here)
+      - name: Run sister-script test suite (CI also runs the 154-test gate here)
         run: python tests/run_all.py
 
-      - name: Run retrieval evaluation with threshold gate
-        # We use a small inline Python check rather than shell arithmetic
-        # because shell float handling is finicky and we want clean
-        # failure messages in the CI log.
-        #
-        # Thresholds reflect the v0.10.0 baseline (after the bm25_weight
-        # default tuning sweep). Lower the threshold a bit so we catch
-        # regressions, not natural variance.
-        #
+      - name: Run retrieval evaluation - v1 (scoped to Christianity)
         # --tradition christianity: the v1 benchmark's 204 expected
         # citations are all Bible. Scoring it against the full
         # 3-tradition index lets 29,442 non-Bible passages compete for
         # the same top-10 slots and measures a scope mismatch rather
         # than retrieval quality. Scoped, the same index scores 0.282
         # semantic / 0.273 hybrid against a 0.279 / 0.258 baseline.
-        # Switch to --benchmark v2 --split dev once the index cache
-        # makes that affordable; benchmark v2 is the one with
-        # cross-tradition queries.
+        #
+        # Thresholds are the v0.10.0 baselines minus a margin:
+        # bm25 0.06 (baseline 0.093), semantic 0.25 (0.279),
+        # hybrid 0.22 (0.258).
         run: |
-          python scripts/run_eval.py --paths bm25,semantic,hybrid --tradition christianity > /tmp/eval_report.txt
-          python <<'PYEOF'
-          import re
-          import sys
+          python scripts/run_eval.py --paths bm25,semantic,hybrid --tradition christianity > /tmp/eval_report_v1.txt
+          python scripts/eval_gate.py --report /tmp/eval_report_v1.txt \
+            --threshold bm25=0.06 \
+            --threshold semantic=0.25 \
+            --threshold hybrid=0.22
 
-          with open("/tmp/eval_report.txt") as f:
-              report = f.read()
+      - name: Run retrieval evaluation - v2 dev (cross-tradition, unscoped)
+        # The v2 dev split is the benchmark that matches the
+        # multi-tradition corpus: 48 queries, 229 expected citations
+        # spanning Christianity (111), Tanakh (73) and Quran (45).
+        # Unscoped, so all three traditions are searchable.
+        #
+        # Baselines measured 2026-10-25 against the 66,689-passage
+        # index: bm25 0.119, semantic 0.189, hybrid 0.183. The harness
+        # is deterministic — repeated runs return identical numbers — so
+        # these are fixed values, not samples. Thresholds sit below them
+        # with a margin for corpus growth:
+        # bm25 0.08 (baseline 0.119), semantic 0.15 (0.189),
+        # hybrid 0.14 (0.183).
+        #
+        # NOTE: these are NOT the v1 thresholds. The v1 numbers are
+        # higher because that benchmark is single-domain; reusing the
+        # v1 thresholds here would fail on the current code.
+        run: |
+          python scripts/run_eval.py --paths bm25,semantic,hybrid --benchmark v2 --split dev > /tmp/eval_report_v2.txt
+          python scripts/eval_gate.py --report /tmp/eval_report_v2.txt \
+            --threshold bm25=0.08 \
+            --threshold semantic=0.15 \
+            --threshold hybrid=0.14
 
-          # Thresholds: v0.10.0 baseline (hybrid tuned to bm25_weight=0.1
-          # in v0.10.0 hybrid-fusion sweep; baseline 0.258). Lower the
-          # threshold a bit so we catch regressions, not natural variance.
-          THRESHOLDS = {
-              "bm25":     {"recall_at_k": 0.06},   # baseline 0.093
-              "semantic": {"recall_at_k": 0.25},   # baseline 0.279
-              "hybrid":   {"recall_at_k": 0.22},   # baseline 0.258 (was 0.233 at v0.9.0 0.5 weight)
-          }
-
-          failed = []
-          for path_name, thresholds in THRESHOLDS.items():
-              # The harness emits lines like "| semantic | 0.279 | 0.165 | 0.151 | 0.222 |"
-              # Find the row in the summary table.
-              pattern = rf"\|\s*{path_name}\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|"
-              m = re.search(pattern, report)
-              if not m:
-                  failed.append(f"{path_name}: no row found in eval report")
-                  continue
-              recall = float(m.group(1))
-              threshold = thresholds["recall_at_k"]
-              if recall < threshold:
-                  failed.append(f"{path_name}: recall@10={recall:.3f} < threshold {threshold:.3f}")
-
-          if failed:
-              print("❌ RETRIEVAL REGRESSION DETECTED")
-              for line in failed:
-                  print(f"  {line}")
-              sys.exit(1)
-          print(f"✅ All retrieval thresholds met (semantic ≥ 0.25, hybrid ≥ 0.22, bm25 ≥ 0.06)")
-          PYEOF
-
-      - name: Upload eval report as CI artifact
+      - name: Upload eval reports as CI artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eval-report
-          path: /tmp/eval_report.txt
+          path: |
+            /tmp/eval_report_v1.txt
+            /tmp/eval_report_v2.txt
           retention-days: 14

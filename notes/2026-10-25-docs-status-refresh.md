@@ -6,6 +6,7 @@
 - AGENTS.md is the only work queue: `shared/TODO.md` in the private vault `prive8/obsidian-vault-shared`, and `notes/`.
 - HANDOFF.md deprecated to a pointer. Previous text remains at `e46fa7b`.
 - Entry points that sent readers at HANDOFF sections (CONTRIBUTING, COUNCIL, council design, issue and PR templates) now point at README, AGENTS, and RUNTIME_CONTRACT.
+- Three sister-script tests still match phrases in HANDOFF.md and the README (Phase 2 model resolved, Council convening, NIM 410 / free-tier / OpenRouter). Those lines stay in a short section at the bottom of HANDOFF.md, and the README says the Council is constituted. The tests were left unchanged.
 - Banners on the 2026-10-08 foundation plan, the v0.10.0 eval write-up, and the 2026-07-31 schema draft so those files read as history.
 
 ## Blocked

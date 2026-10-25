@@ -173,7 +173,7 @@ docs/                  ADRs, eval history, scope sketches, governance design
 
 ## Governance
 
-[`COUNCIL.md`](./COUNCIL.md) (v0.4, since 2026-09-10) is in force: a single-contributor body, project owner as acting chair. The seven principles in §2 bind the project. Decisions land in `notes/`. The full multi-member Council in [`docs/governance/council-design.md`](./docs/governance/council-design.md) waits on a second contributor or Phase 2.
+[`COUNCIL.md`](./COUNCIL.md) (v0.4, constituted 2026-09-10) is in force as an active single-contributor body, with the project owner as acting chair. The seven principles in §2 bind the project. Decisions land in `notes/`. The full multi-member Council in [`docs/governance/council-design.md`](./docs/governance/council-design.md) waits on a second contributor or Phase 2.
 
 Architectural decisions are ADRs in [`docs/design-decisions.md`](./docs/design-decisions.md).
 

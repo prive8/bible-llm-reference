@@ -67,6 +67,8 @@ Session by dad-h2 (Hermes agent, father's fleet). Steven asked for the CI cleanu
 
 ## Next Steps
 
+Items 1 and 3 are done in the section below (same day). Item 2 is still open. The living work queue is `AGENTS.md`.
+
 1. **Switch the gate to `--benchmark v2 --split dev`.** Benchmark v2 (90 queries, 56 cross-tradition citations, dev/held_out splits) is the one that actually matches the multi-tradition corpus. The 2026-10-08 notes already ask for exactly this. The cache now makes it affordable.
 2. **Fix the per-query index reload in `bible/semantic.py`** — `array.array` for the decode plus an in-process cache so the index is decoded once per run rather than once per query. Worth ~1.6× on eval wall time with no new dependency. A numpy fast path (one matvec instead of a Python loop) would be ~22× but needs a stdlib fallback and is a bigger change.
 3. **Re-baseline the thresholds once benchmark v2 is in place.** The v0.10.0 baselines (semantic 0.279, hybrid 0.258) were measured on a Bible-only index.
@@ -217,4 +219,5 @@ Seven new sister-script tests (`147 → 154`):
 ## Notes
 
 - The measurement index used here is `data/embeddings/ci-timing_*` (gitignored, derived data) and can be deleted.
-- The gate thresholds were left at their existing values so this commit changes CI plumbing only. Anyone reading the new numbers should know the semantic/hybrid baselines were measured on the old Bible-only corpus.
+- v1 thresholds stayed at 0.06 / 0.25 / 0.22 on purpose. v2 has its own thresholds (0.08 / 0.15 / 0.14) against baselines measured on the 66,689-passage index (BM25 0.119, semantic 0.189, hybrid 0.183). The v2 semantic 0.189 is not the OpenRouter 33-query figure of the same number.
+- The suite at the end of this session is 155 tests. The "147 → 154" line above under-counted: one existing gate test was rewritten and eight were added.

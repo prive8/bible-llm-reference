@@ -1,10 +1,13 @@
 # Data Schema — Parallel Structure Across Traditions
 
-> **Last updated:** 2026-07-31 (initial draft, per the
-> daily-2026-07-31 review — see `HANDOFF.md` §7.1 for the constraint
-> this doc supports)
+> **Draft from 2026-07-31.** The shipped catalog is `bible/registry.py`,
+> `data/editions.json`, and `data/versification_map.json`. Status is
+> [`README.md`](../README.md). `bible-query.py` was removed in v0.5.0.
+> The examples below are the shape the draft was aiming at.
+
+> **Last updated:** 2026-07-31 (initial draft).
 >
-> **Read alongside:** `HANDOFF.md` §7.1 (the data-layer constraint),
+> **Read alongside:** [`README.md`](../README.md) (what shipped),
 > `COUNCIL.md` (the principles), `docs/governance/council-design.md`
 > §4.1 (the cross-tradition scoping guardrails).
 
@@ -15,9 +18,9 @@ non-Christian tradition families, so that a future agent building
 `bible/lookup.py` (or its successor) has a concrete target for the
 "all-traditions-capable from day one" constraint.
 
-The current `bible-query.py` is **hardcoded to KJV** — the schema
-below is the *target* the next refactor (HANDOFF.md §5 Milestone 1)
-should converge toward, not the present.
+`bible/parallel.py` has since shipped the multi-translation lookup.
+The examples below stay illustrative of the shape, ahead of the
+files on disk where they differ.
 
 The examples below are **illustrative** — they show the schema shape,
 not the actual content. When each tradition is ingested, the real

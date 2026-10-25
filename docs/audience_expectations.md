@@ -1,5 +1,8 @@
 # Audience Expectations — bible-llm-reference
 
+> **Background from 2026-09.** On 2026-10-25 the owner said use cases
+> are still being defined. Current direction is [`README.md`](../README.md).
+
 > **Purpose:** A consolidated reference document for the personas the
 > project serves. Use this when:
 > - **Building a front-end** — pick the right default render for each

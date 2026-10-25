@@ -20,7 +20,7 @@ assignees: ''
 
 ## Affected milestones
 
-<!-- Reference the milestone in `HANDOFF.md` §5 if applicable (e.g., "Milestone 2 — Strong's integration"). If it doesn't fit an existing milestone, this is a milestone-bumping feature. -->
+<!-- Which part of the repo this touches. Current direction is in README.md. -->
 
 ## Affects governance
 
@@ -33,9 +33,9 @@ assignees: ''
 
 ## Checklists
 
-- [ ] I have read [`HANDOFF.md`](../../HANDOFF.md) §1–§4 and §5
+- [ ] I have read [`README.md`](../../README.md)
 - [ ] I have searched existing issues for this feature
-- [ ] This proposal is consistent with the runtime contract ([`HANDOFF.md` §11](../../HANDOFF.md#11-runtime-contract-for-any-agent-using-this-data))
+- [ ] This proposal is consistent with the runtime contract ([`RUNTIME_CONTRACT.md`](../../RUNTIME_CONTRACT.md))
 
 ## Anything else
 

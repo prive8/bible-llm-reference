@@ -1,5 +1,9 @@
 # Use Case Catalog — Bible LLM Reference
 
+> **Brainstorm from 2026-09-11.** On 2026-10-25 the owner said use
+> cases are still being defined. Current direction is
+> [`README.md`](../README.md). This catalog is background.
+
 > **Status:** brainstorming document. Output of a one-session
 > design exercise on 2026-09-11. The goal is to map who might
 > actually use this corpus/tool, what they'd ask for, and what

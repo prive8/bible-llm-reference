@@ -11,7 +11,7 @@
 **Status:** Accepted (2026-07-31, Grok upgrade).
 **Context:** The Phase 1 substrate is a deterministic reference tool — it loads committed JSON, parses references, looks up Strong's entries. None of that needs numpy, requests, or anything outside stdlib. Adding dependencies costs startup latency, supply-chain risk, and a `pip install` barrier for downstream consumers who just want to clone and run.
 **Decision:** `dependencies = []` in `pyproject.toml`. Stdlib only. Any model/embedding dependency is deferred to Milestone 3 (semantic search) where it's a *requirement*, not a default.
-**Consequences:** Sister-script tests run without pytest. Ingestion scripts use `urllib` instead of `requests`. Future contributors can't `import numpy` without a milestone-level justification in HANDOFF.md.
+**Consequences:** Sister-script tests run without pytest. Ingestion scripts use `urllib` instead of `requests`. A dependency outside the stdlib baseline needs an ADR in this file. Embedding libraries stay in the optional `embeddings` extra.
 
 ---
 

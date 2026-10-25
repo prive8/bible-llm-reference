@@ -1,5 +1,9 @@
 # Sample Questions by Persona & Front-End
 
+> **Background from 2026-09.** On 2026-10-25 the owner said use cases
+> are still being defined. Current direction is [`README.md`](../README.md).
+> The work queue is [`AGENTS.md`](../AGENTS.md).
+
 > **Purpose:** a quick, scannable reference. Pick a persona, look at
 > what kind of front-end suits them, then see the sample questions
 > they'd actually ask. Designed to be the first thing a new contributor

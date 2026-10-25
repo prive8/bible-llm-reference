@@ -1,6 +1,13 @@
 # Phase 4 Scope — Front-End (Reader / Scholar / Comparative Layers)
 
-> **Status:** Scope complete. Implementation pending. Phase 4 begins
+> **Sketch from 2026-09-12.** On 2026-10-25 the owner said the likely
+> shape is a web reader with study help, and that use cases are still
+> being defined. Current direction is [`README.md`](../README.md).
+> The work queue is [`AGENTS.md`](../AGENTS.md). The layers below are
+> the sketch from that session, and the reader itself is still ahead
+> of the code.
+
+> **Status when written:** Scope complete. Implementation pending. Phase 4 begins
 > after Phase 3.3 (Full Tanakh, v0.14.0) and v0.16.0 (polish) are
 > shipped.
 >

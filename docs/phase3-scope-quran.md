@@ -5,7 +5,7 @@
 > sister-script tests (48 passing).
 >
 > **Read alongside:** `docs/data-schema.md` §2 (Quran illustrative
-> schema), `HANDOFF.md` §2 (Phase 3 success state), `COUNCIL.md` §1–§2
+> schema), [`README.md`](../README.md) (current status), `COUNCIL.md` §1–§2
 > (operating principles).
 
 ---

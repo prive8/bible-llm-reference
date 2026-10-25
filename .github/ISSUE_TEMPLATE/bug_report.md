@@ -15,7 +15,7 @@ assignees: ''
 <!-- Smallest steps to reproduce. -->
 
 ```
-python3 bible-query.py "John 3:16"
+python3 -m bible parallel "John 3:16"
 ```
 
 **Expected output**
@@ -45,7 +45,7 @@ python3 bible-query.py "John 3:16"
 
 ## Checklists
 
-- [ ] I have read [`HANDOFF.md`](../../HANDOFF.md) §1–§4 (the vision and what's in the repo)
+- [ ] I have read [`README.md`](../../README.md) (status) and [`RUNTIME_CONTRACT.md`](../../RUNTIME_CONTRACT.md)
 - [ ] I have searched existing issues for this bug
 - [ ] I have not modified the data files (`kjv.json`, `translations/*.json`, `strongs_data/`)
 

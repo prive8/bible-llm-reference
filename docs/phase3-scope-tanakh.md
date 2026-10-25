@@ -1,7 +1,8 @@
 # Phase 3.3 Scope — Full Tanakh (Prophets + Writings)
 
-> **Status:** Scope complete. Implementation pending (Phase 3.3 rung
-> after Torah shipped in v0.11.0). Target version: v0.14.0.
+> **Status:** Shipped in v0.14.0 (`bible/tanakh.py`, `data/tanakh/`).
+> This header originally said implementation was pending; the ingest
+> finished in that release. Current status is [`README.md`](../README.md).
 >
 > **Note:** The Torah (Five Books of Moses) is already shipped as
 > Phase 3.2 in v0.11.0 (`bible/torah.py`, `data/torah/`). This scope

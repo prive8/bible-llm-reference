@@ -1,8 +1,7 @@
 # Phase 3.2 Scope — Torah
 
-> **Status:** Implementation in progress (v0.11.0 target).
-> **Driver:** closes HANDOFF §5 Phase 3.2 rung; next-largest non-Quran
-> Abrahamic tradition after Bible proper.
+> **Status:** Shipped in v0.11.0 (`bible/torah.py`, `data/torah/`).
+> Current status is [`README.md`](../README.md).
 
 ## What "Torah" means here
 

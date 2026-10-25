@@ -1,5 +1,12 @@
 # Cross-Persona Similarities — driving us to the next level
 
+> **Brainstorm from 2026-09.** On 2026-10-25 the owner said use cases
+> are still being defined, with depth and cross-referencing ahead of
+> breadth. Current direction is [`README.md`](../README.md). The work
+> queue is [`AGENTS.md`](../AGENTS.md). Sections below that name a
+> next step, or that say to add items to `HANDOFF.md` §8, are the
+> brainstorm. `HANDOFF.md` was deprecated on 2026-10-25.
+
 > **Purpose:** The previous docs (`docs/use-cases.md`,
 > `docs/audience_expectations.md`) catalogued what each persona
 > *wants in isolation*. This doc surfaces what they want **in common**

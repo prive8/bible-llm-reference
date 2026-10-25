@@ -1,34 +1,35 @@
-# AGENTS.md — start here
+# AGENTS.md
 
-Short entry point for AI agents. Authoritative detail lives in the
-linked docs; this file only says what to read, what binds you, and
-what to work on.
+Coding agents start here, then read [`README.md`](./README.md) for what the repo is, the retrieval gates, and the 2026-10-25 direction.
 
-## Read in this order
-1. [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) — five rules that bind any agent using this data (always cite, never invent verses, never impersonate Scripture, surface Strong's, surface internal diversity).
-2. [`COUNCIL.md`](./COUNCIL.md) §2 — seven non-negotiable principles (neutral across traditions, primary sources first).
-3. [`HANDOFF.md`](./HANDOFF.md) — vision, state, conventions. Start with "Current priorities".
-4. [`docs/foundation-plan.md`](./docs/foundation-plan.md) — the active plan.
-5. Latest file in `notes/` — where the last session stopped.
+## What binds you
 
-## Current priorities (2026-10-08)
-1. **F0a** — Judaism is indexed as Hebrew in an English-only embedder; index from `jps1917-modernized`.
-2. **F0b** — licence audit of translations (several are labelled public domain but likely aren't).
-3. **F1–F4** — passage model, canonical IDs, versification map; route core commands through a tradition registry.
-4. Do **not** start new embedder bake-offs, new traditions, or Phase 2 training until F4 lands.
+1. [`RUNTIME_CONTRACT.md`](./RUNTIME_CONTRACT.md) — always cite, never invent verses, never impersonate Scripture, surface Strong's, surface internal diversity.
+2. [`COUNCIL.md`](./COUNCIL.md) §2 — neutral across traditions, primary sources first.
+
+## What to work on next
+
+This is the only work queue in the repo.
+
+1. The fleet to-do board: `shared/TODO.md` in the private vault `prive8/obsidian-vault-shared`. The vault is private; this file only records the path.
+2. The latest file in [`notes/`](./notes/). Session notes use Done / Blocked / Tomorrow / Decisions. The retrieval-gate note is [`notes/2026-10-25-ci-eval-regression-restored.md`](./notes/2026-10-25-ci-eval-regression-restored.md).
+
+[`HANDOFF.md`](./HANDOFF.md) points here and at the README. [`docs/foundation-plan.md`](./docs/foundation-plan.md) is the 2026-10-08 review. The work queue is the list above.
 
 ## Commands
+
 ```bash
-python tests/run_all.py                 # must print: N passed, 0 failed (137 at last count)
-python -m bible parallel "John 3:16"    # Bible only today; see foundation plan
-python scripts/run_eval.py              # ~3 min on CPU; needs a local index
+python tests/run_all.py              # must print: N passed, 0 failed (155 on 2026-10-25)
+python -m bible parallel "John 3:16"
 ```
 
+Local retrieval gates need a built index. Commands are in the README section "Run the gates locally" (`scripts/run_eval.py`, then `scripts/eval_gate.py`).
+
 ## Conventions
-- Base runtime is **stdlib-only**; optional deps live behind extras (ADR-001).
-- Raw corpus files are read-only; add data via an ingest script (HANDOFF §7.5).
-- No secrets in the repo; read keys from the environment.
-- Conventional Commits; one logical change per commit; add `notes/YYYY-MM-DD*.md` per session (Done / Blocked / Tomorrow / Decisions).
-- Never put LLM-generated text into outputs presented as scripture, citations, or glosses.
-- Embeddings under `data/embeddings/` are gitignored and may be absent; don't assume they exist.
-- Update `CHANGELOG.md` for any public API or data change.
+
+- Base runtime is stdlib-only; optional deps live behind extras ([ADR-001](./docs/design-decisions.md)).
+- Raw corpus files are read-only. Add data with an ingest script. Embeddings under `data/embeddings/` are gitignored and may be absent.
+- No secrets in the repo. Read keys from the environment.
+- Conventional Commits. One logical change per commit. Add `notes/YYYY-MM-DD*.md` per session (Done / Blocked / Tomorrow / Decisions).
+- Never put model-generated text into outputs presented as scripture, citations, or glosses.
+- Update `CHANGELOG.md` for a public API or data change.

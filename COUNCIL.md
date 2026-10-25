@@ -10,9 +10,10 @@
 > status", §6.1 "Acting chair", updated §5 versioning, removed the
 > "STUB" disclaimer from the header. Spirit unchanged.)
 >
-> **Read alongside:** `HANDOFF.md` (engineering context — and §11
-> for the runtime contract), `docs/governance/council-design.md`
-> (long-form Council spec).
+> **Read alongside:** [`README.md`](README.md) (status and direction),
+> [`AGENTS.md`](AGENTS.md) (what to work on next),
+> [`RUNTIME_CONTRACT.md`](RUNTIME_CONTRACT.md) (the five rules),
+> `docs/governance/council-design.md` (long-form Council spec).
 
 ---
 
@@ -124,8 +125,10 @@ single-contributor-body form carry over without re-ratification.
 
 ## 4. Companion docs
 
-- `HANDOFF.md` — engineering context, conventions, milestone plan.
-  Co-equal with this document, not subordinate.
+- `README.md` — status, retrieval gates, and direction.
+- `AGENTS.md` — what to work on next, commands, and conventions.
+- `HANDOFF.md` — deprecated 2026-10-25. Pointer to the README and
+  `AGENTS.md`. The previous engineering handoff is in git history.
 - `RUNTIME_CONTRACT.md` — runtime contract for any agent using this
   data (citation rules, Strong's policy, no-anthropomorphizing).
   Extracted from `HANDOFF.md` §11 in v0.10.0.
@@ -169,8 +172,9 @@ single-contributor-body form carry over without re-ratification.
 
 ## 6. Quick orientation
 
-If you're a new contributor: read this, then read `HANDOFF.md`. They
-are co-equal.
+If you're a new contributor: read this for governance, then
+[`README.md`](README.md) for status and [`AGENTS.md`](AGENTS.md) for
+what to work on next.
 
 If you're a future Council member: read §2 (principles) and §3.1
 (current status) here. Then read the design doc.

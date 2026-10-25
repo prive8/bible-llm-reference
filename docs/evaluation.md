@@ -1,7 +1,15 @@
 # Evaluation — Retrieval Quality Metrics
 
-> **Last updated:** 2026-09-09 (v0.9.0-pre). Baseline numbers from the
-> local CPU embedding model on the default index.
+> **Historical (v0.10.0 Bible-heavy benchmark).** Live CI baselines are
+> in [`README.md`](../README.md): v1 Christianity-scoped thresholds
+> 0.06 / 0.25 / 0.22, and the v2 dev cross-tradition baselines
+> (BM25 0.119, semantic 0.189, hybrid 0.183) with thresholds
+> 0.08 / 0.15 / 0.14. The tables below are the measurement those v1
+> thresholds were taken from. The live v2 baseline is in the README.
+
+> **Last updated:** 2026-09-09 (v0.9.0-pre), with the v0.10.0 baseline
+> table below. Numbers are from the local CPU embedding model on the
+> default index of that date.
 
 ## Benchmark
 

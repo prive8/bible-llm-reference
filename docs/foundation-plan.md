@@ -1,9 +1,20 @@
 # Foundation Plan — making "all traditions" real
 
+> **Snapshot, 2026-10-08.** This review is why the registry was built.
+> Current status is [`README.md`](../README.md). What to work on next
+> is [`AGENTS.md`](../AGENTS.md) (fleet to-do board and `notes/`).
+> Since this snapshot: F0a (English Judaism index) and
+> the F1–F4 code (registry, canonical IDs, versification map,
+> `--tradition` on `parallel` and `search`) landed; see `CHANGELOG.md`.
+> On 2026-10-25 the owner set direction to depth and cross-referencing
+> over breadth (README). §6 question 2 is answered by that direction.
+> The other §6 questions remain open, including the licence decision.
+> The tables below describe the repo as of `0a4df0e`.
+
 > **Written:** 2026-10-08, from a whole-project direction review,
 > cross-checked against every commit through `0a4df0e` (2026-10-07).
-> **Status:** proposed — needs chair (project owner) sign-off on the
-> open questions in §6 before step F2 starts.
+> **Status at the time of writing:** proposed — needed chair sign-off
+> on the open questions in §6 before step F2 started.
 
 ## 1. Why this plan exists
 

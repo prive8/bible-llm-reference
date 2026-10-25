@@ -19,7 +19,7 @@ assignees: ''
 <!-- Which docs in this repo (if any) does this change? -->
 
 - [ ] `README.md`
-- [ ] `HANDOFF.md`
+- [ ] `AGENTS.md`
 - [ ] `COUNCIL.md`
 - [ ] `docs/data-schema.md`
 - [ ] `docs/governance/council-design.md`
@@ -28,7 +28,7 @@ assignees: ''
 
 ## Affected milestones
 
-<!-- Reference the milestone in `HANDOFF.md` §5 if applicable. -->
+<!-- Name the area of the repo this touches. Status lives in README.md. -->
 
 - [ ] Milestone 0 — repo hygiene
 - [ ] Milestone 1 — multi-translation lookup
@@ -49,15 +49,15 @@ assignees: ''
 
 ## Runtime contract
 
-<!-- The runtime contract in `HANDOFF.md` §11 governs any agent that uses this data. If this PR changes the surface that agents see, the contract may need updating too. -->
+<!-- The runtime contract in `RUNTIME_CONTRACT.md` governs any agent that uses this data. If this PR changes the surface that agents see, the contract may need updating too. -->
 
 - [ ] I have reviewed the runtime contract and this PR is consistent with it
 - [ ] This PR changes the runtime contract (explain in the body)
 
 ## Checklists
 
-- [ ] I have read [`HANDOFF.md`](../HANDOFF.md) §1–§4 and §7 (conventions)
-- [ ] I have run `python3 -m py_compile bible-query.py` (or the equivalent) and the code parses
+- [ ] I have read [`README.md`](../README.md) and [`AGENTS.md`](../AGENTS.md)
+- [ ] I have run `python3 tests/run_all.py` and it prints `N passed, 0 failed`
 - [ ] I have not modified `kjv.json` or `translations/*.json` directly
 - [ ] I have followed Conventional Commits in the commit message
 - [ ] I have added a `notes/YYYY-MM-DD.md` entry if this is part of a daily cadence

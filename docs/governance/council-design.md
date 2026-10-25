@@ -16,8 +16,9 @@
 > convening; design content unchanged from v0.3-stub of 2026-07-31.)
 > **Source of truth:** this document, until v1.0 lands.
 > **Read alongside:** [`COUNCIL.md`](../../COUNCIL.md) (the constitution),
-> [`HANDOFF.md`](../../HANDOFF.md) (engineering context — and §11
-> for the runtime contract any agent that uses this data follows).
+> [`README.md`](../../README.md) (status), and
+> [`RUNTIME_CONTRACT.md`](../../RUNTIME_CONTRACT.md) (the five rules
+> any agent that uses this data follows).
 
 ---
 
@@ -49,7 +50,7 @@ exists so that the data layer, retrieval API, and citation surface
 are designed in a way that agent mediation is a Phase 2 add-on, not
 a Phase 3 retrofit.
 
-`HANDOFF.md` §11 is the **runtime contract** for any agent that
+[`RUNTIME_CONTRACT.md`](../../RUNTIME_CONTRACT.md) is the **runtime contract** for any agent that
 uses this data — it covers the four agents that map to the
 Abrahamic / Christian slice (abrahamic_guardian, historian_archivist,
 comparative_scholar, ethicist_mediator). The roster below is the
@@ -183,7 +184,7 @@ parallel-structure examples.
 > **TODO:** This is the runtime contract that the main AI surface
 > follows. Phase 1 implements a deterministic subset (retrieval +
 > citation only). Phase 2 extends this to Council-routed answers.
-> `HANDOFF.md` §11 captures the existing runtime contract for the
+> [`RUNTIME_CONTRACT.md`](../../RUNTIME_CONTRACT.md) is the existing runtime contract for the
 > four-agent Abrahamic slice (the binding contract below is the
 > future full Council version).
 

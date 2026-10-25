@@ -143,6 +143,42 @@ twice on an 8-query subset). So the baseline is a fixed value, not a sample,
 and a threshold below it is a real regression detector rather than a
 coin flip.
 
+### Verified on the real runner
+
+Run `40230771370` on `96314e4` — **both gates green**, all six threshold
+checks passed:
+
+```
+v1 (scoped to Christianity)
+  bm25      recall@10=0.108  threshold=0.060  [PASS]
+  semantic  recall@10=0.282  threshold=0.250  [PASS]
+  hybrid    recall@10=0.273  threshold=0.220  [PASS]
+
+v2 dev (unscoped)
+  bm25      recall@10=0.119  threshold=0.080  [PASS]
+  semantic  recall@10=0.189  threshold=0.150  [PASS]
+  hybrid    recall@10=0.183  threshold=0.140  [PASS]
+```
+
+The CI numbers match the local measurements exactly on both benchmarks, to
+three decimals — so the baseline is not host-specific.
+
+Warm-run timings (index restored from cache, build step skipped):
+
+| Step | Time |
+|---|---|
+| setup + install | 1.9 min |
+| corpus hash + cache restore + index verify | 0.05 min |
+| sister-script test suite (155 tests) | 1.0 min |
+| v1 gate | 5.2 min |
+| v2 dev gate | 9.0 min |
+| **total job** | **17.1 min** (60-min timeout) |
+
+The v2 gate is the new dominant cost — 9 minutes for 48 queries × 3 paths.
+That is the per-query index reload in `bible/semantic.py`: the index is
+re-decoded from disk for every one of the 48 queries. Fixing it would cut
+both gate times.
+
 ## What changed in the workflow
 
 1. **The gate logic moved out of the workflow into `scripts/eval_gate.py`.**

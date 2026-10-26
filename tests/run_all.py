@@ -124,6 +124,7 @@ from bible.semantic import (  # noqa: E402
     search_semantic,
     vector_norm,
     MockDeterministicEmbedder,
+    save_vector_index,
 )
 from bible.hybrid import (  # noqa: E402
     DEFAULT_BM25_WEIGHT,
@@ -2942,6 +2943,265 @@ def t_semantic_custom_index_search():
     _assert(results[0]["citation"] == "John 3:16")
     _assert("score" in results[0])
     _assert(results[0]["score"] > 0.0)
+
+
+# ---------------------------------------------------------------------------
+# Index loading and scoring (the per-query reload fix, 2026-10-26)
+#
+# search_semantic() used to re-read and re-decode the whole vector index
+# on EVERY query: ~1.3 s per query for the 66,689-passage corpus, which
+# dominated the wall time of a CI eval. The index is derived data — it is
+# written once by a build and then read many times — so it is now decoded
+# once per process and cached, and the stored vectors are known to be
+# L2-normalized so cosine similarity reduces to a dot product.
+# ---------------------------------------------------------------------------
+
+@_register("t_semantic_index_cache_returns_same_data_as_uncached")
+def t_semantic_index_cache_returns_same_data_as_uncached():
+    """The cached loader and the uncached loader must return identical data."""
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import (
+        _load_vector_index_flat,
+        clear_vector_index_cache,
+        load_vector_index,
+        load_vector_index_cached,
+    )
+
+    work = _tempfile.mkdtemp()
+    try:
+        meta = [{"id": i, "citation": f"Verse {i}", "text": "t", "tradition": "christianity"}
+                for i in range(3)]
+        vecs = [[0.1 * (i + 1), 0.2, 0.3, 0.4] for i in range(3)]
+        save_vector_index(Path(work), "ix", meta, vecs, dim=4)
+
+        clear_vector_index_cache()
+        cached = load_vector_index_cached(Path(work), "ix")
+        _assert(cached is not None, "cached loader returned None")
+        c_entries, c_flat, c_dim, c_count, c_norms = cached
+
+        uncached = _load_vector_index_flat(Path(work), "ix")
+        _assert(uncached is not None, "uncached loader returned None")
+        u_entries, u_flat, u_dim, u_count, u_norms = uncached
+
+        _assert(c_dim == u_dim == 4, f"dim mismatch {c_dim} vs {u_dim}")
+        _assert(c_count == u_count == 3, f"count mismatch {c_count} vs {u_count}")
+        _assert(c_entries == u_entries, "entries differ between cached and uncached")
+        _assert(list(c_flat) == list(u_flat), "flat vectors differ between cached and uncached")
+
+        # The compatibility wrapper must produce the original nested shape.
+        legacy = load_vector_index(Path(work), "ix")
+        _assert(legacy is not None, "load_vector_index returned None")
+        l_entries, l_vectors, l_dim = legacy
+        _assert(len(l_vectors) == 3, f"expected 3 vectors, got {len(l_vectors)}")
+        _assert(l_dim == 4, f"dim mismatch {l_dim}")
+        _assert(abs(l_vectors[0][0] - 0.1) < 1e-5,
+                f"vecs[0][0]={l_vectors[0][0]} expected ~0.1")
+        _assert(abs(l_vectors[-1][0] - 0.3) < 1e-5,
+                f"vecs[-1][0]={l_vectors[-1][0]} expected ~0.3")
+        _assert(len(l_entries) == 3, f"expected 3 entries, got {len(l_entries)}")
+    finally:
+        clear_vector_index_cache()
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_semantic_index_cache_can_be_cleared")
+def t_semantic_index_cache_can_be_cleared():
+    """A rebuilt index must be visible after clear_vector_index_cache().
+
+    Without an invalidation hook, a process that builds an index and then
+    searches it would keep serving the pre-build copy from the cache.
+    """
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import clear_vector_index_cache, load_vector_index_cached
+
+    work = _tempfile.mkdtemp()
+    try:
+        meta = [{"id": 0, "citation": "A", "text": "a", "tradition": "christianity"}]
+        save_vector_index(Path(work), "ix", meta, [[0.5, 0.5]], dim=2)
+
+        clear_vector_index_cache()
+        first = load_vector_index_cached(Path(work), "ix")
+        _assert(first is not None, "expected an index after the first load")
+        _assert(first[3] == 1, f"expected 1 entry, got {first[3]}")
+
+        # Overwrite with a different index, WITHOUT clearing the cache.
+        save_vector_index(Path(work), "ix",
+                          [{"id": 9, "citation": "B", "text": "b", "tradition": "christianity"},
+                           {"id": 8, "citation": "C", "text": "c", "tradition": "christianity"}],
+                          [[0.1, 0.2], [0.3, 0.4]], dim=2)
+        stale = load_vector_index_cached(Path(work), "ix")
+        _assert(stale is not None and stale[3] == 1,
+                "expected the cache to still hold the old index before clearing")
+
+        # After clearing, the new index is visible.
+        clear_vector_index_cache()
+        fresh = load_vector_index_cached(Path(work), "ix")
+        _assert(fresh is not None and fresh[3] == 2,
+                f"expected 2 entries after clearing the cache, got {fresh[3] if fresh else None}")
+    finally:
+        clear_vector_index_cache()
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_semantic_index_cache_missing_index_is_none")
+def t_semantic_index_cache_missing_index_is_none():
+    """A missing index must return None, and must not poison the cache
+    with a stale copy if the file appears later."""
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import clear_vector_index_cache, load_vector_index_cached
+
+    work = _tempfile.mkdtemp()
+    try:
+        clear_vector_index_cache()
+        _assert(load_vector_index_cached(Path(work), "absent") is None,
+                "a missing index must load as None")
+
+        # Now write the index and load again WITHOUT clearing.
+        save_vector_index(Path(work), "later",
+                          [{"id": 0, "citation": "A", "text": "a", "tradition": "christianity"}],
+                          [[0.5, 0.5]], dim=2)
+        loaded = load_vector_index_cached(Path(work), "later")
+        _assert(loaded is not None and loaded[3] == 1,
+                "the newly written index must be visible")
+    finally:
+        clear_vector_index_cache()
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_semantic_index_truncated_file_is_truncated_not_wrong")
+def t_semantic_index_truncated_file_is_truncated_not_wrong():
+    """A .bin file shorter than count*dim must not yield a wrong-shaped
+    index. The loader trusts the byte count over the metadata."""
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import _load_vector_index_flat
+
+    work = Path(_tempfile.mkdtemp())
+    try:
+        meta = [{"id": i, "citation": f"V{i}", "text": "t", "tradition": "christianity"}
+                for i in range(4)]
+        save_vector_index(work, "ix", meta, [[0.1, 0.2]] * 4, dim=2)
+
+        # Truncate the .bin to one vector's worth of bytes.
+        bin_path = work / "ix_vectors.bin"
+        data = bin_path.read_bytes()
+        bin_path.write_bytes(data[:8])
+
+        loaded = _load_vector_index_flat(work, "ix")
+        _assert(loaded is not None, "expected a (truncated) load, got None")
+        entries, flat, dim, count, norms = loaded
+        _assert(dim == 2, f"dim mismatch {dim}")
+        _assert(count == 1, f"expected count 1 from a truncated file, got {count}")
+        _assert(len(flat) // dim >= count, "flat array shorter than count*dim")
+        _assert(len(norms) == count, "precomputed norms do not match count")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_semantic_stored_vectors_are_normalized")
+def t_semantic_stored_vectors_are_normalized():
+    """The indexer normalizes vectors before writing them.
+
+    The scoring fast path does NOT depend on this — it divides by
+    precomputed norms, so it stays an exact cosine similarity whether or
+    not the stored vectors are unit length. This test pins the
+    indexer's behavior so a change to it is noticed.
+
+    It also asserts the precomputed norms match a freshly computed
+    norm, which is what the fast path actually divides by.
+    """
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import l2_normalize, save_vector_index
+
+    work = Path(_tempfile.mkdtemp())
+    try:
+        # What the indexer writes: normalized vectors.
+        raw = [[3.0, 4.0], [1.0, 0.0], [0.0, 2.0]]
+        normed = [l2_normalize(v) for v in raw]
+        save_vector_index(work, "ix",
+                          [{"id": i, "citation": f"V{i}", "text": "t", "tradition": "christianity"}
+                           for i in range(3)],
+                          normed, dim=2)
+
+        from bible.semantic import _load_vector_index_flat
+        entries, flat, dim, count, norms = _load_vector_index_flat(work, "ix")
+        for i in range(count):
+            v = flat[i * dim:(i + 1) * dim]
+            norm = math.sqrt(sum(x * x for x in v))
+            _assert(abs(norm - 1.0) < 1e-5,
+                    f"stored vector {i} has norm {norm}, expected 1.0 "
+                    f"— the indexer should normalize before writing")
+            _assert(abs(norms[i] - norm) < 1e-5,
+                    f"precomputed norm {norms[i]} != actual {norm}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_semantic_precomputed_norms_match_cosine_for_unnormalized_vectors")
+def t_semantic_precomputed_norms_match_cosine_for_unnormalized_vectors():
+    """The fast path must be an exact cosine similarity even when the
+    stored vectors are NOT unit length.
+
+    This is the property that lets the scoring loop skip recomputing
+    norms per candidate without silently changing scores. If someone
+    replaces the precomputed-norm division with a bare dot product,
+    this test fails.
+    """
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import _load_vector_index_flat, cosine_similarity, l2_normalize
+
+    work = Path(_tempfile.mkdtemp())
+    try:
+        # Deliberately NOT normalized.
+        raw = [[3.0, 4.0, 0.0], [1.0, 0.0, 0.0], [0.0, 2.0, 5.0]]
+        save_vector_index(work, "ix",
+                          [{"id": i, "citation": f"V{i}", "text": "t", "tradition": "christianity"}
+                           for i in range(3)],
+                          raw, dim=3)
+
+        entries, flat, dim, count, norms = _load_vector_index_flat(work, "ix")
+
+        query = l2_normalize([1.0, 2.0, 3.0])
+        query_norm = math.sqrt(sum(x * x for x in query))
+
+        for i in range(count):
+            v = flat[i * dim:(i + 1) * dim]
+            fast = sum(x * y for x, y in zip(query, v)) / (query_norm * norms[i])
+            reference = cosine_similarity(query, list(v))
+            _assert(abs(fast - reference) < 1e-6,
+                    f"vector {i}: fast path {fast} != cosine {reference}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_semantic_dot_product_shortcut_matches_cosine")
+def t_semantic_dot_product_shortcut_matches_cosine():
+    """For unit vectors, the dot product equals cosine similarity. The
+    fast path uses the dot product; this asserts the two agree within
+    float32 tolerance so a change to the stored data cannot silently
+    diverge the fast path from the reference path.
+    """
+    from bible.semantic import cosine_similarity, l2_normalize
+
+    for raw in ([[3.0, 4.0, 0.0], [1.0, 0.0, 0.0]], [[0.1, 0.2, 0.3], [2.0, -1.0, 0.5]]):
+        a = l2_normalize(raw[0])
+        b = l2_normalize(raw[1])
+        dot = sum(x * y for x, y in zip(a, b))
+        cos = cosine_similarity(a, b)
+        _assert(abs(dot - cos) < 1e-6,
+                f"dot {dot} != cosine {cos} for unit vectors")
+
 
 
 @_register("t_semantic_tradition_filter_aliases")

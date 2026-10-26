@@ -204,7 +204,7 @@ jobs:
           print(f"index verified: {count} passages, {dim}-dim, {actual_bytes} bytes")
           PYEOF
 
-      - name: Run sister-script test suite (CI also runs the 154-test gate here)
+      - name: Run sister-script test suite (CI also runs the eval-gate tests here)
         run: python tests/run_all.py
 
       - name: Run retrieval evaluation - v1 (scoped to Christianity)

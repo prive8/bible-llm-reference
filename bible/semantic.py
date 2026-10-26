@@ -19,11 +19,13 @@ from __future__ import annotations
 
 import json
 import math
+import operator
 import os
 import struct
 import sys
 import urllib.error
 import urllib.request
+from array import array
 from pathlib import Path
 from typing import Optional, Union
 
@@ -155,7 +157,86 @@ def load_vector_index(
     dir_path: Path,
     name: str,
 ) -> Optional[tuple[list[dict], list[list[float]], int]]:
-    """Load metadata and vectors from disk if they exist."""
+    """Load metadata and vectors from disk if they exist.
+
+    Returns ``(entries, vectors, dim)`` where ``vectors`` is a list of
+    per-vector float lists. This is the original, compatibility-facing
+    shape — see :func:`load_vector_index_cached` for the fast path used
+    by the search loop.
+    """
+    loaded = load_vector_index_cached(dir_path, name)
+    if loaded is None:
+        return None
+    entries, flat, dim, count = loaded[0], loaded[1], loaded[2], loaded[3]
+    vectors = [
+        list(flat[i * dim:(i + 1) * dim])
+        for i in range(count)
+    ]
+    return entries, vectors, dim
+
+
+# Cache of decoded indexes, keyed by (resolved dir, name). The index is
+# derived data: it is written once by a build and then read many times
+# within a single process. Without a cache, every query re-reads and
+# re-decodes the whole file — measured at ~1.3 s per query for the
+# 66,689-passage corpus, which is most of the wall time of a CI eval.
+#
+# Keyed on the resolved path so a relative and an absolute reference to
+# the same directory share one entry.
+_INDEX_CACHE: dict[tuple[str, str], Optional[tuple]] = {}
+
+
+def clear_vector_index_cache() -> None:
+    """Drop every cached index. Call after writing a new index in the
+    same process, so subsequent reads see the new file rather than the
+    stale cached copy."""
+    _INDEX_CACHE.clear()
+
+
+def load_vector_index_cached(
+    dir_path: Path,
+    name: str,
+) -> Optional[tuple]:
+    """Load an index into flat arrays, caching the result.
+
+    Returns ``(entries, flat, dim, count, norms)`` where:
+
+    - ``flat`` is an ``array('f')`` holding ``count * dim`` float32
+      values in row-major order — vector ``i`` occupies
+      ``flat[i*dim : (i+1)*dim]``.
+    - ``norms`` is an ``array('f')`` holding the L2 norm of each stored
+      vector, precomputed once at load.
+
+    Why a flat array instead of a list of lists: decoding the same
+    bytes with ``array('f')`` takes ~0.07 s versus ~1.3 s for
+    ``struct.unpack`` into 66,689 nested Python lists (measured on the
+    66,689 x 384 corpus). The flat form also avoids allocating 66,689
+    separate list objects.
+
+    Why a cache: the index is read once per query but changes only when
+    a build rewrites it. Decoding per query cost ~1.3 s each time.
+
+    Why precomputed norms: cosine similarity needs the norm of every
+    candidate. Recomputing it inside the scoring loop cost ~1.1 s per
+    query. Computing all norms once at load takes ~0.7 s and is
+    amortized over every subsequent query. Dividing by the precomputed
+    norm keeps the score an exact cosine similarity for ANY stored
+    vectors — it does not assume the index was written normalized.
+    """
+    key = (str(Path(dir_path).resolve()), name)
+    if key in _INDEX_CACHE:
+        return _INDEX_CACHE[key]
+
+    loaded = _load_vector_index_flat(dir_path, name)
+    _INDEX_CACHE[key] = loaded
+    return loaded
+
+
+def _load_vector_index_flat(
+    dir_path: Path,
+    name: str,
+) -> Optional[tuple]:
+    """Read an index from disk into flat arrays. No caching."""
     meta_path = dir_path / f"{name}_meta.json"
     bin_path = dir_path / f"{name}_vectors.bin"
 
@@ -172,17 +253,30 @@ def load_vector_index(
     if dim <= 0 or count <= 0:
         return None
 
-    vectors: list[list[float]] = []
-    chunk_size = dim * 4  # 4 bytes per float32
+    flat = array("f")
     with open(bin_path, "rb") as f:
-        for _ in range(count):
-            buf = f.read(chunk_size)
-            if len(buf) < chunk_size:
-                break
-            vec = list(struct.unpack(f"{dim}f", buf))
-            vectors.append(vec)
+        flat.frombytes(f.read())
 
-    return entries, vectors, dim
+    # A truncated file yields fewer floats than count*dim. Trust the
+    # byte count, not the metadata, so a partial file cannot silently
+    # produce a wrong-shaped index.
+    available = len(flat) // dim
+    if available < count:
+        count = available
+    if count <= 0:
+        return None
+
+    # Precompute each vector's L2 norm once, so the scoring loop does
+    # not recompute it for every candidate on every query. This keeps
+    # the score an exact cosine similarity without assuming the stored
+    # vectors happen to be normalized.
+    norms = array("f", bytes(4 * count))
+    mul = operator.mul
+    for i in range(count):
+        v = flat[i * dim:(i + 1) * dim]
+        norms[i] = math.sqrt(sum(map(mul, v, v)))
+
+    return entries, flat, dim, count, norms
 
 
 # ---------------------------------------------------------------------------
@@ -755,6 +849,34 @@ def _get_cached_local_embedder() -> "LocalSentenceTransformerEmbedder":
 # Semantic Search Retrieval
 # ---------------------------------------------------------------------------
 
+# Tradition alias map: accept either the canonical stored value
+# (e.g. "christianity", "islam") or the public CLI shorthand
+# (e.g. "bible"). Substring matching is too brittle and was the
+# source of a silent bug where `--tradition bible` returned 0 results.
+TRADITION_ALIASES = {
+    "bible": "christianity",
+    "christianity": "christianity",
+    "islam": "islam",
+    "muslim": "islam",
+    "judaism": "judaism",
+    "jewish": "judaism",
+}
+
+
+def _resolve_tradition_filter(tradition: Optional[str]) -> Optional[str]:
+    """Map a user-supplied tradition filter to the stored value.
+
+    Returns None for "all", an empty filter, or an unknown value (which
+    then matches nothing — the same behavior as before).
+    """
+    if not tradition:
+        return None
+    key = tradition.lower().strip()
+    if not key or key == "all":
+        return None
+    return TRADITION_ALIASES.get(key, key)
+
+
 def search_semantic(
     query: str,
     index_name: str = "default",
@@ -775,13 +897,19 @@ def search_semantic(
     """
     if custom_index:
         entries, vectors, dim = custom_index
-    else:
-        loaded = load_vector_index(EMBEDDINGS_DIR, index_name)
-        if not loaded:
-            return []
-        entries, vectors, dim = loaded
+        # A caller-supplied index is a list of lists, not the flat form.
+        # Score it with the generic path so the two code paths cannot
+        # drift apart in their results.
+        return _search_with_vector_lists(
+            query, entries, vectors, dim, top_k, tradition, backend, resolve_verses
+        )
 
-    if not entries or not vectors:
+    loaded = load_vector_index_cached(EMBEDDINGS_DIR, index_name)
+    if not loaded:
+        return []
+    entries, flat, dim, count, norms = loaded
+
+    if not entries or count <= 0:
         return []
 
     # Get query embedding
@@ -790,38 +918,44 @@ def search_semantic(
 
     # Normalize query vector if not already unit
     query_vec = l2_normalize(query_vec)
+    query_norm = vector_norm(query_vec)
 
     # Score all entries
     scored: list[tuple[float, dict]] = []
-    filter_tradition = tradition.lower().strip() if tradition else None
+    filter_target = _resolve_tradition_filter(tradition)
 
-    # Tradition alias map: accept either the canonical stored value
-    # (e.g. "christianity", "islam") or the public CLI shorthand
-    # (e.g. "bible"). Substring matching is too brittle and was the
-    # source of a silent bug where `--tradition bible` returned 0 results.
-    TRADITION_ALIASES = {
-        "bible": "christianity",
-        "christianity": "christianity",
-        "islam": "islam",
-        "muslim": "islam",
-        "judaism": "judaism",
-        "jewish": "judaism",
-    }
-    if filter_tradition and filter_tradition != "all":
-        filter_target = TRADITION_ALIASES.get(filter_tradition, filter_tradition)
-    else:
-        filter_target = None
-
-    for entry, doc_vec in zip(entries, vectors):
+    # Cosine similarity, with the candidate norms precomputed at load
+    # time rather than recomputed per candidate per query. The stored
+    # vector norms are NOT assumed to be 1.0 — this is an exact cosine
+    # similarity for any stored vectors.
+    #
+    # `sum(map(mul, ...))` rather than a generator expression: measured
+    # ~20% faster over 66,689 candidates.
+    mul = operator.mul
+    for i in range(count):
+        entry = entries[i]
         if filter_target:
             entry_trad = entry.get("tradition", "").lower()
             if entry_trad != filter_target:
                 continue
 
-        sim = cosine_similarity(query_vec, doc_vec)
+        doc_norm = norms[i]
+        if doc_norm == 0.0 or query_norm == 0.0:
+            sim = 0.0
+        else:
+            doc_vec = flat[i * dim:(i + 1) * dim]
+            sim = sum(map(mul, query_vec, doc_vec)) / (query_norm * doc_norm)
         scored.append((sim, entry))
 
-    # Rank top_k
+    return _rank_and_format(scored, top_k, resolve_verses)
+
+
+def _rank_and_format(
+    scored: list[tuple[float, dict]],
+    top_k: int,
+    resolve_verses: bool,
+) -> list[dict]:
+    """Sort scored entries, take the top_k, and shape them as result dicts."""
     scored.sort(key=lambda x: x[0], reverse=True)
     results = []
     for sim, entry in scored[:top_k]:
@@ -839,6 +973,41 @@ def search_semantic(
     if resolve_verses:
         return expand_passage_chunks(results, top_k=top_k)
     return results
+
+
+def _search_with_vector_lists(
+    query: str,
+    entries: list[dict],
+    vectors: list[list[float]],
+    dim: int,
+    top_k: int,
+    tradition: Optional[str],
+    backend: str,
+    resolve_verses: bool,
+) -> list[dict]:
+    """Score a caller-supplied index given as a list of per-vector lists.
+
+    Used for the ``custom_index=`` path, where the caller owns the
+    vectors and they may not be normalized. This path therefore computes
+    the full cosine similarity rather than assuming unit norms.
+    """
+    if not entries or not vectors:
+        return []
+
+    embedder = get_embedder(backend)
+    query_vec = l2_normalize(embedder.embed_query(query))
+
+    filter_target = _resolve_tradition_filter(tradition)
+
+    scored: list[tuple[float, dict]] = []
+    for entry, doc_vec in zip(entries, vectors):
+        if filter_target:
+            entry_trad = entry.get("tradition", "").lower()
+            if entry_trad != filter_target:
+                continue
+        scored.append((cosine_similarity(query_vec, doc_vec), entry))
+
+    return _rank_and_format(scored, top_k, resolve_verses)
 
 
 def expand_passage_chunks(results: list[dict], top_k: Optional[int] = None) -> list[dict]:

@@ -51,7 +51,7 @@ Same host, same index, same benchmark, old code vs new code:
 | Benchmark | Before | After | Speedup |
 |---|---|---|---|
 | v2 dev (48 queries, 3 paths) | 8m09s | **1m55s** | **4.3×** |
-| v1 scoped (all queries, 3 paths) | see below | 56s | — |
+| v1 scoped (all queries, 3 paths) | 5m44s | **56s** | **6.2×** |
 
 Per-query cost, measured directly on the 66,689 × 384 index:
 

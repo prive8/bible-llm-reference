@@ -136,9 +136,32 @@ it said nothing about the vector index, because BM25 does not read one.
 
 Two habits that would have caught this:
 
-- **Check the artifact, not just the harness.** The `.bin` size against
-  the meta count is a one-line check. Run it before trusting any number
-  an index produced.
+- **Check the artifact, not just the harness.** `python
+  scripts/check_indexes.py` does it for every index in the directory
+  and exits non-zero on a corrupt one. Run it before trusting any
+  number an index produced.
 - **Score a new index on the benchmark that matches its corpus.** The
   v1 benchmark is 100% Bible; scoring a possibly-Bible-only index
   against it hides the fault. v2 caught it.
+
+## A note on where this check can live
+
+`data/embeddings/*` is **gitignored**. CI never saw the broken index —
+it lived only on a developer host. So the check is deliberately a
+**script** (`scripts/check_indexes.py`), runnable on a host where the
+real indexes live, with the CI workflow step invoking it:
+
+```bash
+python scripts/check_indexes.py            # all indexes
+python scripts/check_indexes.py --name default
+python scripts/check_indexes.py --quiet    # failures only
+```
+
+It checks three things per index: the `.bin` exists, the metadata is
+internally consistent (`count == len(entries)`), and the `.bin` size is
+exactly `count * dim * 4`.
+
+**`AGENTS.md` still carries a stale test count (155) and does not
+mention the check.** It is a protected agent-instruction file, so the
+edit was not made without an explicit go-ahead. Worth a one-line
+update when someone with the ability to approve it is around.

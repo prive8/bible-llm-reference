@@ -118,6 +118,31 @@ BOOK_ALIASES = {
     "3john": "3 John", "3jn": "3 John", "3 jn": "3 John",
     "jude": "Jude",
     "rev": "Revelation", "revelation": "Revelation", "apocalypse": "Revelation",
+    # Deuterocanonical / apocryphal books. The KJV carries 81 books, not
+    # 66, and these extra ones had no aliases at all - so "Wisdom
+    # 7:22-26" (the form the v2 benchmark uses) did not resolve, while
+    # the corpus's own name "Wisdom of Solomon 1:1" did. An unresolvable
+    # expected citation can never be matched, which silently costs
+    # recall.
+    "tobit": "Tobit", "tob": "Tobit",
+    "judith": "Judith", "jdt": "Judith",
+    "wisdom": "Wisdom of Solomon", "wisdom of solomon": "Wisdom of Solomon",
+    "book of wisdom": "Wisdom of Solomon",
+    "sirach": "Sirach", "ecclesiasticus": "Sirach",
+    "baruch": "Baruch", "bar": "Baruch",
+    "letter of jeremiah": "Letter of Jeremiah",
+    "1 maccabees": "1 Maccabees", "1maccabees": "1 Maccabees", "1 mac": "1 Maccabees",
+    "2 maccabees": "2 Maccabees", "2maccabees": "2 Maccabees", "2 mac": "2 Maccabees",
+    "3 maccabees": "3 Maccabees", "3maccabees": "3 Maccabees", "3 mac": "3 Maccabees",
+    "4 maccabees": "4 Maccabees", "4maccabees": "4 Maccabees", "4 mac": "4 Maccabees",
+    "1 esdras": "1 Esdras", "1esdras": "1 Esdras",
+    "2 esdras": "2 Esdras", "2esdras": "2 Esdras",
+    "3 esdras": "3 Esdras", "3esdras": "3 Esdras",
+    "4 esdras": "4 Esdras", "4esdras": "4 Esdras",
+    "prayer of manasseh": "Prayer of Manasseh",
+    "psalms (eob)": "Psalms (EOB)", "psalms eob": "Psalms (EOB)",
+    "psalm 151": "Psalm 151",
+    "daniel (eob)": "Daniel (EOB)", "daniel eob": "Daniel (EOB)",
 }
 
 # ---------------------------------------------------------------------------
@@ -166,13 +191,95 @@ def resolve_book_name(raw: str) -> Optional[str]:
     return None
 
 
+# Chapter[:verse] portion of a reference, used when the book name has
+# already been matched separately (see _match_longest_corpus_book).
+CHAPTER_VERSE_RE = re.compile(
+    r"""
+    \s*
+    (?P<chapter>\d+)
+    (?:
+        :\s*(?P<verse_start>\d+)
+        (?:
+            [-–—]\s*(?P<verse_end>\d+)
+        )?
+    )?
+    """,
+    re.VERBOSE,
+)
+
+
+def _match_longest_corpus_book(raw: str) -> Optional[tuple[str, str]]:
+    """Match the longest book name from the corpus at the start of ``raw``.
+
+    Returns ``(book_name, remainder)`` or None. The KJV's 81 books
+    include several whose names are not in the 66-book canonical list
+    and which contain a digit or a parenthetical: "Psalm 151",
+    "3 Esdras", "4 Esdras", "Psalms (EOB)", "Daniel (EOB)".
+
+    The reference regex captures at most two alphabetic words, so it
+    cannot match "Psalm 151" or "Psalms (EOB)". Left alone it produces
+    a wrong parse: "Psalm 151 1:1" became book="Psalms", chapter=151,
+    verse=None — a chapter that does not exist. That malformed id
+    ("bible:Psalms.151.None") later crashed an evaluation run.
+
+    Longest-match-first is the correct rule: a longer book name is
+    always more specific than a shorter prefix of it.
+    """
+    try:
+        books = load_kjv().get("books", [])
+    except Exception:
+        return None
+
+    names = sorted(
+        (b.get("name", "") for b in books if b.get("name")),
+        key=len,
+        reverse=True,
+    )
+
+    lowered = raw.lower()
+    for name in names:
+        n = name.lower()
+        if lowered.startswith(n):
+            rest = raw[len(name):].strip()
+            # The book name must be followed by a chapter, not by more
+            # book-name text.
+            if rest and rest[0].isdigit():
+                return name, rest
+    return None
+
+
 def parse_ref(query: str) -> Optional[tuple]:
     """Parse a Bible reference string.
 
     Returns (canonical_book_name, chapter, verse_start, verse_end) or None.
     verse_start/verse_end are None if not specified (whole chapter).
+
+    The KJV contains books whose names are not in the 66-book canonical
+    list and which contain a digit: "Psalm 151", "3 Esdras", "4 Esdras",
+    "Psalms (EOB)", "Daniel (EOB)". The reference regex captures at most
+    two alphabetic words, so "Psalm 151 1:1" parsed as book="Psalm",
+    chapter=151 — a chapter that does not exist and a reference to a
+    book that was never meant. Prefer the longest book name from the
+    actual corpus when one matches.
     """
-    m = REF_RE.search(query.strip())
+    raw = query.strip()
+
+    # Prefer a longer, more specific book name from the corpus over the
+    # regex's shorter greedy match. "Psalm 151 1:1" must resolve to the
+    # book "Psalm 151", not to book "Psalms" chapter 151.
+    specific = _match_longest_corpus_book(raw)
+    if specific is not None:
+        book, rest = specific
+        # `rest` is just the chapter[:verse] part - the book name has
+        # already been matched, so parse that portion on its own.
+        m = CHAPTER_VERSE_RE.match(rest)
+        if m:
+            ch = int(m.group("chapter"))
+            vs = int(m.group("verse_start")) if m.group("verse_start") else None
+            ve = int(m.group("verse_end")) if m.group("verse_end") else vs
+            return book, ch, vs, ve
+
+    m = REF_RE.search(raw)
     if not m:
         return None
     book_raw = m.group("book").strip()

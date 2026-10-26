@@ -41,32 +41,82 @@ class Passage:
         }
 
 
+def _safe_int(value: Any) -> Optional[int]:
+    """Parse an int, returning None instead of raising.
+
+    A canonical id component is sometimes legitimately absent (a
+    chapter-level reference has no verse), and a malformed id should
+    degrade to "no verse" rather than crash the caller. The id
+    "bible:Psalms.151.None" - produced by interpolating a missing verse
+    into an id string - used to raise ValueError from int() and take
+    down an entire evaluation run.
+    """
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _unpack_tanakh(parsed: tuple) -> tuple[str, int, Optional[int], Optional[int]]:
+    """Normalize a ``parse_tanakh_ref`` result to (book, chapter, start, end).
+
+    ``parse_tanakh_ref`` returns a 3-tuple: ``(book, chapter, verse_spec)``
+    where ``verse_spec`` is either a single verse number or a
+    ``(start, end)`` tuple for a range. The registry code unpacked FOUR
+    values from it, so the unpack raised ValueError on every call — and
+    the surrounding ``except Exception: pass`` swallowed it, so the
+    entire Tanakh branch was dead. **21% of the Tanakh corpus (4,924 of
+    23,206 citations) could not be parsed at all.**
+
+    Longest-match-first book resolution (see
+    ``bible/lookup._match_longest_corpus_book``) is a separate fix; this
+    one is about the tuple shape.
+    """
+    book, chapter, verse_spec = parsed[0], parsed[1], parsed[2]
+    if isinstance(verse_spec, tuple):
+        v_start, v_end = verse_spec[0], verse_spec[1]
+    else:
+        v_start, v_end = verse_spec, verse_spec
+    return book, chapter, v_start, v_end
+
+
 def make_canonical_id(tradition: str, unit: str | int, chapter: Optional[int] = None, verse: Optional[int] = None) -> str:
     """Construct deterministic canonical passage ID.
     Examples:
         bible:Genesis.1.1
         quran:2.255
         tanakh:Genesis.1.1
+
+    A missing chapter or verse is OMITTED, never interpolated as the
+    literal string "None". Interpolating it produced ids like
+    "bible:Psalms.151.None", which later crashed
+    ``parse_canonical_id`` on ``int("None")``. That is reachable from
+    the corpus: the KJV contains a book literally named "Psalm 151",
+    and a chapter-level reference to it has no verse.
     """
     trad_clean = tradition.lower().strip()
+
+    def join(prefix: str, unit_str: str, ch: Optional[int], vs: Optional[int]) -> str:
+        parts = [unit_str]
+        if ch is not None:
+            parts.append(str(ch))
+            if vs is not None:
+                parts.append(str(vs))
+        return f"{prefix}:{'.'.join(parts)}"
+
     if trad_clean in ("bible", "christianity"):
-        prefix = "bible"
-        unit_str = str(unit).replace(" ", "_")
-        return f"{prefix}:{unit_str}.{chapter}.{verse}"
+        return join("bible", str(unit).replace(" ", "_"), chapter, verse)
     elif trad_clean in ("quran", "islam"):
-        prefix = "quran"
-        return f"{prefix}:{unit}.{chapter if verse is None else verse}"
+        # Quran ids are surah.ayah - there is no separate chapter.
+        return join("quran", str(unit), chapter if verse is None else verse, None)
     elif trad_clean in ("tanakh", "torah", "judaism"):
-        prefix = "tanakh"
-        unit_str = str(unit).replace(" ", "_")
-        return f"{prefix}:{unit_str}.{chapter}.{verse}"
+        return join("tanakh", str(unit).replace(" ", "_"), chapter, verse)
     else:
-        unit_str = str(unit).replace(" ", "_")
-        if chapter is not None and verse is not None:
-            return f"{trad_clean}:{unit_str}.{chapter}.{verse}"
-        elif chapter is not None:
-            return f"{trad_clean}:{unit_str}.{chapter}"
-        return f"{trad_clean}:{unit_str}"
+        return join(trad_clean, str(unit).replace(" ", "_"), chapter, verse)
 
 
 def parse_canonical_id(canonical_id: str) -> dict[str, Any]:
@@ -78,8 +128,8 @@ def parse_canonical_id(canonical_id: str) -> dict[str, Any]:
     
     if prefix in ("bible", "tanakh"):
         book = parts[0].replace("_", " ")
-        chapter = int(parts[1]) if len(parts) > 1 else None
-        verse = int(parts[2]) if len(parts) > 2 else None
+        chapter = _safe_int(parts[1]) if len(parts) > 1 else None
+        verse = _safe_int(parts[2]) if len(parts) > 2 else None
         return {
             "tradition": "christianity" if prefix == "bible" else "judaism",
             "prefix": prefix,
@@ -88,8 +138,8 @@ def parse_canonical_id(canonical_id: str) -> dict[str, Any]:
             "verse": verse,
         }
     elif prefix == "quran":
-        surah = int(parts[0])
-        ayah = int(parts[1]) if len(parts) > 1 else None
+        surah = _safe_int(parts[0])
+        ayah = _safe_int(parts[1]) if len(parts) > 1 else None
         return {
             "tradition": "islam",
             "prefix": prefix,
@@ -235,7 +285,7 @@ class TraditionRegistry:
                 from bible.tanakh import parse_tanakh_ref
                 t_parsed = parse_tanakh_ref(ref)
                 if t_parsed:
-                    b_name, ch, v_start, v_end = t_parsed
+                    b_name, ch, v_start, v_end = _unpack_tanakh(t_parsed)
                     can_id = make_canonical_id("judaism", b_name, ch, v_start)
                     return {
                         "canonical_id": can_id,
@@ -273,7 +323,7 @@ class TraditionRegistry:
             from bible.tanakh import parse_tanakh_ref
             t_parsed = parse_tanakh_ref(ref)
             if t_parsed:
-                b_name, ch, v_start, v_end = t_parsed
+                b_name, ch, v_start, v_end = _unpack_tanakh(t_parsed)
                 can_id = make_canonical_id("judaism", b_name, ch, v_start)
                 return {
                     "canonical_id": can_id,

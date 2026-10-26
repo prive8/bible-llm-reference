@@ -2956,6 +2956,185 @@ def t_semantic_custom_index_search():
 # L2-normalized so cosine similarity reduces to a dot product.
 # ---------------------------------------------------------------------------
 
+@_register("t_registry_tanakh_citations_all_parse")
+def t_registry_tanakh_citations_all_parse():
+    """Every Tanakh citation in the corpus must be parseable.
+
+    The registry unpacked FOUR values from ``parse_tanakh_ref``, which
+    returns THREE. The unpack raised ValueError on every call and the
+    surrounding ``except Exception: pass`` swallowed it, so the entire
+    Tanakh branch was dead — 4,924 of 23,206 Tanakh citations (21%)
+    silently resolved to None.
+
+    A silent except that disables a whole branch is the failure mode
+    this test exists to prevent.
+    """
+    from bible.registry import TraditionRegistry
+    from bible.tanakh import parse_tanakh_ref
+
+    reg = TraditionRegistry()
+
+    # The direct cause: the tuple shape.
+    parsed = parse_tanakh_ref("Chronicles I 18:12")
+    _assert(len(parsed) == 3,
+            f"parse_tanakh_ref returned {len(parsed)} values, expected 3")
+
+    # And the branch must actually work now.
+    for cite, expected_book in [
+        ("Chronicles I 18:12", "Chronicles I"),
+        ("Samuel I 1:1", "Samuel I"),
+        ("Kings I 8:21", "Kings I"),
+    ]:
+        p = reg.parse_reference(cite)
+        _assert(p is not None, f"expected {cite!r} to parse")
+        _assert(p["tradition"] == "judaism",
+                f"{cite!r} resolved to tradition {p['tradition']!r}, expected 'judaism'")
+        _assert(p["book"] == expected_book,
+                f"{cite!r} resolved to book {p['book']!r}, expected {expected_book!r}")
+
+    # A book name shared by both traditions ("Psalms") resolves to the
+    # Bible by default - the Bible branch runs first - unless a
+    # preferred tradition is given.
+    p = reg.parse_reference("Psalms 23:4")
+    _assert(p is not None, "expected 'Psalms 23:4' to parse")
+    _assert(p["tradition"] == "christianity",
+            f"'Psalms 23:4' resolved to {p['tradition']!r}, expected 'christianity'")
+
+    p = reg.parse_reference("Psalms 23:4", preferred_tradition="judaism")
+    _assert(p is not None, "expected 'Psalms 23:4' to parse as Tanakh")
+    _assert(p["tradition"] == "judaism",
+            f"'Psalms 23:4' with preferred_tradition='judaism' resolved to "
+            f"{p['tradition']!r}, expected 'judaism'")
+
+    # A range citation must give the same shape as a single verse.
+    p = reg.parse_reference("Psalms 1:1-2")
+    _assert(p is not None, "expected 'Psalms 1:1-2' to parse")
+    _assert(p["verse_start"] == 1 and p["verse_end"] == 2,
+            f"expected verses 1-2, got {p['verse_start']}-{p['verse_end']}")
+
+
+@_register("t_registry_corpus_citations_all_parse")
+def t_registry_corpus_citations_all_parse():
+    """Every citation in the 66,689-passage corpus must be parseable.
+
+    The scorer parses the corpus it is given. A citation shape the
+    reference grammar does not model is a latent crash - the
+    "bible:Psalms.151.None" id killed an entire evaluation run.
+    """
+    from scripts.index_embeddings import collect_corpus
+    from bible.registry import TraditionRegistry
+
+    reg = TraditionRegistry()
+    corpus = collect_corpus(chunk_size=1)
+    unparseable = []
+    for entry in corpus:
+        if not reg.parse_reference(entry["citation"]):
+            unparseable.append(entry["citation"])
+            if len(unparseable) >= 5:
+                break
+
+    _assert(not unparseable,
+            f"{len(unparseable)}+ corpus citations could not be parsed: "
+            f"{unparseable[:5]}")
+
+
+@_register("t_registry_canonical_id_omits_missing_components")
+def t_registry_canonical_id_omits_missing_components():
+    """A missing chapter or verse must be OMITTED from a canonical id,
+    never interpolated as the literal string "None".
+
+    The id "bible:Psalms.151.None" was produced by
+    make_canonical_id("christianity", "Psalms", 151, None) and later
+    crashed parse_canonical_id on int("None"), taking down a whole
+    evaluation run.
+    """
+    from bible.registry import make_canonical_id, parse_canonical_id
+
+    # Verse missing -> no trailing ".None"
+    cid = make_canonical_id("christianity", "Psalms", 151, None)
+    _assert("None" not in cid, f"canonical id interpolated None: {cid!r}")
+    _assert(cid == "bible:Psalms.151", f"expected 'bible:Psalms.151', got {cid!r}")
+
+    # Chapter and verse missing -> just the unit
+    cid = make_canonical_id("christianity", "Genesis", None, None)
+    _assert("None" not in cid, f"canonical id interpolated None: {cid!r}")
+    _assert(cid == "bible:Genesis", f"expected 'bible:Genesis', got {cid!r}")
+
+    # The full form is unchanged.
+    cid = make_canonical_id("christianity", "Genesis", 1, 1)
+    _assert(cid == "bible:Genesis.1.1", f"expected 'bible:Genesis.1.1', got {cid!r}")
+    cid = make_canonical_id("islam", 2, 255, None)
+    _assert(cid == "quran:2.255", f"expected 'quran:2.255', got {cid!r}")
+
+    # Every produced id must round-trip without raising.
+    for args in [("christianity", "Psalms", 151, None),
+                 ("christianity", "Genesis", None, None),
+                 ("christianity", "Genesis", 1, 1),
+                 ("judaism", "Genesis", 1, 1),
+                 ("islam", 2, 255, None),
+                 ("christianity", "Psalm 151", 1, 1)]:
+        cid = make_canonical_id(*args)
+        try:
+            parse_canonical_id(cid)
+        except Exception as e:
+            _assert(False, f"parse_canonical_id({cid!r}) raised {type(e).__name__}: {e}")
+
+
+@_register("t_registry_parse_canonical_id_tolerates_malformed")
+def t_registry_parse_canonical_id_tolerates_malformed():
+    """A malformed canonical id must degrade to missing components, not
+    raise. The id "bible:Psalms.151.None" existed in the wild and
+    crashed an evaluation run."""
+    from bible.registry import parse_canonical_id
+
+    parsed = parse_canonical_id("bible:Psalms.151.None")
+    _assert(parsed["book"] == "Psalms", f"unexpected book: {parsed}")
+    _assert(parsed["chapter"] == 151, f"unexpected chapter: {parsed}")
+    _assert(parsed["verse"] is None, f"expected verse None, got {parsed}")
+
+    parsed = parse_canonical_id("bible:Genesis.NotANumber")
+    _assert(parsed["chapter"] is None, f"expected chapter None, got {parsed}")
+
+
+@_register("t_lookup_parse_ref_resolves_digit_and_parenthetical_book_names")
+def t_lookup_parse_ref_resolves_digit_and_parenthetical_book_names():
+    """The KJV has books outside the 66-book canonical list whose names
+    contain digits or parentheses: "Psalm 151", "3 Esdras", "4 Esdras",
+    "Psalms (EOB)", "Daniel (EOB)".
+
+    The reference regex captures at most two alphabetic words, so
+    "Psalm 151 1:1" used to parse as book="Psalms", chapter=151 — a
+    chapter that does not exist, and the source of the malformed id
+    that crashed an evaluation run.
+    """
+    from bible.lookup import parse_ref
+
+    for cite, expected_book in [
+        ("Psalm 151 1:1", "Psalm 151"),
+        ("Psalms (EOB) 1:1", "Psalms (EOB)"),
+        ("Daniel (EOB) 1:1", "Daniel (EOB)"),
+        ("3 Esdras 1:1", "3 Esdras"),
+        ("4 Esdras 1:1", "4 Esdras"),
+    ]:
+        parsed = parse_ref(cite)
+        _assert(parsed is not None, f"expected {cite!r} to parse")
+        _assert(parsed[0] == expected_book,
+                f"{cite!r} resolved to book {parsed[0]!r}, expected {expected_book!r}")
+        _assert(parsed[1] == 1, f"{cite!r} resolved to chapter {parsed[1]}, expected 1")
+        _assert(parsed[2] == 1, f"{cite!r} resolved to verse {parsed[2]}, expected 1")
+
+    # The ordinary references must be unaffected.
+    for cite, expected in [
+        ("Psalms 23:4", ("Psalms", 23, 4, 4)),
+        ("Matthew 5:4", ("Matthew", 5, 4, 4)),
+        ("Psalms 119:151", ("Psalms", 119, 151, 151)),
+        ("John 3:16", ("John", 3, 16, 16)),
+    ]:
+        parsed = parse_ref(cite)
+        _assert(parsed == expected,
+                f"{cite!r} parsed as {parsed!r}, expected {expected!r}")
+
+
 @_register("t_check_indexes_script_detects_corruption")
 def t_check_indexes_script_detects_corruption():
     """scripts/check_indexes.py must detect a truncated index and exit

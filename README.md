@@ -54,7 +54,7 @@ python3 -m bible quran "Al-Baqarah 2:255"
 python3 -m bible torah "Genesis 1:1"
 python3 -m bible tanakh "Isaiah 53:5"
 
-python3 tests/run_all.py                                # 165 tests; expect "165 passed, 0 failed"
+python3 tests/run_all.py                                # 170 tests; expect "170 passed, 0 failed"
 ```
 
 JSON output is available on the lookup commands (`--json`) for downstream pipelines.

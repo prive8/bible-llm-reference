@@ -204,6 +204,57 @@ jobs:
           print(f"index verified: {count} passages, {dim}-dim, {actual_bytes} bytes")
           PYEOF
 
+      - name: Verify every index on disk is self-consistent
+        # The verify step above checks the `default` index that CI
+        # builds. This one checks EVERY index in the embeddings
+        # directory, because the 2026-09-19 text-embedding-3-large
+        # index was silently truncated (30,159 of 66,689 vectors,
+        # Christianity-only) and scored 0.344 on the cross-tradition
+        # v2 benchmark - the best-looking number in the comparison,
+        # from a broken artifact. A truncated index must fail loudly,
+        # not produce a plausible score.
+        #
+        # The check is the .bin size against the meta count, which
+        # needs no embedder and takes milliseconds.
+        run: |
+          set -euo pipefail
+          python - <<'PYEOF'
+          import json
+          import sys
+          from pathlib import Path
+
+          emb = Path("data/embeddings")
+          checked = 0
+          bad = 0
+          for meta_path in sorted(emb.glob("*_meta.json")):
+              name = meta_path.name[: -len("_meta.json")]
+              bin_path = emb / f"{name}_vectors.bin"
+              if not bin_path.exists():
+                  print(f"::error::index '{name}' has metadata but no .bin")
+                  bad += 1
+                  continue
+              meta = json.loads(meta_path.read_text())
+              count = meta.get("count", 0)
+              dim = meta.get("dim", 0)
+              expected = count * dim * 4
+              actual = bin_path.stat().st_size
+              if actual != expected:
+                  print(
+                      f"::error::index '{name}' is truncated - {actual} bytes, "
+                      f"expected {expected} ({count} x {dim} float32). "
+                      f"Scores against it are not comparable to a full index."
+                  )
+                  bad += 1
+                  continue
+              checked += 1
+              print(f"  ok: {name} - {count} x {dim}, {actual} bytes")
+
+          if bad:
+              print(f"::error::{bad} index(es) failed the integrity check")
+              sys.exit(1)
+          print(f"all {checked} index(es) passed the integrity check")
+          PYEOF
+
       - name: Run sister-script test suite (CI also runs the eval-gate tests here)
         run: python tests/run_all.py
 

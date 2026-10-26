@@ -98,6 +98,28 @@ def save_vector_index(
         "entries": metadata,
     }
 
+    # The metadata and the vectors must describe the SAME set of
+    # passages. If they disagree, the index is corrupt in a way that is
+    # silent on read: the .bin holds fewer vectors than the metadata
+    # claims, and a reader that trusts the metadata indexes past the end
+    # of the file.
+    #
+    # This is not hypothetical. The 2026-09-19 text-embedding-3-large
+    # build produced exactly that: meta.json claimed 66,689 passages
+    # while the .bin held 30,159, because the caller passed the full
+    # corpus as `metadata` and a partial vector list. The index then
+    # silently served Christianity-only, and scored 0.344 on a
+    # cross-tradition benchmark — a number that was not comparable to
+    # any other embedder's. See notes/2026-10-26-truncated-index-found.md.
+    if len(metadata) != len(vectors):
+        raise ValueError(
+            f"metadata/vector count mismatch: {len(metadata)} metadata entries "
+            f"but {len(vectors)} vectors. The index would be corrupt — the "
+            f"metadata would describe passages the .bin does not contain. "
+            f"Pass one metadata entry per vector, or slice both to the same "
+            f"length before saving."
+        )
+
     if append and meta_path.exists() and bin_path.exists():
         # Append mode: read existing, concatenate, write back.
         # Load existing meta to get the prior count + dim
@@ -262,6 +284,20 @@ def _load_vector_index_flat(
     # produce a wrong-shaped index.
     available = len(flat) // dim
     if available < count:
+        # Degrade to what is actually there — but say so. A silently
+        # short index reads as a smaller corpus, and a score computed
+        # against a partial corpus is not comparable to one computed
+        # against the full one. This exact case is why the
+        # 2026-09-19 text-embedding-3-large index reported a
+        # cross-tradition score while actually serving Christianity
+        # only. See notes/2026-10-26-truncated-index-found.md.
+        print(
+            f"WARNING: index '{name}' is truncated — meta.json claims "
+            f"{count} passages but the .bin holds {available}. "
+            f"Serving {available} passages; scores computed against it are "
+            f"NOT comparable to a full-corpus index. Rebuild it.",
+            file=sys.stderr,
+        )
         count = available
     if count <= 0:
         return None

@@ -2956,6 +2956,111 @@ def t_semantic_custom_index_search():
 # L2-normalized so cosine similarity reduces to a dot product.
 # ---------------------------------------------------------------------------
 
+@_register("t_semantic_truncated_index_warns_loudly")
+def t_semantic_truncated_index_warns_loudly():
+    """A truncated index must warn on load, not serve silently.
+
+    A silently short index reads as a smaller corpus. A score computed
+    against it is not comparable to one computed against the full
+    corpus, and the 2026-09-19 text-embedding-3-large index produced
+    exactly that confusion: a cross-tradition score of 0.344 from an
+    index that was actually Christianity-only.
+    """
+    import io
+    import shutil
+    import contextlib
+    import tempfile as _tempfile
+
+    from bible.semantic import _load_vector_index_flat, save_vector_index
+
+    work = Path(_tempfile.mkdtemp())
+    try:
+        meta = [{"id": i, "citation": f"V{i}", "text": "t", "tradition": "christianity"}
+                for i in range(4)]
+        save_vector_index(work, "ix", meta, [[0.1, 0.2]] * 4, dim=2)
+
+        # Truncate to 2 vectors' worth of bytes.
+        bin_path = work / "ix_vectors.bin"
+        data = bin_path.read_bytes()
+        bin_path.write_bytes(data[:16])
+
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            loaded = _load_vector_index_flat(work, "ix")
+
+        _assert(loaded is not None, "expected a truncated load, got None")
+        _entries, _flat, dim, count, _norms = loaded
+        _assert(count == 2, f"expected count 2 from a truncated file, got {count}")
+        _assert(dim == 2, f"expected dim 2, got {dim}")
+
+        warning = err.getvalue()
+        _assert("truncated" in warning.lower(),
+                f"expected a truncation warning on stderr, got: {warning!r}")
+        _assert("4" in warning and "2" in warning,
+                f"warning should name both counts, got: {warning!r}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@_register("t_save_vector_index_rejects_metadata_vector_mismatch")
+def t_save_vector_index_rejects_metadata_vector_mismatch():
+    """save_vector_index must refuse to write an index whose metadata
+    describes more passages than the vectors cover.
+
+    The 2026-09-19 text-embedding-3-large build hit exactly this: it
+    passed the full 66,689-passage corpus as `metadata` and a partial
+    30,159-vector list. The .bin was short but meta.json claimed
+    66,689, and the index silently served Christianity-only while
+    reporting a cross-tradition score (0.344) that was not comparable
+    to any other embedder's. The mismatch must fail loudly at write
+    time, not silently corrupt the artifact.
+    """
+    import shutil
+    import tempfile as _tempfile
+
+    from bible.semantic import save_vector_index
+
+    work = Path(_tempfile.mkdtemp())
+    try:
+        meta = [{"id": i, "citation": f"V{i}", "text": "t", "tradition": "christianity"}
+                for i in range(10)]
+        vecs = [[0.1, 0.2] for _ in range(4)]
+
+        # More metadata than vectors -> must raise.
+        raised = False
+        try:
+            save_vector_index(work, "bad", meta, vecs, dim=2)
+        except ValueError:
+            raised = True
+        _assert(raised, "save_vector_index accepted 10 metadata entries for 4 vectors")
+        _assert(not (work / "bad_meta.json").exists(),
+                "a rejected save must not leave a meta.json behind")
+        _assert(not (work / "bad_vectors.bin").exists(),
+                "a rejected save must not leave a .bin behind")
+
+        # Fewer metadata than vectors -> must also raise.
+        raised = False
+        try:
+            save_vector_index(work, "bad2", meta[:2], vecs, dim=2)
+        except ValueError:
+            raised = True
+        _assert(raised, "save_vector_index accepted 2 metadata entries for 4 vectors")
+
+        # Equal counts -> must succeed and round-trip.
+        save_vector_index(work, "good", meta[:4], vecs, dim=2)
+        _assert((work / "good_meta.json").exists(), "expected meta.json to be written")
+        _assert((work / "good_vectors.bin").exists(), "expected the .bin to be written")
+
+        from bible.semantic import _load_vector_index_flat
+        loaded = _load_vector_index_flat(work, "good")
+        _assert(loaded is not None, "expected the good index to load")
+        _entries, _flat, dim, count, _norms = loaded
+        _assert(count == 4, f"expected 4 entries, got {count}")
+        _assert(dim == 2, f"expected dim 2, got {dim}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 @_register("t_semantic_index_cache_returns_same_data_as_uncached")
 def t_semantic_index_cache_returns_same_data_as_uncached():
     """The cached loader and the uncached loader must return identical data."""

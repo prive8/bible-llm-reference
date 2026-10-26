@@ -2956,6 +2956,72 @@ def t_semantic_custom_index_search():
 # L2-normalized so cosine similarity reduces to a dot product.
 # ---------------------------------------------------------------------------
 
+@_register("t_check_indexes_script_detects_corruption")
+def t_check_indexes_script_detects_corruption():
+    """scripts/check_indexes.py must detect a truncated index and exit
+    non-zero.
+
+    The 2026-09-19 text-embedding-3-large index was truncated and
+    gitignored, so CI never saw it — the check has to be runnable on a
+    developer host, and it has to actually fail on a corrupt index
+    rather than just reporting.
+    """
+    import os
+    import shutil
+    import subprocess
+    import sys as _sys
+    import tempfile as _tempfile
+
+    from bible.semantic import save_vector_index
+
+    work = Path(_tempfile.mkdtemp())
+    try:
+        meta = [{"id": i, "citation": f"V{i}", "text": "t", "tradition": "christianity"}
+                for i in range(5)]
+
+        # A good index.
+        save_vector_index(work, "good", meta, [[0.1, 0.2]] * 5, dim=2)
+
+        # A truncated one.
+        save_vector_index(work, "trunc", meta, [[0.1, 0.2]] * 5, dim=2)
+        trunc_bin = work / "trunc_vectors.bin"
+        trunc_bin.write_bytes(trunc_bin.read_bytes()[:16])
+
+        # One with metadata but no .bin.
+        save_vector_index(work, "nobin", meta, [[0.1, 0.2]] * 5, dim=2)
+        os.remove(work / "nobin_vectors.bin")
+
+        script = Path(__file__).resolve().parent.parent / "scripts" / "check_indexes.py"
+        _assert(script.exists(), f"expected {script} to exist")
+
+        proc = subprocess.run(
+            [_sys.executable, str(script), "--dir", str(work)],
+            capture_output=True, text=True,
+        )
+        _assert(proc.returncode != 0,
+                f"expected a non-zero exit for a corrupt index, got {proc.returncode}")
+        out = proc.stdout + proc.stderr
+        _assert("trunc" in out, f"expected the truncated index to be named: {out!r}")
+        _assert("nobin" in out, f"expected the missing .bin index to be named: {out!r}")
+        _assert("good" in out, f"expected the good index to be reported ok: {out!r}")
+        _assert("2 of 3" in out, f"expected 2 of 3 to fail: {out!r}")
+
+        # A directory with only good indexes must exit 0.
+        clean = Path(_tempfile.mkdtemp())
+        try:
+            save_vector_index(clean, "only", meta, [[0.1, 0.2]] * 5, dim=2)
+            proc = subprocess.run(
+                [_sys.executable, str(script), "--dir", str(clean)],
+                capture_output=True, text=True,
+            )
+            _assert(proc.returncode == 0,
+                    f"expected exit 0 for a clean index, got {proc.returncode}")
+        finally:
+            shutil.rmtree(clean, ignore_errors=True)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 @_register("t_semantic_truncated_index_warns_loudly")
 def t_semantic_truncated_index_warns_loudly():
     """A truncated index must warn on load, not serve silently.

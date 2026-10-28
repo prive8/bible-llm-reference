@@ -30,7 +30,9 @@ from bible.lookup import load_kjv, strip_strongs_tags
 from bible.quran import list_quran_translations, load_quran_edition
 from bible.semantic import (
     EMBEDDINGS_DIR,
+    EMBEDDER_PROFILES,
     get_embedder,
+    get_embedder_profile,
     l2_normalize,
     save_vector_index,
 )
@@ -238,9 +240,16 @@ def collect_corpus(
 
 def main():
     parser = argparse.ArgumentParser(description="Generate offline vector index for semantic search (Milestone 3B)")
-    parser.add_argument("--name", default="default", help="Output index name (default: 'default')")
-    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default="auto",
-                        help="Embedder backend to use (default: 'auto')")
+    parser.add_argument("--profile", default=None,
+                        choices=sorted(EMBEDDER_PROFILES),
+                        help="Embedder profile to build. The profile supplies the backend, "
+                             "the model, and the index name together, so the index cannot be "
+                             "built with the wrong embedder. Default: '3large' (the production "
+                             "embedder, ADR-016).")
+    parser.add_argument("--name", default=None,
+                        help="Output index name (default: the profile's index)")
+    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default=None,
+                        help="Embedder backend to use (default: the profile's backend)")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size for embedding (default: 64)")
     parser.add_argument("--limit", type=int, default=0, help="Optional max verses to index (for quick testing)")
     parser.add_argument("--no-bible", action="store_true", help="Exclude Bible from index")
@@ -265,8 +274,29 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Initializing embedder (backend: {args.backend})...")
-    embedder = get_embedder(args.backend)
+    # Resolve the profile first: it binds the backend, the model, and
+    # the index name. Building an index with the wrong embedder is the
+    # defect the dimension guard was added to catch, and the cheapest
+    # way to never produce one is not to let the pieces be chosen
+    # independently.
+    profile = get_embedder_profile(args.profile or "3large")
+    if args.name is not None and args.name != profile.index_name:
+        raise SystemExit(
+            f"--name {args.name!r} does not match profile {profile.name!r}, "
+            f"which builds index {profile.index_name!r}. A profile binds the "
+            f"embedder to the index it writes; pick one or the other."
+        )
+    if args.backend is not None and args.backend != profile.backend:
+        raise SystemExit(
+            f"--backend {args.backend!r} does not match profile {profile.name!r}, "
+            f"which uses the {profile.backend!r} backend."
+        )
+    args.name = profile.index_name
+    args.backend = profile.backend
+
+    print(f"Initializing embedder (profile: {profile.name}, backend: {args.backend}, "
+          f"model: {profile.model})...")
+    embedder = get_embedder(args.backend, model=profile.model)
 
     print("Collecting scripture corpus...")
     corpus = collect_corpus(
@@ -342,6 +372,7 @@ def main():
             EMBEDDINGS_DIR, args.name,
             metadata=batch_meta, vectors=normalized, dim=len(normalized[0]),
             append=not first_batch,
+            embedder={"backend": args.backend, "model": profile.model},
         )
 
         batch_num = (i // args.batch_size)

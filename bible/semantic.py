@@ -26,6 +26,7 @@ import sys
 import urllib.error
 import urllib.request
 from array import array
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
@@ -74,6 +75,7 @@ def save_vector_index(
     vectors: list[list[float]],
     dim: int,
     append: bool = False,
+    embedder: Optional[dict] = None,
 ) -> None:
     """Serialize metadata and float32 vectors to disk.
 
@@ -97,6 +99,22 @@ def save_vector_index(
         "dim": dim,
         "entries": metadata,
     }
+
+    # Record WHICH embedder built this index. A vector index is only
+    # meaningful with its embedder: the numbers in the .bin are
+    # coordinates in one model's space, and scoring them with a
+    # different model produces numbers that look like scores and are
+    # not. The dimension is the coarse guard (it catches every
+    # cross-profile mix, since the profiles here have distinct
+    # dims); the model name is the fine guard, and it is what lets an
+    # index say "I was built by X" instead of relying on the
+    # operator remembering.
+    if embedder:
+        new_meta["embedder"] = {
+            "backend": embedder.get("backend", ""),
+            "model": embedder.get("model", ""),
+            "dim": dim,
+        }
 
     # The metadata and the vectors must describe the SAME set of
     # passages. If they disagree, the index is corrupt in a way that is
@@ -155,6 +173,15 @@ def save_vector_index(
             "dim": dim,
             "entries": combined_meta,
         }
+        # Preserve the embedder identity recorded by the first batch.
+        if "embedder" in existing_meta:
+            new_meta["embedder"] = existing_meta["embedder"]
+        elif embedder:
+            new_meta["embedder"] = {
+                "backend": embedder.get("backend", ""),
+                "model": embedder.get("model", ""),
+                "dim": dim,
+            }
     else:
         # Overwrite mode: write both files fresh
         with open(meta_path, "w", encoding="utf-8") as f:
@@ -417,10 +444,330 @@ DEFAULT_NIM_TIMEOUT = 60  # seconds per request
 # Free-tier note: OpenRouter has no truly-free embedding models as of
 # 2026-09-10 (only chat models are free), so this backend is paid-only.
 # See HANDOFF §8 #1 + #8 for the cost-posture reasoning.
-DEFAULT_OPENROUTER_MODEL = "openai/text-embedding-3-small"
+DEFAULT_OPENROUTER_MODEL = "openai/text-embedding-3-large"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_OPENROUTER_BATCH = 100  # OpenRouter allows larger batches than NIM
 DEFAULT_OPENROUTER_TIMEOUT = 60
+
+
+# ---------------------------------------------------------------------------
+# Embedder profiles
+# ---------------------------------------------------------------------------
+#
+# An embedder and the index it scores are ONE choice, not two. A query
+# vector of dimension D can only be compared against an index of
+# dimension D, and that mismatch used to be SILENT: the scoring loop
+# does `sum(map(mul, query_vec, doc_vec))`, and `map` stops at the
+# shorter of the two, so a 3072-dim query against a 384-dim index
+# scored the first 384 dimensions and returned a plausible-looking
+# number. That is the same failure mode as the truncated 3-large index
+# (notes/2026-10-26-truncated-index-found.md), one layer up.
+#
+# A profile binds the pieces that must agree: which backend encodes the
+# query, which model it uses, which on-disk index holds the corpus
+# vectors, and what dimension that index has. Every index name in
+# data/embeddings/ therefore says which embedder built it.
+
+@dataclass(frozen=True)
+class EmbedderProfile:
+    """One embedder, its model, its index, and that index's dimension."""
+
+    name: str
+    backend: str
+    model: str
+    index_name: str
+    dim: int
+    note: str = ""
+
+
+EMBEDDER_PROFILES: dict[str, EmbedderProfile] = {
+    # The production default (ADR-016, 2026-10-28). Chosen by Steven over
+    # the local MiniLM default for +0.108 semantic recall@10 on the v2 dev
+    # gate, at ~2.9 s/query instead of ~0.8 s.
+    "3large": EmbedderProfile(
+        name="3large",
+        backend="openrouter",
+        model="openai/text-embedding-3-large",
+        index_name="openrouter-3large",
+        dim=3072,
+        note="production default",
+    ),
+    # The hosted path ADR-013 chose (3-small). Superseded as the default by
+    # ADR-016; kept because the index is on disk and the model is one env
+    # var away.
+    "3small": EmbedderProfile(
+        name="3small",
+        backend="openrouter",
+        model="openai/text-embedding-3-small",
+        index_name="openrouter-default",
+        dim=1536,
+        note="ADR-013 hosted path; no longer the default",
+    ),
+    # Best measured quality on the cross-tradition benchmark, but ~9.6
+    # s/query. Steven approved an optional slower "deep study" mode on
+    # 2026-10-28 but has NOT picked the model or asked for it to be
+    # built; it is registered here only so the comparison stays
+    # reproducible.
+    "qwen3-8b": EmbedderProfile(
+        name="qwen3-8b",
+        backend="openrouter",
+        model="qwen/qwen3-embedding-8b",
+        index_name="openrouter-qwen3-8b",
+        dim=4096,
+        note="best quality, ~9.6 s/query; deep-study mode not decided",
+    ),
+    # The offline/free fixture: CI builds this one, and it is the
+    # fallback whenever no OpenRouter key is available.
+    "local": EmbedderProfile(
+        name="local",
+        backend="local",
+        model="all-MiniLM-L6-v2",
+        index_name="default",
+        dim=384,
+        note="offline fallback; what the CI gate scores",
+    ),
+    # A rejected experiment kept for reproducibility: 3-verse passage
+    # chunks, measured at 0.182 semantic on v2 dev against the unchunked
+    # 0.189, so it is NOT the default.
+    "local-chunk3": EmbedderProfile(
+        name="local-chunk3",
+        backend="local",
+        model="all-MiniLM-L6-v2",
+        index_name="local-chunk3",
+        dim=384,
+        note="rejected chunking experiment; kept for reproducibility",
+    ),
+}
+
+# The production default embedder. Steven's decision, ADR-016 (2026-10-28).
+DEFAULT_EMBEDDER_PROFILE = "3large"
+
+
+def _check_embedder_dim(
+    query_dim: int,
+    index_dim: int,
+    index_name: str,
+    backend: str,
+    model: Optional[str] = None,
+) -> None:
+    """Raise if the query embedder and the index disagree on dimension.
+
+    The scoring loop computes ``sum(map(mul, query_vec, doc_vec))``,
+    and ``map`` stops at the shorter of the two iterators. A query
+    vector of the wrong length therefore does not crash — it scores
+    against a truncated slice of every document vector and divides by
+    the full norms, producing a number in the normal range that
+    measures nothing. That is how a broken pairing can look like a
+    working one.
+    """
+    if query_dim == index_dim:
+        return
+
+    model_desc = f" ({model})" if model else ""
+    raise DimensionMismatchError(
+        f"embedder/index dimension mismatch: the {backend} embedder"
+        f"{model_desc} produced {query_dim}-dim query vectors, but index "
+        f"{index_name!r} holds {index_dim}-dim vectors. Scoring these "
+        f"together would silently compare only the first "
+        f"{min(query_dim, index_dim)} dimensions and report a score that "
+        f"measures nothing. Use the embedder that built the index, or "
+        f"rebuild the index with this embedder."
+    )
+
+
+class ProfileUnavailableError(RuntimeError):
+    """The embedder a request resolved to cannot run on this machine."""
+
+
+class DimensionMismatchError(ValueError):
+    """A query embedder and the index it was scored against disagree.
+
+    Raised when the query vector's length differs from the index's
+    stored dimension. Without this check the scoring loop truncates
+    silently: ``sum(map(mul, query_vec, doc_vec))`` stops at the
+    shorter of the two, so a 384-dim query against a 3072-dim index
+    returns a plausible-looking score computed from the first 384
+    dimensions of every vector. That is the 2026-09-19 truncated-index
+    failure mode one layer up.
+    """
+
+
+def get_embedder_profile(name: str) -> EmbedderProfile:
+    """Look up a profile by name."""
+    try:
+        return EMBEDDER_PROFILES[name]
+    except KeyError:
+        raise ValueError(
+            f"Unknown embedder profile {name!r}. Known profiles: "
+            f"{', '.join(sorted(EMBEDDER_PROFILES))}"
+        ) from None
+
+
+def profile_for_index(index_name: str) -> Optional[EmbedderProfile]:
+    """The profile whose index is named ``index_name``, if any."""
+    for prof in EMBEDDER_PROFILES.values():
+        if prof.index_name == index_name:
+            return prof
+    return None
+
+
+def profile_for_model(model: str) -> Optional[EmbedderProfile]:
+    """The profile that uses ``model``, if any."""
+    for prof in EMBEDDER_PROFILES.values():
+        if prof.model == model:
+            return prof
+    return None
+
+
+def profile_backend_available(profile: EmbedderProfile) -> tuple[bool, str]:
+    """Can this profile's embedder backend run on this machine?
+
+    Returns ``(available, reason)``. This checks the *backend* only
+    (an API key, or the optional ``embeddings`` extra). It does not
+    check whether the index is built: an index is per-machine derived
+    data under a gitignored path, and "not built yet" is a normal
+    state that the index builder exists to fix.
+    """
+    if profile.backend == "openrouter":
+        if not _openrouter_key_available():
+            return False, (
+                "no OPENROUTER_API_KEY (set it in the environment or in "
+                "~/.hermes/.env)"
+            )
+    elif profile.backend == "local":
+        try:
+            import sentence_transformers  # noqa: F401
+        except ImportError:
+            return False, (
+                "sentence-transformers is not installed "
+                "(pip install 'bible-llm-reference[embeddings]')"
+            )
+    elif profile.backend == "nim":
+        if not os.environ.get("NVIDIA_API_KEY"):
+            return False, "no NVIDIA_API_KEY"
+    return True, "ready"
+
+
+def _openrouter_key_available() -> bool:
+    """Is an OpenRouter key reachable (env var, or ~/.hermes/.env)?
+
+    Mirrors the resolution order in OpenRouterEmbedder.__init__ so the
+    availability check agrees with the embedder itself.
+    """
+    if os.environ.get("OPENROUTER_API_KEY"):
+        return True
+    env_file = Path.home() / ".hermes" / ".env"
+    try:
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("OPENROUTER_API_KEY="):
+                return bool(line.split("=", 1)[1].strip().strip('"').strip("'"))
+    except OSError:
+        pass
+    return False
+
+
+def resolve_embedder_profile(
+    profile: Optional[str] = None,
+    index_name: Optional[str] = None,
+    backend: Optional[str] = None,
+    model: Optional[str] = None,
+    custom_index: bool = False,
+) -> tuple[Optional[EmbedderProfile], list[str]]:
+    """Resolve which embedder a request should use.
+
+    Returns ``(profile, notes)``. ``profile`` is None for the legacy
+    path — a caller who named a backend/index the registry does not
+    own.
+
+    Resolution order:
+
+    1. An explicit ``profile`` name wins. It binds the backend, model,
+       index, and dimension together. Supplying a conflicting
+       ``index_name``, ``backend``, or ``model`` alongside it is an
+       error, not a merge: those are exactly the pieces that must not
+       be able to disagree.
+    2. Otherwise, an explicit ``index_name`` identifies the embedder
+       that built it (the index names encode their embedder), so the
+       matching profile supplies the backend and model. This is what
+       lets "search the 3-large index" mean "encode the query with
+       3-large" without the caller having to restate it — and it is
+       what stops an unrelated ``OPENROUTER_EMBED_MODEL`` in the shell
+       from pairing a 4096-dim query with a 3072-dim index.
+    3. Otherwise the default profile — the production embedder chosen
+       in ADR-016 — is used.
+
+    A caller-supplied ``custom_index`` owns its own vectors, so no
+    profile applies to it; the dimension guard polices that pairing.
+
+    There is no silent fallback to a different embedder. If the
+    resolved profile's backend cannot run here, that is an error the
+    caller should see, not something to paper over by quietly
+    scoring with a different model.
+    """
+    notes: list[str] = []
+
+    if profile is not None:
+        prof = get_embedder_profile(profile)
+        if index_name is not None and index_name != prof.index_name:
+            raise ValueError(
+                f"embedder profile {profile!r} uses index {prof.index_name!r}, "
+                f"but index_name={index_name!r} was also given. A profile "
+                f"binds the embedder to the index it built; pick one or "
+                f"the other."
+            )
+        if backend is not None and backend != prof.backend:
+            raise ValueError(
+                f"embedder profile {profile!r} uses the {prof.backend!r} "
+                f"backend, but backend={backend!r} was also given."
+            )
+        if model is not None and model != prof.model:
+            raise ValueError(
+                f"embedder profile {profile!r} uses model {prof.model!r}, "
+                f"but model={model!r} was also given."
+            )
+        available, reason = profile_backend_available(prof)
+        if not available:
+            raise ProfileUnavailableError(
+                f"embedder profile {profile!r} cannot run here: {reason}"
+            )
+        return prof, notes
+
+    if custom_index:
+        # The caller owns the vectors. The index name does not apply.
+        return None, notes
+
+    if index_name is not None:
+        inferred = profile_for_index(index_name)
+        if inferred is not None:
+            if backend is not None and backend != inferred.backend:
+                return None, notes
+            if model is not None and model != inferred.model:
+                return None, notes
+            available, reason = profile_backend_available(inferred)
+            if not available:
+                raise ProfileUnavailableError(
+                    f"index {index_name!r} was built by embedder profile "
+                    f"{inferred.name!r} ({inferred.model}), which cannot run "
+                    f"here: {reason}"
+                )
+            return inferred, notes
+        # The caller named an index no profile owns (a staging index, a
+        # probe, or a name that does not exist). Keep the caller's index
+        # and use the legacy path — the dimension guard polices the
+        # pairing. Substituting the default profile's index here would
+        # silently search a different corpus than the one asked for.
+        return None, notes
+
+    prof = get_embedder_profile(DEFAULT_EMBEDDER_PROFILE)
+    available, reason = profile_backend_available(prof)
+    if not available:
+        raise ProfileUnavailableError(
+            f"the default embedder profile {prof.name!r} ({prof.model}) "
+            f"cannot run here: {reason}. To use a different embedder, pass "
+            f"an explicit profile (e.g. --profile local)."
+        )
+    return prof, notes
 
 
 class OpenRouterError(RuntimeError):
@@ -456,8 +803,9 @@ class OpenRouterEmbedder(BaseEmbedder):
 
     OpenRouter is a paid service (no truly-free embedding tier as of
     2026-09-10). User has explicitly authorized spend as of 2026-09-10;
-    see HANDOFF §8 #1 + #8. Default model is ``openai/text-embedding-3-small``
-    (1536-dim, ~$0.02 per million tokens).
+    see HANDOFF §8 #1 + #8. Default model is
+    ``openai/text-embedding-3-large`` (3072-dim, ~$0.13 per million
+    tokens) — the production embedder chosen in ADR-016.
 
     Configuration (constructor takes precedence, env vars are fallbacks):
         model      — OpenRouter model ID (with provider prefix).
@@ -476,7 +824,7 @@ class OpenRouterEmbedder(BaseEmbedder):
 
     def __init__(
         self,
-        model: str = DEFAULT_OPENROUTER_MODEL,
+        model: Optional[str] = None,
         base_url: str = DEFAULT_OPENROUTER_BASE_URL,
         api_key: Optional[str] = None,
         batch_size: int = DEFAULT_OPENROUTER_BATCH,
@@ -486,7 +834,15 @@ class OpenRouterEmbedder(BaseEmbedder):
         # Resolve config with env-var fallbacks. Order: explicit arg →
         # shell env → `~/.hermes/.env` (the conventional Hermes location;
         # avoids forcing users to `export` in every shell).
-        self.model = os.environ.get("OPENROUTER_EMBED_MODEL", model)
+        # Explicit argument wins over the environment, which wins over
+        # the default. A profile passes its model explicitly, so an
+        # unrelated OPENROUTER_EMBED_MODEL in the shell cannot silently
+        # pair a 4096-dim query with a 3072-dim index.
+        self.model = (
+            model
+            or os.environ.get("OPENROUTER_EMBED_MODEL")
+            or DEFAULT_OPENROUTER_MODEL
+        )
         self.base_url = os.environ.get("OPENROUTER_BASE_URL", base_url).rstrip("/")
 
         def _resolve_key() -> str | None:
@@ -824,9 +1180,19 @@ class NIMEmbedder(BaseEmbedder):
             return resp.read().decode("utf-8")
 
 
-def get_embedder(backend: str = "auto") -> BaseEmbedder:
+def get_embedder(
+    backend: str = "auto",
+    model: Optional[str] = None,
+    dim: Optional[int] = None,
+) -> BaseEmbedder:
     """Factory for embedding backends: 'local', 'mock', 'nim',
     'openrouter', or 'auto'.
+
+    ``model`` pins the model for hosted backends. It takes precedence
+    over ``OPENROUTER_EMBED_MODEL`` so a profile can bind a model to
+    an index without an unrelated environment variable silently
+    pairing a 4096-dim query with a 3072-dim index. ``dim`` sizes the
+    mock embedder, which must match the index it will score.
 
     'auto' resolution order:
       1. If ``sentence_transformers`` importable → ``LocalSentenceTransformerEmbedder``
@@ -842,13 +1208,18 @@ def get_embedder(backend: str = "auto") -> BaseEmbedder:
     single process can serve thousands of queries at one model-load cost.
     """
     if backend == "mock":
-        return MockDeterministicEmbedder()
+        # The mock stands in for the embedder that built the index it
+        # is scoring, so it must have that index's dimension. A mock
+        # of the wrong width would trip the dimension guard in
+        # search_semantic — correctly, since it is the same class of
+        # error.
+        return MockDeterministicEmbedder(dim=dim or 64)
     elif backend == "local":
         return _get_cached_local_embedder()
     elif backend == "nim":
         return NIMEmbedder()
     elif backend == "openrouter":
-        return OpenRouterEmbedder()
+        return OpenRouterEmbedder(model=model)
     elif backend == "auto":
         try:
             import sentence_transformers  # noqa: F401
@@ -915,12 +1286,14 @@ def _resolve_tradition_filter(tradition: Optional[str]) -> Optional[str]:
 
 def search_semantic(
     query: str,
-    index_name: str = "default",
+    index_name: Optional[str] = None,
     top_k: int = 10,
     tradition: Optional[str] = None,
-    backend: str = "auto",
+    backend: Optional[str] = None,
     custom_index: Optional[tuple[list[dict], list[list[float]], int]] = None,
     resolve_verses: bool = False,
+    profile: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> list[dict]:
     """Search vector index for semantically similar verses.
 
@@ -930,14 +1303,42 @@ def search_semantic(
         score: float (cosine similarity)
         tradition: str ('bible' or 'islam')
         translation: str
+
+    ``profile`` names an embedder profile (see :data:`EMBEDDER_PROFILES`).
+    A profile binds the backend, the model, the index, and the expected
+    dimension together, so the pieces that must agree cannot be
+    supplied independently and mismatched. Passing ``profile`` together
+    with an explicit ``index_name``, ``backend``, or ``model`` that
+    disagrees with it is an error.
+
+    With no profile and no explicit index, the default profile is
+    used. With an explicit ``index_name`` and no profile, the legacy
+    behaviour applies: the named index is searched with the named
+    backend, and the dimension guard below still refuses a mismatched
+    pairing.
     """
+    prof, _notes = resolve_embedder_profile(
+        profile=profile, index_name=index_name, backend=backend, model=model,
+        custom_index=custom_index is not None,
+    )
+    if prof is not None:
+        index_name = prof.index_name
+        backend = prof.backend
+        model = prof.model
+
+    if index_name is None:
+        index_name = "default"
+    if backend is None:
+        backend = "auto"
+
     if custom_index:
         entries, vectors, dim = custom_index
         # A caller-supplied index is a list of lists, not the flat form.
         # Score it with the generic path so the two code paths cannot
         # drift apart in their results.
         return _search_with_vector_lists(
-            query, entries, vectors, dim, top_k, tradition, backend, resolve_verses
+            query, entries, vectors, dim, top_k, tradition, backend,
+            resolve_verses, model=model, profile=prof,
         )
 
     loaded = load_vector_index_cached(EMBEDDINGS_DIR, index_name)
@@ -948,9 +1349,34 @@ def search_semantic(
     if not entries or count <= 0:
         return []
 
-    # Get query embedding
-    embedder = get_embedder(backend)
+    # A profile knows what dimension its index must have. If the index
+    # on disk disagrees, it was built by something else (or is stale) —
+    # fail before scoring, not after.
+    if prof is not None and dim != prof.dim:
+        raise DimensionMismatchError(
+            f"index {index_name!r} holds {dim}-dim vectors, but embedder "
+            f"profile {prof.name!r} ({prof.model}) expects {prof.dim}-dim. "
+            f"The index was built by a different embedder. Rebuild it with "
+            f"scripts/index_embeddings.py --profile {prof.name}."
+        )
+
+    # Get query embedding. The mock backend is sized to the index so
+    # it stands in for the embedder that built it.
+    embedder = get_embedder(backend, model=model, dim=dim)
     query_vec = embedder.embed_query(query)
+
+    # The query embedder and the index must agree on dimension. Without
+    # this check the scoring loop below silently compares only the
+    # first min(query_dim, index_dim) dimensions and then divides by
+    # the FULL norms, so a mismatch returns a plausible-looking score
+    # computed from a pairing that means nothing. Fail loudly instead.
+    _check_embedder_dim(
+        query_dim=len(query_vec),
+        index_dim=dim,
+        index_name=index_name,
+        backend=backend,
+        model=getattr(embedder, "model", None),
+    )
 
     # Normalize query vector if not already unit
     query_vec = l2_normalize(query_vec)
@@ -1020,6 +1446,8 @@ def _search_with_vector_lists(
     tradition: Optional[str],
     backend: str,
     resolve_verses: bool,
+    model: Optional[str] = None,
+    profile: Optional[EmbedderProfile] = None,
 ) -> list[dict]:
     """Score a caller-supplied index given as a list of per-vector lists.
 
@@ -1030,8 +1458,16 @@ def _search_with_vector_lists(
     if not entries or not vectors:
         return []
 
-    embedder = get_embedder(backend)
-    query_vec = l2_normalize(embedder.embed_query(query))
+    embedder = get_embedder(backend, model=model, dim=dim)
+    raw_query_vec = embedder.embed_query(query)
+    _check_embedder_dim(
+        query_dim=len(raw_query_vec),
+        index_dim=dim,
+        index_name="<custom index>",
+        backend=backend,
+        model=getattr(embedder, "model", None),
+    )
+    query_vec = l2_normalize(raw_query_vec)
 
     filter_target = _resolve_tradition_filter(tradition)
 
@@ -1085,19 +1521,33 @@ def expand_passage_chunks(results: list[dict], top_k: Optional[int] = None) -> l
 
 def run_semantic(
     query: str,
-    index_name: str = "default",
+    index_name: Optional[str] = None,
     top_k: int = 10,
     tradition: Optional[str] = None,
-    backend: str = "auto",
+    backend: Optional[str] = None,
     as_json: bool = False,
     resolve_verses: bool = False,
+    profile: Optional[str] = None,
 ) -> None:
-    """CLI runner for semantic search."""
+    """CLI runner for semantic search.
+
+    With no arguments this searches the **default profile** — the
+    production embedder chosen in ADR-016. Pass ``profile`` to select
+    another one; the profile carries its own index, backend, and
+    model, so they cannot be mismatched.
+    """
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
+
+    prof, _notes = resolve_embedder_profile(
+        profile=profile, index_name=index_name, backend=backend
+    )
+    if prof is not None:
+        index_name = prof.index_name
+        backend = prof.backend
 
     results = search_semantic(
         query=query,
@@ -1108,11 +1558,16 @@ def run_semantic(
         resolve_verses=resolve_verses,
     )
 
+    profile_name = prof.name if prof is not None else "custom"
+    model_name = prof.model if prof is not None else ""
+
     if as_json:
         print(json.dumps({
             "query": query,
+            "profile": profile_name,
             "index": index_name,
             "backend": backend,
+            "model": model_name,
             "results_count": len(results),
             "results": results,
         }, ensure_ascii=False, indent=2))
@@ -1120,6 +1575,8 @@ def run_semantic(
 
     print("=" * 78)
     print(f"  Semantic Search (M3B) for: {query!r}")
+    if prof is not None:
+        print(f"  Profile: {prof.name} ({prof.model})")
     print(f"  Index: {index_name} | Backend: {backend}")
     print("=" * 78)
 
@@ -1145,26 +1602,40 @@ def main():
 
     parser = argparse.ArgumentParser(description="Semantic search CLI for scripture corpora (Milestone 3B)")
     parser.add_argument("query", help="Conceptual or thematic query (e.g. 'finding comfort in grief')")
-    parser.add_argument("--index", default="default", help="Vector index name (default: 'default')")
+    parser.add_argument("--profile", default=None, choices=sorted(EMBEDDER_PROFILES),
+                        help=f"Embedder profile (default: {DEFAULT_EMBEDDER_PROFILE} — the production "
+                             f"embedder chosen in ADR-016). A profile binds the backend, model, and "
+                             f"index together so they cannot be mismatched.")
+    parser.add_argument("--index", default=None, help="Vector index name (default: the profile's index)")
     parser.add_argument("-n", "--top-k", type=int, default=10, help="Number of results (default: 10)")
     parser.add_argument("--tradition", choices=["all", "bible", "islam", "judaism"], default="all",
                         help="Filter tradition (default: all)")
-    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default="auto",
-                        help="Embedder backend (default: auto — local if available, else OpenRouter if OPENROUTER_API_KEY set, else NIM if NVIDIA_API_KEY set, else mock)")
+    parser.add_argument("--backend", choices=["auto", "local", "mock", "nim", "openrouter"], default=None,
+                        help="Embedder backend (default: the profile's backend)")
     parser.add_argument("--resolve-verses", action="store_true",
                         help="Resolve multi-verse passage chunks to individual constituent verses")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()
-    run_semantic(
-        query=args.query,
-        index_name=args.index,
-        top_k=args.top_k,
-        tradition=args.tradition,
-        backend=args.backend,
-        as_json=args.json,
-        resolve_verses=args.resolve_verses,
-    )
+    try:
+        run_semantic(
+            query=args.query,
+            index_name=args.index,
+            top_k=args.top_k,
+            tradition=args.tradition,
+            backend=args.backend,
+            as_json=args.json,
+            resolve_verses=args.resolve_verses,
+            profile=args.profile,
+        )
+    except ProfileUnavailableError as e:
+        print(f"Cannot run semantic search: {e}", file=sys.stderr)
+        print(
+            "The default profile is the production embedder (ADR-016). To use the\n"
+            "offline MiniLM index instead, pass --profile local.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1) from e
 
 
 if __name__ == "__main__":

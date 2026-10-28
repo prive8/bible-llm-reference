@@ -1103,9 +1103,13 @@ def t_openrouter_malformed_json_raises_response_error():
 
 @_register("t_openrouter_default_model_and_base_url")
 def t_openrouter_default_model_and_base_url():
-    """Sanity-check the OpenRouter default constants."""
-    _assert(DEFAULT_OPENROUTER_MODEL == "openai/text-embedding-3-small",
-            f"DEFAULT_OPENROUTER_MODEL expected 'openai/text-embedding-3-small', got {DEFAULT_OPENROUTER_MODEL!r}")
+    """Sanity-check the OpenRouter default constants.
+
+    The default model is ``text-embedding-3-large``: Steven's choice of
+    production embedder, recorded in ADR-016 (2026-10-28).
+    """
+    _assert(DEFAULT_OPENROUTER_MODEL == "openai/text-embedding-3-large",
+            f"DEFAULT_OPENROUTER_MODEL expected 'openai/text-embedding-3-large', got {DEFAULT_OPENROUTER_MODEL!r}")
     _assert("openrouter.ai" in DEFAULT_OPENROUTER_BASE_URL,
             f"DEFAULT_OPENROUTER_BASE_URL must point at openrouter.ai: {DEFAULT_OPENROUTER_BASE_URL!r}")
     _assert(DEFAULT_OPENROUTER_BASE_URL.endswith("/v1"),
@@ -1691,6 +1695,321 @@ def t_eval_gate_benchmark_v2_dev_baseline_is_stable():
         _assert(value in text,
                 f"baseline value {value} missing from the note — "
                 f"the v2 gate thresholds are calibrated against it")
+
+
+# ---------------------------------------------------------------------------
+# Embedder profiles and the dimension guard (2026-10-28)
+#
+# An embedder and the index it scores are ONE choice. Before this, a
+# query embedder of the wrong width was silently truncated by
+# `sum(map(mul, query_vec, doc_vec))` — `map` stops at the shorter
+# iterator — so the scoring loop compared only the first N dimensions
+# and divided by the FULL norms. The result was a plausible-looking
+# score computed from a pairing that measured nothing. That is the
+# truncated-index failure mode (notes/2026-10-26-truncated-index-found.md)
+# one layer up.
+# ---------------------------------------------------------------------------
+
+
+@_register("t_embedder_profiles_are_internally_consistent")
+def t_embedder_profiles_are_internally_consistent():
+    """Every profile must name a real model, an index, and a dimension.
+
+    And the default must be the one Steven chose: text-embedding-3-large
+    (ADR-016, 2026-10-28).
+    """
+    from bible.semantic import (
+        DEFAULT_EMBEDDER_PROFILE,
+        EMBEDDER_PROFILES,
+        get_embedder_profile,
+    )
+
+    _assert(DEFAULT_EMBEDDER_PROFILE == "3large",
+            f"default embedder profile must be '3large', got {DEFAULT_EMBEDDER_PROFILE!r}")
+
+    prof = get_embedder_profile("3large")
+    _assert(prof.model == "openai/text-embedding-3-large", prof.model)
+    _assert(prof.dim == 3072, f"3large must be 3072-dim, got {prof.dim}")
+    _assert(prof.index_name == "openrouter-3large", prof.index_name)
+
+    # Every profile is internally consistent, and the index names are
+    # unique — an index name identifies one artifact on disk, so two
+    # profiles claiming it would be ambiguous. Two profiles MAY share a
+    # model (the local profile and the rejected chunking experiment are
+    # both MiniLM); they differ by index.
+    seen_index = {}
+    for name, p in EMBEDDER_PROFILES.items():
+        _assert(p.name == name, f"profile {name!r} has name {p.name!r}")
+        _assert(p.model, f"profile {name!r} has no model")
+        _assert(p.dim > 0, f"profile {name!r} has dim {p.dim}")
+        _assert(p.index_name, f"profile {name!r} has no index")
+        _assert(p.index_name not in seen_index,
+                f"index {p.index_name!r} claimed by both {seen_index.get(p.index_name)!r} and {name!r}")
+        seen_index[p.index_name] = name
+
+
+@_register("t_embedder_profile_index_lookup_round_trips")
+def t_embedder_profile_index_lookup_round_trips():
+    """Looking a profile up by its index name must return that profile."""
+    from bible.semantic import EMBEDDER_PROFILES, profile_for_index
+
+    for name, prof in EMBEDDER_PROFILES.items():
+        found = profile_for_index(prof.index_name)
+        _assert(found is not None,
+                f"no profile owns index {prof.index_name!r} (profile {name!r})")
+        _assert(found.name == name,
+                f"index {prof.index_name!r} resolved to {found.name!r}, expected {name!r}")
+
+
+@_register("t_semantic_dimension_mismatch_raises_instead_of_truncating")
+def t_semantic_dimension_mismatch_raises_instead_of_truncating():
+    """A query embedder of the wrong width must fail loudly.
+
+    The failure this guards against is silent: `sum(map(mul, q, d))`
+    stops at the shorter vector, so a 32-dim query against a 64-dim
+    index returns a score computed from the first 32 dimensions of
+    every vector and nothing raises.
+    """
+    from bible.semantic import (
+        DimensionMismatchError,
+        MockDeterministicEmbedder,
+        search_semantic,
+    )
+
+    # A 32-dim index, but the query embedder produces 64 dims.
+    embedder = MockDeterministicEmbedder(dim=64)
+    entries = [
+        {"id": 0, "citation": "John 3:16", "text": "For God so loved the world", "tradition": "christianity"},
+    ]
+    vecs = embedder.embed_texts([e["text"] for e in entries])
+
+    # Force a mismatched embedder through the custom-index path.
+    import bible.semantic as semantic_mod
+    original = semantic_mod.get_embedder
+    semantic_mod.get_embedder = lambda *a, **kw: MockDeterministicEmbedder(dim=64)
+    try:
+        raised = False
+        try:
+            search_semantic(
+                query="God loved the world",
+                custom_index=(entries, vecs, 32),
+                backend="mock",
+                top_k=1,
+            )
+        except DimensionMismatchError:
+            raised = True
+        _assert(raised,
+                "a 64-dim query against a 32-dim index must raise "
+                "DimensionMismatchError, not silently score the first 32 dimensions")
+    finally:
+        semantic_mod.get_embedder = original
+
+
+@_register("t_semantic_mock_embedder_is_sized_to_the_index")
+def t_semantic_mock_embedder_is_sized_to_the_index():
+    """The mock backend stands in for the embedder that built the index.
+
+    It must therefore have the index's dimension, or it would trip the
+    dimension guard for the wrong reason (and in a real run, produce
+    meaningless scores).
+    """
+    from bible.semantic import MockDeterministicEmbedder, get_embedder
+
+    _assert(get_embedder("mock", dim=384).dim == 384, "mock must take the index's dim")
+    _assert(get_embedder("mock").dim == 64, "mock keeps its own default dim")
+    _assert(MockDeterministicEmbedder(dim=17).dim == 17, "mock must honour its dim")
+
+
+@_register("t_embedder_profile_conflicts_are_rejected")
+def t_embedder_profile_conflicts_are_rejected():
+    """A profile plus a conflicting index/backend must be an error.
+
+    The point of a profile is that the backend, model, index, and
+    dimension travel together. If they could be supplied separately,
+    the guard would be the only thing standing between the caller and
+    a mismatched pairing — and the caller is usually a script.
+    """
+    from bible.semantic import search_semantic
+
+    raised = False
+    try:
+        search_semantic("query", profile="3large", index_name="default")
+    except ValueError:
+        raised = True
+    _assert(raised, "profile '3large' with index 'default' must be rejected")
+
+    raised = False
+    try:
+        search_semantic("query", profile="local", backend="openrouter")
+    except ValueError:
+        raised = True
+    _assert(raised, "profile 'local' with the openrouter backend must be rejected")
+
+
+@_register("t_index_metadata_records_the_embedder_that_built_it")
+def t_index_metadata_records_the_embedder_that_built_it():
+    """A vector index must say which embedder built it.
+
+    An index is only meaningful with its embedder: the numbers in the
+    .bin are coordinates in one model's space, and scoring them with a
+    different model produces numbers that look like scores and are not.
+    """
+    import json
+    import tempfile
+    from pathlib import Path
+
+    from bible.semantic import save_vector_index
+
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+        save_vector_index(
+            work, "ix",
+            metadata=[{"citation": "John 3:16", "text": "For God so loved the world"}],
+            vectors=[[1.0, 0.0, 0.0]],
+            dim=3,
+            embedder={"backend": "mock", "model": "mock-3d"},
+        )
+        meta = json.loads((work / "ix_meta.json").read_text(encoding="utf-8"))
+        _assert("embedder" in meta, f"index metadata must record its embedder: {sorted(meta)}")
+        _assert(meta["embedder"]["backend"] == "mock", meta["embedder"])
+        _assert(meta["embedder"]["model"] == "mock-3d", meta["embedder"])
+        _assert(meta["embedder"]["dim"] == 3, meta["embedder"])
+
+
+@_register("t_retrieval_gate_config_thresholds_are_below_their_baselines")
+def t_retrieval_gate_config_thresholds_are_below_their_baselines():
+    """Every configured gate threshold must be strictly below its baseline.
+
+    A threshold at or above its baseline fails on current code, so it
+    is not a gate — it is a broken one. And a threshold raised to make
+    a red run green is the failure mode this file exists to prevent.
+
+    The held_out gates are checked separately: their thresholds must
+    be derived from held_out baselines, NOT copied from the dev gate.
+    """
+    import json
+
+    config_path = ROOT / "config" / "retrieval_gates.json"
+    _assert(config_path.exists(), f"expected the gate config at {config_path}")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    gates = config.get("gates", {})
+    _assert(bool(gates), "the gate config must define gates")
+
+    for name, entry in gates.items():
+        baseline = entry.get("baseline", {})
+        thresholds = entry.get("thresholds", {})
+        _assert(bool(baseline), f"gate {name!r} records no baseline")
+        _assert(bool(thresholds), f"gate {name!r} records no thresholds")
+        for path_name, threshold in thresholds.items():
+            _assert(path_name in baseline,
+                    f"gate {name!r} has a threshold for {path_name!r} but no baseline")
+            base = baseline[path_name]
+            _assert(threshold < base,
+                    f"gate {name!r} {path_name} threshold {threshold} is not below its "
+                    f"measured baseline {base} — the gate would fail on current code")
+            _assert(threshold > 0,
+                    f"gate {name!r} {path_name} threshold {threshold} is not positive")
+
+    # The held_out gates must NOT reuse the dev thresholds.
+    dev = gates.get("local/v2-dev", {}).get("thresholds", {})
+    held = gates.get("local/v2-held_out", {}).get("thresholds", {})
+    _assert(bool(dev) and bool(held), "both local dev and held_out gates must exist")
+    _assert(dev != held,
+            f"the held_out gate must have its own thresholds, not the dev ones: {dev}")
+
+    # And the held_out baselines must actually be lower — that is why
+    # the thresholds differ.
+    dev_base = gates["local/v2-dev"]["baseline"]
+    held_base = gates["local/v2-held_out"]["baseline"]
+    _assert(held_base["semantic"] < dev_base["semantic"],
+            f"held_out semantic baseline {held_base['semantic']} should be below the "
+            f"dev baseline {dev_base['semantic']}")
+
+
+@_register("t_eval_gate_refuses_a_report_from_a_different_measurement")
+def t_eval_gate_refuses_a_report_from_a_different_measurement():
+    """A gate must refuse a report it was not derived from.
+
+    Gating a dev report against held_out thresholds (or a MiniLM report
+    against 3-large thresholds) compares numbers from two different
+    measurements and means nothing. The gate reads the profile and
+    split out of the report header and refuses on a mismatch.
+    """
+    import subprocess
+    import sys
+    import tempfile
+    from pathlib import Path
+
+    report = """# Bible LLM Reference — Retrieval Evaluation Report
+
+**Profile:** local
+**Benchmark:** v2
+**Split:** dev
+**Top-k:** 10
+
+## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.119 | 0.172 | 0.125 | 0.167 | 2.6 |
+| semantic | 0.189 | 0.300 | 0.229 | 0.257 | 0.2 |
+| hybrid | 0.183 | 0.291 | 0.208 | 0.241 | 0.2 |
+"""
+    with tempfile.TemporaryDirectory() as tmp:
+        report_path = Path(tmp) / "report.md"
+        report_path.write_text(report, encoding="utf-8")
+        cmd = [
+            sys.executable, str(ROOT / "scripts" / "eval_gate.py"),
+            "--report", str(report_path),
+            "--gate", "local/v2-held_out",
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        _assert(proc.returncode != 0,
+                "gating a dev report against held_out thresholds must fail, "
+                f"but exited 0. stdout={proc.stdout!r} stderr={proc.stderr!r}")
+        _assert("does not match" in proc.stderr,
+                f"the failure must say the report does not match the gate: {proc.stderr!r}")
+
+
+@_register("t_eval_gate_held_out_gate_passes_against_its_measured_baseline")
+def t_eval_gate_held_out_gate_passes_against_its_measured_baseline():
+    """The held_out gate must pass against the numbers it was derived from.
+
+    A gate that fails on the measurement it was calibrated against is
+    a broken gate. This one uses the baselines measured 2026-10-28 for
+    the local profile on the v2 held_out split.
+    """
+    import subprocess
+    import sys
+    import tempfile
+    from pathlib import Path
+
+    report = """# Bible LLM Reference — Retrieval Evaluation Report
+
+**Profile:** local
+**Benchmark:** v2
+**Split:** held_out
+**Top-k:** 10
+
+## Summary
+
+| Path | Recall@K | MRR | Primary-in-top-1 | nDCG@K | Queries/s |
+|------|----------|-----|------------------|--------|-----------|
+| bm25 | 0.092 | 0.189 | 0.143 | 0.151 | 2.8 |
+| semantic | 0.106 | 0.117 | 0.071 | 0.128 | 1.0 |
+| hybrid | 0.115 | 0.139 | 0.095 | 0.135 | 1.0 |
+"""
+    with tempfile.TemporaryDirectory() as tmp:
+        report_path = Path(tmp) / "report.md"
+        report_path.write_text(report, encoding="utf-8")
+        cmd = [
+            sys.executable, str(ROOT / "scripts" / "eval_gate.py"),
+            "--report", str(report_path),
+            "--gate", "local/v2-held_out",
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        _assert(proc.returncode == 0,
+                f"the held_out gate must pass its own baseline: {proc.stdout!r} {proc.stderr!r}")
 
 
 # ---------------------------------------------------------------------------

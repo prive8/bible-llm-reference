@@ -50,8 +50,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from bible.search import get_bm25_index  # noqa: E402
-from bible.semantic import (  # noqa: E402
+from bible.semantic import (
+    EMBEDDER_PROFILES,  # noqa: E402
     EMBEDDINGS_DIR,
+    get_embedder_profile,
     load_vector_index,
     search_semantic,
 )
@@ -239,6 +241,7 @@ def run_path(
     index_name: str = "default",
     backend: str = "local",
     tradition: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> dict:
     """Run one retrieval path against the benchmark; return aggregate metrics."""
     per_query: list[dict] = []
@@ -259,7 +262,7 @@ def run_path(
                 return {"skipped": True, "reason": f"no semantic index '{index_name}' built"}
             hits = search_semantic(
                 query, index_name=index_name, top_k=top_k,
-                tradition=tradition, backend=backend,
+                tradition=tradition, backend=backend, model=model,
             )
             retrieved = [h["citation"] for h in hits]
         elif path == "hybrid":
@@ -275,7 +278,7 @@ def run_path(
             ]
             sem_hits = search_semantic(
                 query, index_name=index_name, top_k=top_k,
-                tradition=tradition, backend=backend,
+                tradition=tradition, backend=backend, model=model,
             )
             fused = hybrid_search(
                 query=query,
@@ -329,12 +332,27 @@ def run_path(
     return aggregate
 
 
-def format_report(results: dict[str, dict], top_k: int, benchmark_info: str = "v1") -> str:
-    """Format the three-path results as a human-readable markdown report."""
+def format_report(
+    results: dict[str, dict],
+    top_k: int,
+    benchmark_info: str = "v1",
+    profile: str = "",
+    benchmark: str = "",
+    split: str = "",
+) -> str:
+    """Format the three-path results as a human-readable markdown report.
+
+    The profile, benchmark, and split are written into the header so
+    the report says which measurement produced it. The gate reads them
+    back and refuses to apply thresholds that were derived from a
+    different one.
+    """
     lines = [
         "# Bible LLM Reference — Retrieval Evaluation Report",
         "",
-        f"**Benchmark:** {benchmark_info}",
+        f"**Profile:** {profile}",
+        f"**Benchmark:** {benchmark}",
+        f"**Split:** {split}",
         f"**Top-k:** {top_k}",
         f"**Benchmark queries evaluated:** {sum(r['n_queries'] for r in results.values() if not r.get('skipped'))}",
         "",
@@ -440,14 +458,35 @@ def main() -> int:
                         help="Optional CSV output path for per-query rows")
     parser.add_argument("--limit", type=int, default=0,
                         help="Optional: limit benchmark to first N queries (for quick iteration)")
-    parser.add_argument("--index", default="default",
-                        help="Vector index name for semantic/hybrid paths (default 'default')")
-    parser.add_argument("--backend", default="local",
+    parser.add_argument("--profile", default=None,
+                        choices=sorted(EMBEDDER_PROFILES),
+                        help="Embedder profile to score against. The profile supplies the "
+                             "index, backend, and model together. Default: the local "
+                             "(MiniLM) profile, which is free and needs no API key.")
+    parser.add_argument("--index", default=None,
+                        help="Vector index name for semantic/hybrid paths (default: the "
+                             "profile's index)")
+    parser.add_argument("--backend", default=None,
                         choices=["local", "openrouter", "nim", "mock", "auto"],
-                        help="Embedder backend for query encoding (default 'local'; use "
-                             "'openrouter' if the named --index was built with the OpenRouter "
-                             "embedder — dimensions must match)")
+                        help="Embedder backend for query encoding (default: the profile's "
+                             "backend)")
     args = parser.parse_args()
+
+    # Resolve the profile. It binds the index, the backend, and the
+    # model together, so the query encoder always matches the index it
+    # scores against.
+    profile = get_embedder_profile(args.profile or "local")
+    if args.index is not None and args.index != profile.index_name:
+        print(f"ERROR: --index {args.index!r} does not match profile {profile.name!r}, "
+              f"which uses index {profile.index_name!r}.", file=sys.stderr)
+        return 2
+    if args.backend is not None and args.backend != profile.backend:
+        print(f"ERROR: --backend {args.backend!r} does not match profile {profile.name!r}, "
+              f"which uses the {profile.backend!r} backend.", file=sys.stderr)
+        return 2
+    args.index = profile.index_name
+    args.backend = profile.backend
+    args.model = profile.model
 
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -473,6 +512,11 @@ def main() -> int:
         trad = args.tradition
         bench_info = f"v1 ({len(benchmark_items)} queries)"
 
+    # The header records which measurement this is, so the gate can
+    # refuse to apply thresholds derived from a different one.
+    bench_name = "v2" if args.benchmark == "v2" else "v1"
+    split_name = args.split if args.benchmark == "v2" else "all"
+
     benchmark = benchmark_items[:args.limit] if args.limit else benchmark_items
     print(f"Running {len(benchmark)} queries ({bench_info}) × {len(paths)} path(s), top_k={args.top_k}...",
           file=sys.stderr)
@@ -489,6 +533,7 @@ def main() -> int:
             index_name=args.index,
             backend=args.backend,
             tradition=trad,
+            model=args.model,
         )
         if not results[path].get("skipped"):
             r = results[path]
@@ -515,7 +560,10 @@ def main() -> int:
                     ])
         print(f"\nWrote per-query CSV to {args.csv}", file=sys.stderr)
 
-    print(format_report(results, args.top_k, benchmark_info=bench_info))
+    print(format_report(
+        results, args.top_k, benchmark_info=bench_info,
+        profile=profile.name, benchmark=bench_name, split=split_name,
+    ))
     return 0
 
 

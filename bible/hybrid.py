@@ -308,12 +308,12 @@ def main():
         for h in bm25_hits
     ]
 
+    # No index/backend here: the default embedder profile supplies both,
+    # together with the model and dimension they must agree on.
     sem_hits = search_semantic(
         args.query,
-        index_name="default",
         top_k=args.semantic_limit,
         tradition=None,
-        backend="auto",
     )
 
     run_hybrid(

@@ -8,6 +8,9 @@ Usage:
     python scripts/eval_gate.py --report /tmp/eval_report.txt \
         --threshold bm25=0.06 --threshold semantic=0.25 --threshold hybrid=0.22
 
+    python scripts/eval_gate.py --report /tmp/eval_report.txt \
+        --gate local/v2-held_out
+
 Exit codes:
     0  every path met its threshold
     1  at least one path was below threshold, or a path was missing
@@ -29,9 +32,15 @@ Design notes (each of these is a failure mode this script exists to prevent):
 
 3. **Thresholds are supplied by the caller, not hardcoded.** The v1 and v2
    benchmarks have different scales and different baselines; the numbers
-   live with the workflow that uses them.
+   live in `config/retrieval_gates.json`, keyed by profile and split.
 
-4. **Stdlib only.** `bible/` is stdlib-only by ADR-001 and this script runs
+4. **The report must match the gate.** `--gate` names an entry in that
+   config, and the report must say it was produced by that profile on
+   that split. Gating a dev report against held-out thresholds (or a
+   MiniLM report against 3-large thresholds) would compare numbers from
+   two different measurements and mean nothing.
+
+5. **Stdlib only.** `bible/` is stdlib-only by ADR-001 and this script runs
    in the same CI job, so it must not import anything outside the standard
    library.
 """
@@ -39,9 +48,13 @@ Design notes (each of these is a failure mode this script exists to prevent):
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_GATES_CONFIG = REPO_ROOT / "config" / "retrieval_gates.json"
 
 
 def extract_summary(report: str) -> str:
@@ -55,6 +68,35 @@ def extract_summary(report: str) -> str:
         if marker in tail:
             tail = tail.split(marker, 1)[0]
     return tail
+
+
+def load_gates(config_path: Path) -> dict:
+    """Load the gate configuration."""
+    if not config_path.exists():
+        raise FileNotFoundError(f"gate config not found: {config_path}")
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def parse_report_header(report: str) -> dict:
+    """Read the profile/split lines run_eval.py writes into its report.
+
+    Returns a dict with keys ``profile``, ``benchmark``, ``split``
+    (each empty string when the report does not state it).
+    """
+    header: dict[str, str] = {"profile": "", "benchmark": "", "split": ""}
+    for key in header:
+        # The report writes "**Split:**" — match the key case-insensitively
+        # so a rename of the header label cannot silently stop the gate
+        # from seeing the mismatch.
+        m = re.search(
+            rf"^\*\*{key}:\*\*\s*(\S+)\s*$",
+            report,
+            re.MULTILINE | re.IGNORECASE,
+        )
+        if m:
+            header[key] = m.group(1)
+    return header
 
 
 def parse_recall(summary: str, path_name: str):
@@ -76,7 +118,37 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--threshold", action="append", default=[],
                         metavar="PATH=VALUE",
                         help="threshold for a path, e.g. semantic=0.25 (repeatable)")
+    parser.add_argument("--gate", default=None,
+                        help="named gate from the config file, e.g. local/v2-held_out. "
+                             "Supplies the thresholds and the expected profile/split.")
+    parser.add_argument("--gates-config", type=Path, default=DEFAULT_GATES_CONFIG,
+                        help="path to the gate configuration (default: config/retrieval_gates.json)")
     args = parser.parse_args(argv)
+
+    if args.gate and args.threshold:
+        print("--gate and --threshold are mutually exclusive", file=sys.stderr)
+        return 2
+
+    expected: dict = {}
+
+    if args.gate:
+        try:
+            config = load_gates(args.gates_config)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"cannot read gate config: {e}", file=sys.stderr)
+            return 2
+        entry = config.get("gates", {}).get(args.gate)
+        if entry is None:
+            known = ", ".join(sorted(config.get("gates", {})))
+            print(f"unknown gate {args.gate!r}. Known gates: {known}", file=sys.stderr)
+            return 2
+        for path_name, value in entry.get("thresholds", {}).items():
+            args.threshold.append(f"{path_name}={value}")
+        expected = {
+            "profile": entry.get("profile", ""),
+            "benchmark": entry.get("benchmark", ""),
+            "split": entry.get("split", ""),
+        }
 
     if not args.threshold:
         print("no thresholds given", file=sys.stderr)
@@ -100,6 +172,25 @@ def main(argv: list[str] | None = None) -> int:
 
     report = args.report.read_text(encoding="utf-8")
     summary = extract_summary(report)
+
+    # A gate is only meaningful against the measurement it was derived
+    # from. If the report says it came from a different profile or
+    # split, the numbers are not the ones the thresholds were set
+    # below, and comparing them would be meaningless at best.
+    if expected:
+        header = parse_report_header(report)
+        mismatches = [
+            f"{key}: report says {header[key]!r}, gate expects {value!r}"
+            for key, value in expected.items()
+            if value and header[key] and header[key] != value
+        ]
+        if mismatches:
+            print("::error::report does not match the gate", file=sys.stderr)
+            for line in mismatches:
+                print(f"  {line}", file=sys.stderr)
+            print("  The thresholds were derived from a different measurement.",
+                  file=sys.stderr)
+            return 1
 
     failed: list[str] = []
     for name, threshold in thresholds.items():

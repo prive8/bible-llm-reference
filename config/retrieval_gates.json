@@ -1,0 +1,121 @@
+{
+  "_comment": [
+    "Retrieval gate thresholds. One entry per (profile, benchmark, split).",
+    "",
+    "Each entry records the measured baseline it was derived from, the",
+    "thresholds set below it, and when it was measured. The rule for the",
+    "thresholds is the same one the v2 dev gate already used:",
+    "",
+    "    threshold = measured baseline - 0.04",
+    "",
+    "rounded DOWN to two decimals. The margin absorbs corpus growth; it",
+    "is not slack for a regression. A threshold is never set at or above",
+    "its baseline, and an existing gate's thresholds are never raised",
+    "to make a failing run pass.",
+    "",
+    "Each gate is derived INDEPENDENTLY from the baseline of the split",
+    "it scores. The held_out thresholds are NOT the dev thresholds:",
+    "held_out is a harder split, so its baselines are lower and its",
+    "thresholds are correspondingly lower. Reusing the dev thresholds",
+    "on held_out would fail on current code and prove nothing.",
+    "",
+    "'local' is the MiniLM profile: free, offline, deterministic, and",
+    "what CI builds. '3large' is the production default (ADR-016); its",
+    "gates need an OpenRouter key and a 3072-dim index, so they are not",
+    "run by the default CI job. See notes/2026-10-28-default-embedder-3large.md."
+  ],
+  "margin": 0.04,
+  "gates": {
+    "local/v1": {
+      "profile": "local",
+      "benchmark": "v1",
+      "split": "all",
+      "tradition": "christianity",
+      "measured": "2026-10-25",
+      "baseline": {"bm25": 0.108, "semantic": 0.282, "hybrid": 0.273},
+      "thresholds": {"bm25": 0.06, "semantic": 0.25, "hybrid": 0.22},
+      "note": [
+        "The historical gate. The v1 benchmark's 204 expected citations are",
+        "all Bible, so it is scoped to Christianity: unscoped, the 3-tradition",
+        "index dilutes it to 0.234, which measures scope, not retrieval.",
+        "Thresholds are unchanged since 2026-09-11."
+      ]
+    },
+    "local/v2-dev": {
+      "profile": "local",
+      "benchmark": "v2",
+      "split": "dev",
+      "tradition": null,
+      "measured": "2026-10-25",
+      "baseline": {"bm25": 0.119, "semantic": 0.189, "hybrid": 0.183},
+      "thresholds": {"bm25": 0.08, "semantic": 0.15, "hybrid": 0.14},
+      "note": [
+        "The cross-tradition gate. 48 dev queries whose 229 expected citations",
+        "span Christianity (111), Tanakh (73) and Quran (45), unscoped so all",
+        "three traditions are searchable. Unchanged since 2026-10-25."
+      ]
+    },
+    "local/v2-held_out": {
+      "profile": "local",
+      "benchmark": "v2",
+      "split": "held_out",
+      "tradition": null,
+      "measured": "2026-10-28",
+      "baseline": {"bm25": 0.092, "semantic": 0.106, "hybrid": 0.115},
+      "thresholds": {"bm25": 0.05, "semantic": 0.06, "hybrid": 0.07},
+      "note": [
+        "The held-out gate. 42 queries that the dev thresholds were never",
+        "tuned against. Its own baselines are much lower than dev's",
+        "(semantic 0.106 vs 0.189), which is the correct signal: the local",
+        "embedder adds little over BM25 on the harder split. Applying the",
+        "dev thresholds here would fail on current code.",
+        "",
+        "These thresholds are derived from these baselines with the same",
+        "0.04 margin the dev gate uses. They are NOT the dev thresholds.",
+        "",
+        "Held-out is a measurement split, not a tuning split. Thresholds are",
+        "derived from its baselines and then frozen; they are not adjusted",
+        "in response to what the gate reports, which is what would turn a",
+        "held-out split into a second dev split."
+      ]
+    },
+    "3large/v2-dev": {
+      "profile": "3large",
+      "benchmark": "v2",
+      "split": "dev",
+      "tradition": null,
+      "measured": "2026-10-28",
+      "baseline": {"bm25": 0.119, "semantic": 0.297, "hybrid": 0.284},
+      "thresholds": {"bm25": 0.08, "semantic": 0.25, "hybrid": 0.24},
+      "note": [
+        "The production default profile's gate (ADR-016). Measured against",
+        "the COMPLETE 66,689 x 3072 index. The 2026-10-26 number for this",
+        "profile (0.344) was void: that index held only 30,159 vectors and",
+        "was Christianity-only. See notes/2026-10-26-truncated-index-found.md.",
+        "",
+        "BM25 is identical to the local gate's (0.119) because BM25 does not",
+        "use the embedder. That equality is the internal control showing the",
+        "benchmark, corpus and scorer were the same in both arms.",
+        "",
+        "Requires an OpenRouter key and a 3072-dim index. Not run by the",
+        "default CI job; see the ADR for why."
+      ]
+    },
+    "3large/v2-held_out": {
+      "profile": "3large",
+      "benchmark": "v2",
+      "split": "held_out",
+      "tradition": null,
+      "measured": "2026-10-28",
+      "baseline": {"bm25": 0.092, "semantic": 0.244, "hybrid": 0.226},
+      "thresholds": {"bm25": 0.05, "semantic": 0.20, "hybrid": 0.18},
+      "note": [
+        "The production default profile's held-out gate. The gain over the",
+        "local profile holds on the split nobody tuned against: semantic",
+        "0.244 vs 0.106, hybrid 0.226 vs 0.115.",
+        "",
+        "Requires an OpenRouter key and a 3072-dim index."
+      ]
+    }
+  }
+}

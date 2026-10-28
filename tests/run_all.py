@@ -1634,21 +1634,21 @@ def t_eval_gate_benchmark_v2_dev_held_out_are_disjoint():
 
 @_register("t_eval_gate_benchmark_v2_dev_baseline_is_stable")
 def t_eval_gate_benchmark_v2_dev_baseline_is_stable():
-    """Every threshold the WORKFLOW actually passes to the gate must be
-    strictly below the measured baseline for the benchmark that step
-    scores. Raising a threshold above its baseline would make the gate
-    fail on the current code — or, worse, someone "fixing" a red gate by
-    raising the threshold instead of fixing the regression.
+    """Every gate the WORKFLOW runs must be a real gate, scored below its
+    own measured baseline.
 
-    Baselines measured 2026-10-25 against the 66,689-passage
-    multi-tradition index:
-      v1 (scoped to Christianity): bm25 0.108, semantic 0.282, hybrid 0.273
-      v2 dev (unscoped)          : bm25 0.119, semantic 0.189, hybrid 0.183
+    The thresholds moved out of the workflow and into
+    `config/retrieval_gates.json` (2026-10-28) so that one file records,
+    per profile and split, both the threshold and the measured baseline
+    it was derived from. A threshold raised above its baseline fails on
+    current code — or, worse, someone "fixes" a red gate by raising the
+    threshold instead of fixing the regression.
 
     This does NOT re-run the eval: the harness is deterministic (verified:
     bm25 and semantic return identical numbers across repeated runs), so
     the baselines are fixed values, not samples.
     """
+    import json
     import re
 
     BASELINES = {
@@ -1659,34 +1659,59 @@ def t_eval_gate_benchmark_v2_dev_baseline_is_stable():
     workflow_path = ROOT / ".github" / "workflows" / "ci.yml"
     workflow = workflow_path.read_text(encoding="utf-8")
 
+    config = json.loads((ROOT / "config" / "retrieval_gates.json").read_text(encoding="utf-8"))
+    gates = config["gates"]
+
     # Split the workflow into steps by their "- name:" markers, then find the
     # retrieval-evaluation steps. Doing this by hand rather than with one
     # greedy regex: a greedy pattern spans BOTH steps and collapses them into
     # one, which silently checks only whichever step came last.
     step_blocks = re.split(r"\n(?=\s+- name: )", workflow)
     eval_steps = [b for b in step_blocks
-                  if re.match(r"\s+- name: Run retrieval evaluation - (v1|v2)\b", b)]
-    _assert(len(eval_steps) == 2,
-            f"expected 2 retrieval-evaluation steps (v1, v2), found {len(eval_steps)}")
+                  if re.match(r"\s+- name: Run retrieval evaluation - (v1|v2)", b)]
+    _assert(len(eval_steps) == 3,
+            f"expected 3 retrieval-evaluation steps (v1, v2 dev, v2 held out), "
+            f"found {len(eval_steps)}")
 
+    ran_gates = set()
     for block in eval_steps:
-        m = re.match(r"\s+- name: Run retrieval evaluation - (v1|v2)\b", block)
-        bench = m.group(1)
-        baseline = BASELINES[bench]
+        found = re.findall(r"--gate\s+(\S+)", block)
+        _assert(bool(found),
+                "no --gate argument found in a retrieval-evaluation step: "
+                "the workflow must name a configured gate")
+        for gate_name in found:
+            ran_gates.add(gate_name)
+            _assert(gate_name in gates,
+                    f"the workflow runs gate {gate_name!r}, which is not in "
+                    f"config/retrieval_gates.json")
 
-        found = dict(re.findall(r"--threshold\s+(\w+)=([0-9.]+)", block))
-        _assert(bool(found), f"no --threshold arguments found in the {bench} gate step")
+    # The three CI gates, and they must all be the local profile: CI
+    # builds the local index and has no embedding-API credential.
+    for expected_gate in ("local/v1", "local/v2-dev", "local/v2-held_out"):
+        _assert(expected_gate in ran_gates,
+                f"the workflow must run the {expected_gate!r} gate; it runs {sorted(ran_gates)}")
 
-        for path_name, base in baseline.items():
-            _assert(path_name in found,
-                    f"{bench} gate has no threshold for {path_name!r}; found {found}")
-            threshold = float(found[path_name])
+    for gate_name in ran_gates:
+        entry = gates[gate_name]
+        _assert(entry["profile"] == "local",
+                f"CI gate {gate_name!r} scores profile {entry['profile']!r}; CI "
+                f"builds the local index and has no API credential")
+        baseline = entry["baseline"]
+        for path_name, threshold in entry["thresholds"].items():
+            base = baseline[path_name]
             _assert(threshold < base,
-                    f"{bench} {path_name} threshold {threshold} is not below the "
+                    f"{gate_name} {path_name} threshold {threshold} is not below the "
                     f"measured baseline {base} — the gate would fail on current code")
             _assert(threshold > 0,
-                    f"{bench} {path_name} threshold {threshold} is not positive — the "
-                    f"gate would pass on any score, including zero")
+                    f"{gate_name} {path_name} threshold {threshold} is not positive — "
+                    f"the gate would pass on any score, including zero")
+
+    # The v1 and v2 dev baselines must still be the ones measured on
+    # 2026-10-25 — a gate may not quietly be re-baselined upward.
+    _assert(gates["local/v1"]["baseline"] == BASELINES["v1"],
+            f"the v1 baseline changed: {gates['local/v1']['baseline']} != {BASELINES['v1']}")
+    _assert(gates["local/v2-dev"]["baseline"] == BASELINES["v2"],
+            f"the v2 dev baseline changed: {gates['local/v2-dev']['baseline']} != {BASELINES['v2']}")
 
     note = ROOT / "notes" / "2026-10-25-ci-eval-regression-restored.md"
     _assert(note.exists(), f"expected the baseline note at {note}")

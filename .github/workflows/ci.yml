@@ -150,7 +150,7 @@ jobs:
         # current corpus exactly. If anything is already on disk it is
         # stale, so replace it rather than failing.
         if: steps.index-cache.outputs.cache-hit != 'true'
-        run: python scripts/index_embeddings.py --backend local --name default --batch-size 64 --overwrite
+        run: python scripts/index_embeddings.py --profile local --batch-size 64 --overwrite
 
       - name: Verify the index matches the current corpus
         # The point of this step: run_eval.py SKIPS the semantic and
@@ -235,11 +235,8 @@ jobs:
         # bm25 0.06 (baseline 0.093), semantic 0.25 (0.279),
         # hybrid 0.22 (0.258).
         run: |
-          python scripts/run_eval.py --paths bm25,semantic,hybrid --tradition christianity > /tmp/eval_report_v1.txt
-          python scripts/eval_gate.py --report /tmp/eval_report_v1.txt \
-            --threshold bm25=0.06 \
-            --threshold semantic=0.25 \
-            --threshold hybrid=0.22
+          python scripts/run_eval.py --paths bm25,semantic,hybrid --tradition christianity --profile local > /tmp/eval_report_v1.txt
+          python scripts/eval_gate.py --report /tmp/eval_report_v1.txt --gate local/v1
 
       - name: Run retrieval evaluation - v2 dev (cross-tradition, unscoped)
         # The v2 dev split is the benchmark that matches the
@@ -259,11 +256,25 @@ jobs:
         # higher because that benchmark is single-domain; reusing the
         # v1 thresholds here would fail on the current code.
         run: |
-          python scripts/run_eval.py --paths bm25,semantic,hybrid --benchmark v2 --split dev > /tmp/eval_report_v2.txt
-          python scripts/eval_gate.py --report /tmp/eval_report_v2.txt \
-            --threshold bm25=0.08 \
-            --threshold semantic=0.15 \
-            --threshold hybrid=0.14
+          python scripts/run_eval.py --paths bm25,semantic,hybrid --benchmark v2 --split dev --profile local > /tmp/eval_report_v2.txt
+          python scripts/eval_gate.py --report /tmp/eval_report_v2.txt --gate local/v2-dev
+
+      - name: Run retrieval evaluation - v2 held out (cross-tradition, unscoped)
+        # The held_out split is the honest measurement: 42 queries the
+        # dev thresholds were never tuned against. It needs its OWN
+        # thresholds, because the split is harder — the local profile
+        # scores semantic 0.106 there against 0.189 on dev. Reusing the
+        # dev thresholds (semantic 0.15) would fail on current code and
+        # prove nothing.
+        #
+        # The thresholds live in config/retrieval_gates.json, keyed by
+        # profile and split, each recorded against the baseline it was
+        # derived from. They are NOT adjusted in response to what this
+        # gate reports: that would turn a held-out split into a second
+        # dev split.
+        run: |
+          python scripts/run_eval.py --paths bm25,semantic,hybrid --benchmark v2 --split held_out --profile local > /tmp/eval_report_v2_heldout.txt
+          python scripts/eval_gate.py --report /tmp/eval_report_v2_heldout.txt --gate local/v2-held_out
 
       - name: Upload eval reports as CI artifacts
         if: always()
@@ -273,4 +284,5 @@ jobs:
           path: |
             /tmp/eval_report_v1.txt
             /tmp/eval_report_v2.txt
+            /tmp/eval_report_v2_heldout.txt
           retention-days: 14

@@ -11,8 +11,14 @@ Coding agents start here, then read [`README.md`](./README.md) for what the repo
 
 This is the only work queue in the repo.
 
-1. The fleet to-do board: `shared/TODO.md` in the private vault `prive8/obsidian-vault-shared`. The vault is private; this file only records the path.
-2. The latest file in [`notes/`](./notes/). Session notes use Done / Blocked / Tomorrow / Decisions. The retrieval-gate note is [`notes/2026-10-25-ci-eval-regression-restored.md`](./notes/2026-10-25-ci-eval-regression-restored.md).
+1. dad-h2, assigned by solomon-grokbot (PM) on 2026-10-28. Make OpenAI `text-embedding-3-large` the default embedder.
+   - Decision: Steven chose OpenAI text-embedding-3-large as the default embedder (resolves the ADR-014 decision brief, [`notes/2026-10-26-adr-014-decision-brief.md`](./notes/2026-10-26-adr-014-decision-brief.md)). Numbers on the v2 cross-tradition dev gate: qwen3-8b 0.321 @ ~9.6 s/query, 3-large 0.297 @ ~2.9 s, local MiniLM 0.189 @ ~0.8 s. A qwen3-8b "deep study" mode is not decided.
+   - Goal: make 3-large the default; mark ADR-014 Accepted; then pick up the held_out retrieval gate that was waiting on this decision.
+   - Acceptance: default config/CLI uses 3-large with a complete (non-truncated) index; ADR-014 Accepted with date and numbers; CI green on all 8 PR jobs (ubuntu+windows, Py3.10-3.13); gate thresholds only raised, or any change justified in the ADR (never loosened to turn red green); ADR-001 stdlib-only respected aside from the existing embedding API path; licensed texts untouched.
+   - Files: embedder config/defaults, eval gate scripts/thresholds, ADR-014, README, AGENTS.md.
+   - Reminder: update README and AGENTS.md when done, including the stale test count (says 155; dad-h2's 2026-10-26 changelog says 170), and log in the vault.
+2. The fleet to-do board: `shared/TODO.md` in the private vault `prive8/obsidian-vault-shared`. The vault is private; this file only records the path.
+3. The latest file in [`notes/`](./notes/). Session notes use Done / Blocked / Tomorrow / Decisions. The retrieval-gate note is [`notes/2026-10-25-ci-eval-regression-restored.md`](./notes/2026-10-25-ci-eval-regression-restored.md).
 
 [`HANDOFF.md`](./HANDOFF.md) points here and at the README. [`docs/foundation-plan.md`](./docs/foundation-plan.md) is the 2026-10-08 review. The work queue is the list above.
 

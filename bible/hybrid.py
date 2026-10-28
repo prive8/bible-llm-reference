@@ -23,6 +23,19 @@ result set. Two key design choices:
 
 CLI:
     python -m bible hybrid "comfort in grief" [--bm25-weight 0.5] [--top-k 10] [-n 5] [--json]
+
+The semantic leg runs under an embedder profile (ADR-016). The profile
+binds the backend, the model, the index, and the dimension together, so
+the query encoder can never be paired with an index it did not build.
+
+The semantic leg is OPTIONAL for hybrid: BM25 needs no embedder. When
+the profile cannot run on this machine — no OpenRouter key for the
+hosted profiles, no sentence-transformers for the local one — or when
+its index has not been built, the command says so loudly and returns
+the BM25 leg alone. It never silently substitutes a DIFFERENT embedder:
+that would score the query against an index from another model's
+space, which measures nothing (ADR-016, and the dimension guard in
+``bible/semantic.py``).
 """
 from __future__ import annotations
 
@@ -31,6 +44,17 @@ import json
 import math
 import sys
 from typing import Optional
+
+# The embedder profile registry. Importing it at module scope keeps the
+# CLI's --profile choices and the default-profile lookup honest: the
+# same registry the semantic CLI and the indexer use.
+from bible.semantic import (
+    DEFAULT_EMBEDDER_PROFILE,
+    EMBEDDER_PROFILES,
+    EMBEDDINGS_DIR,
+    ProfileUnavailableError,
+    get_embedder_profile,
+)
 
 
 # Helper: reconfigure stdout to UTF-8 for Windows console safety. Done at
@@ -214,8 +238,16 @@ def run_hybrid(
     solo_weight: float = DEFAULT_SOLO_WEIGHT,
     top_k: int = 10,
     as_json: bool = False,
+    semantic_note: str = "",
 ) -> list[dict]:
-    """High-level runner for hybrid search. Returns the fused result list."""
+    """High-level runner for hybrid search. Returns the fused result list.
+
+    ``semantic_note`` is a non-empty string when the semantic leg could
+    not run, so the caller knows these are BM25-only results. It is
+    carried into the JSON output because a machine consumer that
+    discards stderr would otherwise read a degraded result set as a
+    full hybrid one.
+    """
     results = hybrid_search(
         query=query,
         bm25_results=bm25_results,
@@ -226,13 +258,17 @@ def run_hybrid(
     )
 
     if as_json:
-        print(json.dumps({
+        payload = {
             "query": query,
             "bm25_weight": bm25_weight,
             "solo_weight": solo_weight,
             "results_count": len(results),
             "results": results,
-        }, ensure_ascii=False, indent=2))
+        }
+        if semantic_note:
+            payload["semantic_leg"] = "unavailable"
+            payload["semantic_note"] = semantic_note
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return results
 
     print("=" * 78)
@@ -284,6 +320,12 @@ def main():
         "--semantic-limit", type=int, default=20,
         help="How many semantic candidates to fetch before fusion (default 20)",
     )
+    parser.add_argument(
+        "--profile", default=None, choices=sorted(EMBEDDER_PROFILES),
+        help=f"Embedder profile for the semantic leg (default: {DEFAULT_EMBEDDER_PROFILE} — the "
+             f"production embedder chosen in ADR-016). A profile binds the backend, model, "
+             f"and index together so they cannot be mismatched.",
+    )
     parser.add_argument("--json", action="store_true", help="Output JSON")
 
     args = parser.parse_args()
@@ -308,13 +350,55 @@ def main():
         for h in bm25_hits
     ]
 
-    # No index/backend here: the default embedder profile supplies both,
-    # together with the model and dimension they must agree on.
-    sem_hits = search_semantic(
-        args.query,
-        top_k=args.semantic_limit,
-        tradition=None,
-    )
+    # The semantic leg runs under an embedder profile: the profile
+    # supplies the backend, the model, and the index together, with
+    # the dimension they must agree on.
+    #
+    # It is OPTIONAL for hybrid. BM25 needs no embedder, so a missing
+    # API key or an unbuilt index must not take the whole command down
+    # with a traceback — the BM25 leg still answers the query. But the
+    # degradation is announced, never silent: a caller who asked for
+    # hybrid results and got BM25-only has to be able to tell.
+    #
+    # What this must NOT do is fall back to a DIFFERENT embedder. The
+    # default profile is 3-large (ADR-016); scoring its 3072-dim index
+    # with MiniLM's 384-dim query vector would compare the first 384
+    # dimensions and report a score that measures nothing. When the
+    # resolved profile cannot run here, the semantic leg is dropped
+    # and BM25 answers alone.
+    sem_hits = []
+    semantic_note = ""
+    try:
+        sem_hits = search_semantic(
+            args.query,
+            top_k=args.semantic_limit,
+            tradition=None,
+            profile=args.profile,
+        )
+    except ProfileUnavailableError as e:
+        semantic_note = str(e)
+
+    if not semantic_note and not sem_hits:
+        # The profile resolved and the backend ran, but the query came
+        # back with no semantic hits. That is either a genuinely empty
+        # corpus or an index that was never built. The second case
+        # looks exactly like the first from the caller's side, so
+        # check the artifact and say which it was.
+        prof = get_embedder_profile(args.profile or DEFAULT_EMBEDDER_PROFILE)
+        index_meta = EMBEDDINGS_DIR / f"{prof.index_name}_meta.json"
+        if not index_meta.exists():
+            semantic_note = (
+                f"no vector index for profile {prof.name!r} at {index_meta} "
+                f"(build it with: python scripts/index_embeddings.py --profile {prof.name})"
+            )
+
+    if semantic_note:
+        print(f"WARNING: semantic leg unavailable — {semantic_note}", file=sys.stderr)
+        print(
+            "         Returning BM25-only results. To use the offline MiniLM index\n"
+            "         instead, pass --profile local.",
+            file=sys.stderr,
+        )
 
     run_hybrid(
         query=args.query,
@@ -324,6 +408,7 @@ def main():
         solo_weight=args.solo_weight,
         top_k=args.top_k,
         as_json=args.json,
+        semantic_note=semantic_note,
     )
 
 

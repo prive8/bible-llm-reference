@@ -159,6 +159,13 @@ via `scripts/index_embeddings.py --backend openrouter` for any future
 need (paid-tier corpus, different model) but the production default
 stays local.
 
+> **Superseded 2026-10-28 (ADR-016).** The production default is now
+> `openai/text-embedding-3-large`. This page is the **history** of the v1
+> thresholds and of the 2026-09-11 comparison on this Bible-only 33-query
+> benchmark; it is not the live baseline. The live numbers are the v2
+> cross-tradition measurements in the [README](../README.md#retrieval-quality-and-ci)
+> and in `config/retrieval_gates.json`.
+
 Reproduce:
 
 ```bash

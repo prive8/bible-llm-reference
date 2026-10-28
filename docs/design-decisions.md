@@ -419,6 +419,17 @@ end-to-end. Concretely:
   recall@10 improvement I expected is *unvalidated*. ADR-001 (local-first)
   holds until measurement proves the swap is worth the spend.
 
+> **Update 2026-10-28 (ADR-016).** The two conditions this ADR set for a
+> swap — credits purchased, and quality validated against the local
+> baseline — were both met, and the validation was run on the
+> cross-tradition **v2** benchmark rather than the 33-query Bible-only set
+> used here. The hosted path's default model is now
+> `openai/text-embedding-3-large` (3072-dim), not the 3-small this ADR
+> chose, and the hosted path IS the production default. The Block 1-4
+> staged run and the ~$0.10/full-corpus cost measured below remain valid as
+> the validation record; the *decision* they supported is superseded by
+> **ADR-016**.
+
 ### Sign-off
 
 This ADR is signed off by the acting chair (Pierce) on 2026-09-11
@@ -426,10 +437,14 @@ under the single-contributor convening from `COUNCIL.md` §3.1.
 ## ADR-014 — Local sentence-transformers is the production embedder (v0.15.0)
 
 **Date:** 2026-09-11
-**Status:** Accepted
+**Status:** Accepted (2026-09-11)
 **Deciders:** Pierce (acting chair per `COUNCIL.md` §6.1)
 **Supersedes:** — (affirms ADR-001; clarifies that ADR-013 did not change production default)
 **Closes:** HANDOFF §8 #1, #8, #10 (with the OpenRouter path kept available-but-not-provisioned)
+**Superseded by:** **ADR-016 (2026-10-28)** — the production default embedder is now
+`openai/text-embedding-3-large`, not the local `all-MiniLM-L6-v2`. The decision below
+stands as the record of what was true on 2026-09-11; it no longer describes the
+default. Read ADR-016 for the current default and for the measurement that changed it.
 
 ### Context
 
@@ -563,6 +578,13 @@ trade-off is now precision-vs-recall:
 an alternate for any future feature that needs ranking precision over
 raw recall. Full details in `notes/2026-09-19-3large-benchmark.md`.
 
+> **Superseded in part by ADR-016 (2026-10-28).** The *decision* recorded
+> here — keep the production default local — no longer holds: the default
+> is now `openai/text-embedding-3-large`. This ADR stays as the record of
+> the 2026-09-11 comparison, on the 33-query Bible-only benchmark; ADR-016
+> supersedes it on the cross-tradition v2 benchmark, where the ranking
+> reverses (3-large 0.297 vs local 0.189 semantic on v2 dev).
+
 ### Consequences
 
 **Positive:**
@@ -609,3 +631,165 @@ raw recall. Full details in `notes/2026-09-19-3large-benchmark.md`.
 
 This ADR is signed off by the acting chair (Pierce) on 2026-09-11
 under the single-contributor convening from `COUNCIL.md` §3.1.
+
+---
+
+## ADR-016 — OpenAI text-embedding-3-large is the production embedder
+
+**Date:** 2026-10-28
+**Status:** Accepted
+**Deciders:** Steven (acting chair per `COUNCIL.md` §6.1)
+**Supersedes:** ADR-014 (local sentence-transformers as the production default)
+**Closes:** The open question in ADR-014's "Negative" section; resolves
+[`notes/2026-10-26-adr-014-decision-brief.md`](../notes/2026-10-26-adr-014-decision-brief.md)
+**Related:** ADR-013 (hosted-path validation record), ADR-015 (the earlier
+33-query comparison this one replaces on the cross-tradition benchmark)
+
+### Context
+
+ADR-014 made the local `all-MiniLM-L6-v2` embedder the production default,
+and gave the condition for changing it explicitly:
+
+> The OpenRouter path is wired and available but unused **until credits are
+> purchased and quality is validated against the local baseline.**
+
+Both conditions are now met. Credits are purchased ($10, $8.80 remaining at
+the time of the decision), and the quality comparison has been run on
+**benchmark v2** — the multi-tradition benchmark that matches the corpus
+this project actually ships. v1 is 100% Bible and was the wrong instrument
+for a three-tradition corpus; ADR-015's comparison, which used it, is
+retained as history but does not settle the question.
+
+The decision brief (`notes/2026-10-26-adr-014-decision-brief.md`) laid out
+the trade-off and left three things for the chair: the use-case pick, a
+**complete** 3-large measurement (the 2026-09-19 index was truncated — 30,159
+of 66,689 vectors, Christianity-only — so its 0.344 was void), and an ADR-001
+decision on numpy. The first is still open and does not block this ADR: the
+latency figures below are what it needs.
+
+### Measurement (2026-10-28, complete 66,689-passage indexes)
+
+Every number is on the same corpus and the same benchmark, with BM25
+identical across all arms (0.119 dev / 0.092 held_out) as the internal
+control that the benchmark, corpus, and scorer were unchanged.
+
+| Split | Metric | local MiniLM (384-d) | **3-large (3072-d)** | qwen3-8b (4096-d) |
+|---|---|---|---|---|
+| v2 dev | semantic | 0.189 | **0.297** | 0.321 |
+| v2 dev | hybrid | 0.183 | **0.284** | 0.309 |
+| v2 held_out | semantic | 0.106 | **0.244** | 0.255 |
+| v2 held_out | hybrid | 0.115 | **0.226** | 0.234 |
+
+**The gain over local holds on the held-out split** — 0.244 vs 0.106
+semantic, 0.226 vs 0.115 hybrid — so it is not an artifact of the split
+the thresholds were tuned against.
+
+### Latency (the real constraint)
+
+Measured on the real indexes through the shipped code path (`operator.mul`,
+precomputed norms):
+
+| Embedder | Query embed | Index scan | End-to-end | One-time load |
+|---|---|---|---|---|
+| local MiniLM | 161 ms | 0.67 s | **0.83 s** | 1.4 s |
+| **3-large** | 645 ms | 2.27 s | **2.92 s** | 3.9 s |
+| qwen3-8b | 2,900 ms | 6.71 s | **9.61 s** | 22.3 s |
+
+### Decision
+
+**The production embedder default is OpenAI `text-embedding-3-large`
+(`openrouter-3large` profile, 3072-dim), served through OpenRouter.**
+
+3-large is chosen over the local MiniLM default because it is materially
+better on the benchmark that matches the corpus (+0.108 semantic recall@10
+on v2 dev, +0.138 on held_out) at ~2.9 s/query instead of ~0.83 s — a
+latency a web reader can absorb.
+
+**qwen3-8b is NOT chosen.** It scores higher still (0.321 dev / 0.255
+held_out) but at ~9.6 s/query, which is disqualifying for a search box. A
+qwen3-8b "deep study" mode remains **undecided** — no model has been picked
+for it and **it is not to be built**. The `qwen3-8b` profile is registered
+only so the comparison above stays reproducible.
+
+**Cost.** Per-query cost is negligible (~$0.00000008/query; a 48-query eval
+is ~$0.000004). The material cost is a **full index rebuild at about $0.74**
+for the 66,689-passage 3072-dim index — a build-time cost amortised over
+every query the index serves, not a per-query charge.
+
+### The safety structure this decision requires
+
+Making a hosted, high-dimensional model the default means a query embedder
+and an index can now disagree on width, and the failure is silent. The
+scoring loop computes `sum(map(mul, query_vec, doc_vec))`, and `map` stops
+at the shorter iterator — so a 3072-dim query against a 384-dim index scored
+the first 384 dimensions and returned a plausible-looking number. That is
+the truncated-index failure mode one layer up, and it is exactly what this
+default would otherwise expose.
+
+So the default switch ships with three structural changes:
+
+1. **Embedder profiles bind the pieces that must agree.** A profile
+   (`3large`, `3small`, `qwen3-8b`, `local`, `local-chunk3`) carries the
+   backend, the model, the index name, and the index's dimension together.
+   They can no longer be supplied independently and mismatched.
+2. **A dimension guard.** A query embedder whose width disagrees with the
+   index raises `DimensionMismatchError` instead of truncating.
+3. **No silent fallback to a different embedder.** If the resolved profile's
+   backend cannot run on this machine, that is an error naming the reason —
+   not something to paper over by quietly scoring with a different model.
+
+The corollary: `bible hybrid` treats its semantic leg as **optional** (BM25
+needs no embedder) and **announces** the degradation on stderr and in its
+JSON payload. It never substitutes a different embedder.
+
+### Gates
+
+`config/retrieval_gates.json` is the single source of truth for retrieval
+thresholds, keyed by profile and split, each entry recording the measured
+baseline it was derived from. Every threshold sits strictly below its own
+baseline; an existing gate's thresholds are never raised to turn a red run
+green. The v2 `held_out` thresholds are derived from the **held_out**
+baselines, not copied from dev.
+
+CI runs three gates, all on the `local` profile — CI builds the local index
+and has no embedding-API credential: `local/v1`, `local/v2-dev`, and
+`local/v2-held_out`. The `3large` gates exist in the config for the same
+profile-plus-split scheme but need an OpenRouter key and a 3072-dim index,
+so they are not run by the default CI job.
+
+### Consequences
+
+**Positive:**
+- Retrieval quality on the cross-tradition benchmark rises from 0.189 to
+  0.297 semantic (dev) and 0.106 to 0.244 (held_out).
+- Every persona improves; the largest gains land on the comparative
+  (Marcus) and academic-neutral (Priya) personas, which query across
+  traditions.
+- The dimension guard and profile coupling close a class of silent
+  scoring bugs that the local default never exposed.
+
+**Negative:**
+- The default now needs an OpenRouter key and spends per-query credit
+  (negligible per query; ~$0.74 per full index rebuild).
+- Latency rises from ~0.83 s to ~2.92 s per query, and the index grows from
+  102 MB to 819 MB on disk with a 3.9 s cold load.
+- ADR-001 (stdlib-only) still holds: the scoring path remains pure stdlib.
+  A numpy path would need a separate ADR (the brief's Option C), and is
+  not part of this decision.
+
+### Related
+
+- ADR-001 — stdlib-only principle (holds)
+- ADR-010 — pluggable embedder factory (the mechanism this default sits on)
+- ADR-013 — OpenRouter hosted-path validation record (Block-4 cost)
+- ADR-014 — the local default this ADR supersedes
+- ADR-015 — the earlier 33-query comparison, retained as history
+- `bible/semantic.py` — `EmbedderProfile`, `DimensionMismatchError`
+- `config/retrieval_gates.json` — thresholds keyed by profile and split
+- `notes/2026-10-26-adr-014-decision-brief.md` — the brief this answers
+- `notes/2026-10-28-default-embedder-3large.md` — session record
+
+### Sign-off
+
+This ADR is signed off by the acting chair (Steven) on 2026-10-28 under the
+single-contributor convening from `COUNCIL.md` §6.1.

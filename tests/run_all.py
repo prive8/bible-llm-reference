@@ -4037,8 +4037,25 @@ def t_hybrid_cli_accepts_dash_n_alias():
 def t_hybrid_cli_top_k_still_works():
     """The long form --top-k must still work after adding -n alias.
     Catches a regression where someone replaces --top-k entirely with -n.
+
+    It also pins the degradation contract, because this is the test
+    that caught the 2026-10-28 CI failure. Making 3-large the default
+    embedder (ADR-016) meant `bible hybrid` resolved a profile whose
+    backend needs an OpenRouter key, and CI has no key — so the
+    ProfileUnavailable error escaped the CLI as a traceback and exited
+    1, turning all 8 matrix test jobs red. Retrieval had not broken;
+    a CLI could not say "the semantic leg is unavailable".
+
+    So with NO embedder available the command must still work (BM25
+    needs no embedder), and the degradation must be announced rather
+    than silent: on stderr, and in the JSON payload, because a machine
+    consumer that discards stderr would otherwise read a degraded
+    result set as a full hybrid one.
     """
+    import os
     import subprocess
+    import tempfile
+
     p = subprocess.run(
         [sys.executable, "-m", "bible", "hybrid", "mercy", "--top-k", "3", "--json"],
         capture_output=True, text=True, cwd=ROOT, timeout=60,
@@ -4048,6 +4065,51 @@ def t_hybrid_cli_top_k_still_works():
             f"{p.stderr[:300]}")
     _assert("unrecognized arguments" not in p.stderr,
             f"argparse rejected --top-k: {p.stderr[:300]}")
+
+    # Now the same command with no embedder reachable — the CI matrix
+    # job's environment: no API key, and no ~/.hermes/.env to fall
+    # back to.
+    env = dict(os.environ)
+    env.pop("OPENROUTER_API_KEY", None)
+    with tempfile.TemporaryDirectory() as fake_home:
+        env["HOME"] = fake_home
+        env["USERPROFILE"] = fake_home  # Windows CI
+        q = subprocess.run(
+            [sys.executable, "-m", "bible", "hybrid", "mercy", "--top-k", "3", "--json"],
+            capture_output=True, text=True, cwd=ROOT, timeout=120, env=env,
+        )
+
+    _assert(q.returncode == 0,
+            f"`bible hybrid --json` exited {q.returncode} with no embedder "
+            f"available: {q.stderr[-500:]}")
+    _assert("Traceback" not in q.stderr,
+            f"the CLI must not raise a traceback for an unavailable profile: {q.stderr[-500:]}")
+    _assert("semantic leg unavailable" in q.stderr.lower(),
+            f"the degradation must be announced on stderr: {q.stderr[-500:]}")
+
+    data = json.loads(q.stdout)
+    _assert(data.get("semantic_leg") == "unavailable",
+            f"the JSON payload must record the degraded leg: {sorted(data)}")
+    _assert(data.get("semantic_note"),
+            "the JSON payload must say WHY the semantic leg was unavailable")
+    _assert(isinstance(data.get("results"), list),
+            "the BM25 leg must still answer the query")
+    _assert(len(data["results"]) > 0,
+            "the BM25 leg must still return results for a query with hits")
+
+    # The hybrid command needs a --profile flag, like `bible semantic`:
+    # the production default (3-large) needs an OpenRouter key, and
+    # without a flag there is no way to ask for the free offline index.
+    h = subprocess.run(
+        [sys.executable, "-m", "bible", "hybrid", "--help"],
+        capture_output=True, text=True, cwd=ROOT, timeout=60,
+    )
+    out = (h.stdout + h.stderr)
+    _assert("--profile" in out, "bible hybrid must accept --profile PROFILE")
+    for name in ("local", "3large"):
+        _assert(name in out,
+                f"--profile choices must include {name!r}: the offline index "
+                f"and the production default")
 
 
 @_register("t_version_matches_pyproject_toml")

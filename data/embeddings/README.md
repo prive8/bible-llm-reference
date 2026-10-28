@@ -11,6 +11,15 @@ This directory holds the precomputed semantic vector index for the Bible
 - `default_vectors.bin` — raw float32 binary vectors, packed as
   `[count × dim]` floats. ~67 MB at dim=384 for the full corpus.
 
+Each index is named for the embedder that built it: `default` is the local
+MiniLM (384-dim) index, `openrouter-3large` is `text-embedding-3-large`
+(3072-dim, the production default per ADR-016), `openrouter-default` is
+`text-embedding-3-small` (1536-dim), `openrouter-qwen3-8b` is
+`qwen/qwen3-embedding-8b` (4096-dim). The name is not decoration — an
+index is only meaningful with its embedder, and `bible/semantic.py` binds
+them together as a *profile* and refuses to score a query against an index
+of a different width.
+
 ## Why this isn't committed
 
 Per HANDOFF §7.5 and ADR-003 (same pattern as Strong's `.js` → `.json`):
@@ -21,20 +30,29 @@ repo lean and avoids pushing 67 MB of generated artifacts.
 
 ## How to generate
 
+The `--profile` flag binds the backend, the model, and the index name
+together, so an index cannot be built with the wrong embedder. Without it
+the default profile is `3large` (the production embedder, ADR-016), which
+needs an OpenRouter key and costs about $0.74 for a full-corpus rebuild.
+
 ```bash
 # Install the embedding backend
 pip install -e ".[embeddings]"
 
-# Build the local-sentence-transformers index (default, ~3 min on CPU)
-python scripts/index_embeddings.py --backend local --name default
+# Build the local-sentence-transformers index (free, offline, ~3 min on CPU).
+# This is the index CI builds and gates.
+python scripts/index_embeddings.py --profile local
 
-# Or NIM hosted (costs NIM free-tier credits)
-NVIDIA_API_KEY=nvapi-xxx python scripts/index_embeddings.py --backend nim --name default
+# Build the production index (text-embedding-3-large, 3072-dim).
+# Needs OPENROUTER_API_KEY; ~$0.74 for the full corpus.
+OPENROUTER_API_KEY=sk-or-xxx python scripts/index_embeddings.py --profile 3large
 ```
 
-Output goes to `data/embeddings/default_meta.json` and
-`data/embeddings/default_vectors.bin`. Both `python -m bible semantic` and
-`python -m bible hybrid` auto-load this directory by default.
+Output goes to `data/embeddings/<profile's index>_meta.json` and
+`data/embeddings/<profile's index>_vectors.bin` — e.g. `default_*` for the
+local profile. `python -m bible semantic` and `python -m bible hybrid`
+search the **default profile's** index (`openrouter-3large`); pass
+`--profile local` to use the offline MiniLM index instead.
 
 ## Test coverage
 
@@ -42,3 +60,8 @@ The sister-script test `t_semantic_real_index_loads_and_returns_results`
 in `tests/run_all.py` is the developer-facing proof that the index loads
 and queries work end-to-end. It auto-skips when the index files don't
 exist (so CI doesn't fail when the index hasn't been generated).
+
+Run `python scripts/check_indexes.py` to check every index on disk for
+internal consistency (`.bin` size vs metadata count). A truncated index
+must fail loudly rather than score plausibly — see
+[`notes/2026-10-26-truncated-index-found.md`](../../notes/2026-10-26-truncated-index-found.md).

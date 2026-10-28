@@ -161,7 +161,7 @@ bible/                 CLI package (stdlib). registry, parallel, search,
 scripts/run_eval.py    retrieval benchmark (v1 and v2)
 scripts/eval_gate.py   recall@10 threshold gate used by CI
 scripts/index_embeddings.py
-tests/run_all.py       155 sister-script tests
+tests/run_all.py       170 sister-script tests
 data/                  quran, torah, tanakh, references, editions.json,
                        versification_map.json
 kjv.json, translations/, strongs_data/
@@ -179,7 +179,7 @@ Architectural decisions are ADRs in [`docs/design-decisions.md`](./docs/design-d
 
 ## Contributing
 
-[`CONTRIBUTING.md`](./CONTRIBUTING.md). Tests: `python3 tests/run_all.py` (155 passed, 0 failed, as of 2026-10-25).
+[`CONTRIBUTING.md`](./CONTRIBUTING.md). Tests: `python3 tests/run_all.py` (170 passed, 0 failed, as of 2026-10-26).
 
 ## Security
 

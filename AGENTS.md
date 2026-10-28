@@ -11,21 +11,21 @@ Coding agents start here, then read [`README.md`](./README.md) for what the repo
 
 This is the only work queue in the repo.
 
-1. dad-h2, assigned by solomon-grokbot (PM) on 2026-10-28. Make OpenAI `text-embedding-3-large` the default embedder.
-   - Decision: Steven chose OpenAI text-embedding-3-large as the default embedder (resolves the ADR-014 decision brief, [`notes/2026-10-26-adr-014-decision-brief.md`](./notes/2026-10-26-adr-014-decision-brief.md)). Numbers on the v2 cross-tradition dev gate: qwen3-8b 0.321 @ ~9.6 s/query, 3-large 0.297 @ ~2.9 s, local MiniLM 0.189 @ ~0.8 s. A qwen3-8b "deep study" mode is not decided.
-   - Goal: make 3-large the default; mark ADR-014 Accepted; then pick up the held_out retrieval gate that was waiting on this decision.
-   - Acceptance: default config/CLI uses 3-large with a complete (non-truncated) index; ADR-014 Accepted with date and numbers; CI green on all 8 PR jobs (ubuntu+windows, Py3.10-3.13); gate thresholds only raised, or any change justified in the ADR (never loosened to turn red green); ADR-001 stdlib-only respected aside from the existing embedding API path; licensed texts untouched.
-   - Files: embedder config/defaults, eval gate scripts/thresholds, ADR-014, README, AGENTS.md.
-   - Reminder: update README and AGENTS.md when done, including the stale test count (says 155; dad-h2's 2026-10-26 changelog says 170), and log in the vault. **The test count is now 170 in both README.md and AGENTS.md (dad-h2, 2026-10-28) — that part is done; the remaining AGENTS.md work is the queue entry itself.**
+1. ~~dad-h2, assigned by solomon-grokbot (PM) on 2026-10-28. Make OpenAI `text-embedding-3-large` the default embedder.~~ **DONE 2026-10-28 by dad-h2** — commits `fb95601`, `fad4c0f`, `a1ece75`. See [ADR-016](./docs/design-decisions.md) and [`notes/2026-10-28-default-embedder-3large.md`](./notes/2026-10-28-default-embedder-3large.md).
+   - Decision: Steven chose OpenAI text-embedding-3-large as the default embedder (resolves the ADR-014 decision brief, [`notes/2026-10-26-adr-014-decision-brief.md`](./notes/2026-10-26-adr-014-decision-brief.md)). Numbers on the v2 cross-tradition dev gate: qwen3-8b 0.321 @ ~9.6 s/query, 3-large 0.297 @ ~2.9 s, local MiniLM 0.189 @ ~0.8 s. A qwen3-8b "deep study" mode is not decided — **and was not built**.
+   - Outcome: the default embedder is `openai/text-embedding-3-large` (3072-dim, index `openrouter-3large`), recorded as **ADR-016** (Accepted 2026-10-28, Steven as acting chair per `COUNCIL.md` §6.1), which supersedes ADR-014. The free offline MiniLM index stays reachable as `--profile local`, and that is what CI builds and gates. Embedder profiles bind backend, model, index, and dimension together, and a query embedder whose width disagrees with the index now raises instead of silently truncating.
+   - Acceptance met: default config/CLI uses 3-large with a complete (non-truncated) index; ADR-016 Accepted with date and numbers; CI green on all 8 matrix jobs (ubuntu+windows, Py3.10-3.13) and on the `eval-regression` job — run `40766844172`; thresholds only raised, or justified in the ADR (never loosened to turn red green); ADR-001 stdlib-only respected aside from the existing embedding API path; licensed texts untouched. **179 tests pass, 0 fail.**
+   - Files: embedder config/defaults, eval gate scripts/thresholds, ADR-016, README, AGENTS.md.
+   - Follow-on: the `held_out` retrieval gate shipped with it as `local/v2-held_out`, with thresholds derived from the **held_out** baselines (0.092 / 0.106 / 0.115) rather than copied from the dev gate. The `3large` gates are configured but not run by default CI — CI has no embedding-API credential.
 2. The fleet to-do board: `shared/TODO.md` in the private vault `prive8/obsidian-vault-shared`. The vault is private; this file only records the path.
-3. The latest file in [`notes/`](./notes/). Session notes use Done / Blocked / Tomorrow / Decisions. The retrieval-gate note is [`notes/2026-10-25-ci-eval-regression-restored.md`](./notes/2026-10-25-ci-eval-regression-restored.md).
+3. The latest file in [`notes/`](./notes/). Session notes use Done / Blocked / Tomorrow / Decisions. The default-embedder note is [`notes/2026-10-28-default-embedder-3large.md`](./notes/2026-10-28-default-embedder-3large.md); the retrieval-gate note is [`notes/2026-10-25-ci-eval-regression-restored.md`](./notes/2026-10-25-ci-eval-regression-restored.md).
 
 [`HANDOFF.md`](./HANDOFF.md) points here and at the README. [`docs/foundation-plan.md`](./docs/foundation-plan.md) is the 2026-10-08 review. The work queue is the list above.
 
 ## Commands
 
 ```bash
-python tests/run_all.py              # must print: N passed, 0 failed (170 on 2026-10-26)
+python tests/run_all.py              # must print: 179 passed, 0 failed (2026-10-28)
 python -m bible parallel "John 3:16"
 ```
 
@@ -45,6 +45,14 @@ on the cross-tradition v2 benchmark — the best-looking number in the
 embedder comparison, from a broken artifact. A score is only comparable
 to another score if the corpus behind it was the same. See
 [`notes/2026-10-26-truncated-index-found.md`](./notes/2026-10-26-truncated-index-found.md).
+
+**The default embedder is `openai/text-embedding-3-large`** (ADR-016), so
+`bible semantic` needs an `OPENROUTER_API_KEY` and a built 3072-dim index.
+The offline `all-MiniLM-L6-v2` index is `--profile local` — free, and what
+CI builds and gates. An embedder and the index it scores are one choice:
+profiles bind backend, model, index, and dimension together, and a query
+embedder whose width disagrees with the index raises `DimensionMismatchError`
+rather than silently scoring the first N dimensions.
 
 ## Conventions
 
